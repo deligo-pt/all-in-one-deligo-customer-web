@@ -1,0 +1,352 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DeliGo design tokens — Plan.md §4.
+
+   Three layers, and the separation is the point:
+
+     1. `--dg-*` primitives   the values measured out of the Figma file
+     2. `--dg-<role>`         what those values MEAN (surface, ink, line…)
+     3. `@theme`              what Tailwind may generate a utility for
+
+   A component never names a primitive. It names a role, and the role points at
+   a primitive. Dark mode (decision D-3: not in v1) is then a matter of
+   redefining layer 2 inside a scope — no component changes, no new utilities.
+   That is the whole reason the indirection exists; without it "add dark mode
+   later" means editing every file that mentions a colour.
+
+   Everything here was measured, not chosen. 33,587 nodes of the `Deligo
+   website` page were counted; the frequencies are recorded in the Phase 1 entry
+   in Plan.md. Where a value in the file had no system behind it — a stray
+   Tailwind default, a one-off grey — it is snapped to the nearest token rather
+   than enshrined, and that list is recorded too.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Layer 1: primitives ────────────────────────────────────────────────
+     The brand ramp. `pink-500` is the product's pink: 1,704 fills, 1,936 text
+     runs and 1,171 strokes in the design use it. The rest of the ramp is the
+     tints and shades the file actually contains — measured hexes, not alphas
+     of the base, because the designer picked them by eye and an alpha ladder
+     reproduces none of them exactly. */
+  --dg-pink-50: #fceaf1;
+  --dg-pink-100: #f7dce0;
+  --dg-pink-200: #f4bfd4;
+  --dg-pink-400: #e35a8f;
+  --dg-pink-500: #dc3173;
+  --dg-pink-600: #d82d70;
+  --dg-pink-700: #b50557;
+  --dg-pink-800: #8f0043;
+
+  /* Neutrals. Two families, because the design has two: a cool grey used by
+     everything, and a warm brown-grey the Hotel Booking screens are built in
+     (529 text runs). Collapsing them would flatten a vertical's whole look. */
+  --dg-white: #ffffff;
+  --dg-grey-25: #fbf8ff;
+  --dg-grey-50: #f3f3f3;
+  --dg-grey-100: #ebebeb;
+  --dg-grey-200: #e0e0e0;
+  --dg-grey-400: #9f9f9f;
+  --dg-grey-600: #666666;
+  --dg-grey-800: #333333;
+  --dg-grey-900: #1c1c1c;
+
+  --dg-warm-25: #fcf9f8;
+  --dg-warm-200: #e0bec5;
+  --dg-warm-800: #594046;
+
+  /* State. `amber` is one value serving two roles — a warning and a rating
+     star — which is exactly what layer 2 is for. */
+  --dg-green: #4caf50;
+  --dg-amber: #e8b006;
+  --dg-red: #f44336;
+
+  /* Motion, measured from the prototype's own transitions: 1,174 of them are
+     `EASE_OUT 300ms`, which is why 300ms is the app-wide default below rather
+     than a class anyone has to remember. Tailwind has no `--duration-*` theme
+     namespace, so the exception is written `duration-[var(--dg-duration-fast)]`
+     — a token reference, which `verify:design` allows, not a literal, which it
+     does not. */
+  --dg-duration-fast: 200ms;
+  --dg-duration-base: 300ms;
+
+  /* ── Layer 2: roles ───────────────────────────────────────────────────── */
+  --dg-brand-tint: var(--dg-pink-50);
+  --dg-brand-pale: var(--dg-pink-100);
+  --dg-brand-soft: var(--dg-pink-200);
+  --dg-brand-mid: var(--dg-pink-400);
+  --dg-brand: var(--dg-pink-500);
+  --dg-brand-strong: var(--dg-pink-700);
+  --dg-brand-deep: var(--dg-pink-800);
+  --dg-focus: var(--dg-pink-600);
+
+  --dg-surface: var(--dg-white);
+  --dg-surface-subtle: var(--dg-grey-25);
+  --dg-surface-warm: var(--dg-warm-25);
+  --dg-surface-muted: var(--dg-grey-50);
+
+  --dg-ink: var(--dg-grey-800);
+  --dg-ink-strong: var(--dg-grey-900);
+  --dg-ink-muted: var(--dg-grey-600);
+  --dg-ink-subtle: var(--dg-grey-400);
+  --dg-ink-warm: var(--dg-warm-800);
+  --dg-ink-inverse: var(--dg-white);
+
+  --dg-line: var(--dg-grey-200);
+  --dg-line-subtle: var(--dg-grey-100);
+  --dg-line-strong: var(--dg-grey-400);
+  --dg-line-warm: var(--dg-warm-200);
+
+  --dg-success: var(--dg-green);
+  --dg-warning: var(--dg-amber);
+  --dg-rating: var(--dg-amber);
+  --dg-danger: var(--dg-red);
+}
+
+/* ── Layer 3a: colour utilities ───────────────────────────────────────────
+   `inline` matters here. It makes `bg-brand` compile to
+   `background-color: var(--dg-brand)` rather than to a copy of the hex, so a
+   scope that redefines `--dg-brand` changes every utility that uses it. That
+   is the hook dark mode will hang on. */
+@theme inline {
+  /* Tailwind ships ~290 colours. Clearing the namespace means `bg-red-500`
+     does not compile — a colour outside this file cannot reach the DOM by
+     accident, which is a stronger guarantee than any lint rule. */
+  --color-*: initial;
+
+  --color-brand-tint: var(--dg-brand-tint);
+  --color-brand-pale: var(--dg-brand-pale);
+  --color-brand-soft: var(--dg-brand-soft);
+  --color-brand-mid: var(--dg-brand-mid);
+  --color-brand: var(--dg-brand);
+  --color-brand-strong: var(--dg-brand-strong);
+  --color-brand-deep: var(--dg-brand-deep);
+  --color-focus: var(--dg-focus);
+
+  --color-surface: var(--dg-surface);
+  --color-surface-subtle: var(--dg-surface-subtle);
+  --color-surface-warm: var(--dg-surface-warm);
+  --color-surface-muted: var(--dg-surface-muted);
+
+  --color-ink: var(--dg-ink);
+  --color-ink-strong: var(--dg-ink-strong);
+  --color-ink-muted: var(--dg-ink-muted);
+  --color-ink-subtle: var(--dg-ink-subtle);
+  --color-ink-warm: var(--dg-ink-warm);
+  --color-ink-inverse: var(--dg-ink-inverse);
+
+  --color-line: var(--dg-line);
+  --color-line-subtle: var(--dg-line-subtle);
+  --color-line-strong: var(--dg-line-strong);
+  --color-line-warm: var(--dg-line-warm);
+
+  --color-success: var(--dg-success);
+  --color-warning: var(--dg-warning);
+  --color-rating: var(--dg-rating);
+  --color-danger: var(--dg-danger);
+
+  --font-*: initial;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ── Layer 3b: everything that is not a colour ────────────────────────────
+   Sizes are named for the pixel value they came from, deliberately. `text-14`
+   is what the Figma inspector says, so "pixel-accurate against the prototype"
+   is a transcription rather than a translation, and a size that is not in the
+   design simply does not compile. */
+@theme {
+  --text-*: initial;
+  --text-8: 0.5rem;
+  --text-8--line-height: 1.2;
+  --text-10: 0.625rem;
+  --text-10--line-height: 1.25;
+  --text-12: 0.75rem;
+  --text-12--line-height: 1.3333;
+  --text-13: 0.8125rem;
+  --text-13--line-height: 1.5;
+  --text-14: 0.875rem;
+  --text-14--line-height: 1.2;
+  --text-16: 1rem;
+  --text-16--line-height: 1.2;
+  --text-18: 1.125rem;
+  --text-18--line-height: 1.3333;
+  --text-20: 1.25rem;
+  --text-20--line-height: 1.2;
+  --text-24: 1.5rem;
+  --text-24--line-height: 1.2;
+  --text-32: 2rem;
+  --text-32--line-height: 1.2;
+  --text-40: 2.5rem;
+  --text-40--line-height: 1.2;
+  --text-48: 3rem;
+  --text-48--line-height: 1.2;
+  --text-56: 3.5rem;
+  --text-56--line-height: 1.2;
+
+  /* Every size above carries the line height it is used with most often in the
+     design. These are the overrides for the cases that differ — 16/24 body
+     copy, 12/20 dense lists — measured the same way. */
+  --leading-*: initial;
+  --leading-tight: 1.2;
+  --leading-snug: 1.25;
+  --leading-normal: 1.3333;
+  --leading-relaxed: 1.5;
+  --leading-loose: 1.6667;
+
+  /* Display sizes are tracked in, small labels tracked out. Both directions
+     appear in the file; neither is Tailwind's default. */
+  --tracking-*: initial;
+  --tracking-tight: -0.02em;
+  --tracking-snug: -0.01em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.05em;
+  --tracking-wider: 0.1em;
+
+  /* Radii are named for pixels for the same reason as type. `rounded-full`
+     absorbs the design's 30/44/50/100px pills — on an element shorter than
+     twice the radius they are the same shape, and the file uses all four
+     interchangeably. */
+  --radius-*: initial;
+  --radius-4: 4px;
+  --radius-8: 8px;
+  --radius-10: 10px;
+  --radius-12: 12px;
+  --radius-16: 16px;
+  --radius-20: 20px;
+  --radius-24: 24px;
+  --radius-32: 32px;
+  --radius-full: 9999px;
+
+  /* `card` is the most common shadow in the file (183 uses) and is also
+     Figma's untouched default drop shadow, which is worth knowing before
+     copying it onto anything new. The xs/sm/md/lg set below it is the ladder
+     the more considered screens actually use. */
+  --shadow-*: initial;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+  --shadow-card: 0 4px 4px 0 rgb(0 0 0 / 0.25);
+  --shadow-brand: 0 8px 16px 0 rgb(181 5 87 / 0.3);
+  --shadow-focus: 0 0 0 4px rgb(220 49 115 / 0.2);
+
+  /* Measured from the prototype's own transitions: 1,174 of them are
+     `EASE_OUT 300ms`. `--ease-out` is Figma's curve, not Tailwind's. */
+  /* The shell's two container widths, measured: the app header lays its
+     contents out on 1312px, the marketing header on 1120px. Named rather than
+     written as `max-w-[82rem]` so the shell and every page inside it agree. */
+  --container-*: initial;
+  --container-shell: 82rem;
+  --container-narrow: 70rem;
+
+  --ease-*: initial;
+  --ease-linear: linear;
+  --ease-out: cubic-bezier(0, 0, 0.58, 1);
+  --ease-in-out: cubic-bezier(0.42, 0, 0.58, 1);
+
+  /* So that a bare `transition-colors` is already the design's transition.
+     Tailwind's own defaults are 150ms and its own easing curve; neither is what
+     this product does. */
+  --default-transition-duration: var(--dg-duration-base);
+  --default-transition-timing-function: var(--ease-out);
+
+  /* Overlays enter and leave faster than 300ms; a dialog that takes a third of
+     a second to close feels stuck. Both are the measured `fast` step. */
+  --animate-fade-in: dg-fade-in var(--dg-duration-fast) var(--ease-out);
+  --animate-fade-out: dg-fade-out var(--dg-duration-fast) var(--ease-out);
+  --animate-pop-in: dg-pop-in var(--dg-duration-fast) var(--ease-out);
+  --animate-pop-out: dg-pop-out var(--dg-duration-fast) var(--ease-out);
+  --animate-slide-in: dg-slide-in var(--dg-duration-base) var(--ease-out);
+  --animate-slide-out: dg-slide-out var(--dg-duration-base) var(--ease-out);
+}
+
+/* ── Overlay motion ───────────────────────────────────────────────────────
+   Radix keeps an element mounted while a CSS *animation* runs on close, and
+   does not wait for a transition. So exits are animations, not transitions —
+   otherwise a dialog vanishes the instant it is dismissed and only the entrance
+   is ever seen.
+
+   `--drawer-offset` is what keeps the slide logical: the drawer sets it to
+   100% when it opens from the inline end, and a right-to-left document flips
+   the sign. Transforms have no logical equivalent, so this is the one physical
+   direction in the kit and it is parameterised rather than hard-coded. */
+@keyframes dg-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dg-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes dg-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes dg-pop-out {
+  to {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes dg-slide-in {
+  from {
+    transform: translateX(var(--drawer-offset, 100%));
+  }
+}
+
+@keyframes dg-slide-out {
+  to {
+    transform: translateX(var(--drawer-offset, 100%));
+  }
+}
+
+@layer base {
+  html {
+    /* Type scale steps are rem so that a reader who raises their browser font
+       size gets larger text. At the default 16px root they are the pixel
+       values in the design, exactly. */
+    font-family: var(--font-sans);
+    color: var(--dg-ink);
+    background-color: var(--dg-surface);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* One focus style for the whole app, defined once, visible on every focusable
+     thing. The previous project styled focus per component and ended up with
+     controls that could be tabbed to and not seen. */
+  :focus-visible {
+    outline: 2px solid var(--dg-focus);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background-color: var(--dg-brand-soft);
+    color: var(--dg-ink-strong);
+  }
+}
+
+/* ── Motion ───────────────────────────────────────────────────────────────
+   The opt-out is deliberately blunt: it removes animation and transition for
+   everyone who has asked their system to reduce motion, rather than trusting
+   each component to remember. `animation-fill-mode: none` is not cosmetic —
+   the previous project spent six phases with dead press states because a
+   `fill-mode: both` animation kept applying its final frame afterwards. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-fill-mode: none !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

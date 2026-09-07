@@ -1,0 +1,67 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    // ── Strictness beyond `strict` ────────────────────────────────────────────
+    // `strict` does not cover these, and each one catches a class of bug that is
+    // silent at runtime. Turning them on later means fixing them all at once, so
+    // they go on now while the codebase is four files.
+    //
+    // noUncheckedIndexedAccess is the expensive one and the valuable one:
+    // `arr[0]` becomes `T | undefined`, which is the truth. The old app read
+    // `slides[selectedIndex]._id` in the hero and needed a `?? ""` guard that
+    // nothing forced it to have.
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  // Generated route types come from ONE directory, and it is the one
+  // `pnpm typecheck` regenerates (`next typegen` with NEXT_DIST_DIR=.next-build).
+  // `.next/types/` used to be listed here as well and cannot be: `next dev`
+  // writes it, so after any change to the route tree the two directories
+  // describe different applications and `tsc` typechecks the union of both —
+  // which failed with "module '../../src/app/page.js' not found" for a page that
+  // had just been moved under `[locale]`. One generator, one directory.
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next-build/types/**/*.ts",
+    ".next-build/dev/types/**/*.ts",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  // `.next/` is excluded, and `exclude` is used rather than trimming `include`
+  // because `next typegen` and `next build` rewrite `include` and put
+  // `.next/types` back every time.
+  //
+  // Two directories hold generated route types: `.next/` (written by
+  // `next dev`) and `.next-build/` (written by `pnpm typecheck` and
+  // `pnpm build:check`). After any change to the route tree they describe
+  // different applications, and typechecking the union of both fails with
+  // errors about files that have moved — "Cannot find module
+  // '../../src/app/page.js'" for a page that is now under `[locale]`.
+  // One generator, one directory: the one this project's own scripts refresh.
+  "exclude": ["node_modules", ".next"]
+}

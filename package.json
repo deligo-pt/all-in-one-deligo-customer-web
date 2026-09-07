@@ -1,0 +1,46 @@
+{
+  "name": "deligo-customer-web-application-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "analyze": "ANALYZE=true next build",
+    "lint": "eslint src scripts",
+    "typecheck": "rm -f tsconfig.tsbuildinfo && NEXT_DIST_DIR=.next-build next typegen && tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "build:check": "node scripts/build-check.mjs",
+    "verify:structure": "node --no-warnings scripts/verify-structure.mjs",
+    "verify:design": "node --no-warnings scripts/verify-design.mjs",
+    "verify:bundle": "node --no-warnings scripts/verify-bundle.mjs",
+    "verify:i18n": "node --no-warnings scripts/verify-i18n.mjs",
+    "verify:shell": "node --no-warnings scripts/verify-shell.mjs",
+    "verify": "pnpm verify:structure && pnpm verify:design && pnpm verify:i18n && pnpm verify:shell && pnpm verify:bundle",
+    "gate": "pnpm typecheck && pnpm lint && pnpm build:check && pnpm verify"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "next": "16.3.4",
+    "radix-ui": "^1.6.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "sonner": "^2.0.8",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@next/bundle-analyzer": "^16.3.4",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.4",
+    "prettier": "^3.9.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "packageManager": "pnpm@11.5.3"
+}
