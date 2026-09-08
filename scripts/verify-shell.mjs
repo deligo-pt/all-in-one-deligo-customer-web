@@ -16,6 +16,7 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { DEV_ONLY_ROUTES } from "./dev-only-routes.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
@@ -114,9 +115,11 @@ const pageFor = (route) =>
     "page.tsx",
   );
 
-/** Routes are the customer-facing tree. These three are development tools that
- *  prerender as 404s, and they are deliberately outside it. */
-const DEV_ONLY = ["tokens", "primitives", "formats"];
+/** Routes are the customer-facing tree. These are development tools that
+ *  prerender as 404s, and they are deliberately outside it. `verify:bundle`
+ *  excludes the same list from the budget, which is only defensible while the
+ *  assertion further down — that each really does 404 in production — holds. */
+const DEV_ONLY = DEV_ONLY_ROUTES;
 
 // ─────────────────────────────────────────────────────────────────────────────
 section("§1  Every route resolves, and every page is a route");

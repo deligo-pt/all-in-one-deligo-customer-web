@@ -29,6 +29,10 @@ import type footerEn from "./dictionaries/en/footer";
 import type footerPt from "./dictionaries/pt/footer";
 import type homeEn from "./dictionaries/en/home";
 import type homePt from "./dictionaries/pt/home";
+import type authEn from "./dictionaries/en/auth";
+import type authPt from "./dictionaries/pt/auth";
+import type foodEn from "./dictionaries/en/food";
+import type foodPt from "./dictionaries/pt/food";
 
 /** Resolves only when `T` is `never`. When two dictionaries diverge, `T` is the
  *  union of the offending key names and the compiler prints them. */
@@ -69,4 +73,18 @@ export type HomeEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
 >;
 export type HomePtHasNoKeysMissingFromEn = AssertNoStrayKeys<
   OnlyInFirst<typeof homePt, typeof homeEn>
+>;
+
+export type AuthEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
+  OnlyInFirst<typeof authEn, typeof authPt>
+>;
+export type AuthPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
+  OnlyInFirst<typeof authPt, typeof authEn>
+>;
+
+export type FoodEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
+  OnlyInFirst<typeof foodEn, typeof foodPt>
+>;
+export type FoodPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
+  OnlyInFirst<typeof foodPt, typeof foodEn>
 >;

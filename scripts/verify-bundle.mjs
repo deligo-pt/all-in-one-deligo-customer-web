@@ -25,6 +25,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DEV_ONLY_ROUTES } from "./dev-only-routes.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const BUDGET_KB = 180;
@@ -97,6 +98,12 @@ const pages = htmlFiles(join(dist, "server", "app"))
     };
   })
   .filter((page) => page.files > 0)
+  // The development tools are not pages. Each calls `notFound()` in a
+  // production build, so nothing a customer requests ever loads their chunks —
+  // measuring them against a first-load budget is measuring something no
+  // browser downloads. `verify:shell` is what makes that true, and asserts it
+  // against this same list.
+  .filter((page) => !DEV_ONLY_ROUTES.some((name) => page.route.endsWith(`/${name}`)))
   .sort((a, b) => b.kb - a.kb);
 
 console.log(`\n\x1b[1mFirst-load JS — budget ${BUDGET_KB} KB gzipped\x1b[0m`);

@@ -7,6 +7,8 @@ import { unbuiltVerticalsVisible } from "@/lib/flags";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES, type RouteName } from "@/lib/routes";
 import type { MessageKey } from "@/i18n/namespaces";
+import { LocaleSwitcher } from "./LocaleSwitcher";
+import { SignInButton } from "./SignInButton";
 import { Logo } from "./Logo";
 import { MobileNav } from "./MobileNav";
 import { NavLinks } from "./NavLinks";
@@ -51,7 +53,11 @@ const VERTICAL_LINKS = [
   "electronics",
 ] as const satisfies readonly NavRouteName[];
 
-export async function SiteHeader({ variant }: { variant: "marketing" | "app" }) {
+export async function SiteHeader({
+  variant,
+}: {
+  variant: "marketing" | "app" | "auth";
+}) {
   const [t, common, locale] = await Promise.all([
     getTranslations("nav"),
     getTranslations("common"),
@@ -70,6 +76,32 @@ export async function SiteHeader({ variant }: { variant: "marketing" | "app" }) 
       href: withLocale(ROUTES[name].path, locale),
       label: t(name),
     }));
+
+  /**
+   * The sign-in bar. Everything that competes with the task is gone — the six
+   * verticals, the search field, the cart, the notification bell and the two
+   * calls to action — and the two things that do not compete stay: the way
+   * home, and the language. A customer who cannot read the form needs the
+   * second one before they need anything else on this page.
+   */
+  if (variant === "auth") {
+    return (
+      <header className="bg-surface border-line border-b">
+        <a
+          href="#main"
+          className="bg-brand text-ink-inverse text-14 sr-only rounded-8 focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:px-4 focus:py-2"
+        >
+          {t("skipToContent")}
+        </a>
+        <div className="max-w-narrow mx-auto flex h-20 items-center gap-8 px-8">
+          <Logo locale={locale} label={common("appName")} />
+          <div className="ms-auto">
+            <LocaleSwitcher />
+          </div>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="bg-surface border-line sticky top-0 z-30 border-b">
@@ -119,14 +151,18 @@ export async function SiteHeader({ variant }: { variant: "marketing" | "app" }) 
 
           <div className="hidden items-center gap-2 md:flex">
             {/* The design labels this "Login" on the marketing pages and
-                "Account" everywhere else — the same button, named for what the
-                visitor is there to do. Both go to the account route until
-                Phase 6 builds the sign-in drawer. */}
-            <Button variant="outline" asChild>
-              <Link href={withLocale(ROUTES.account.path, locale)}>
-                {variant === "marketing" ? t("login") : t("account")}
-              </Link>
-            </Button>
+                "Account" everywhere else — the same control, named for what the
+                visitor is there to do. Both open the sign-in drawer, because
+                until there is a session there is no account to show; Phase 15
+                is what makes the signed-in case different. */}
+            <SignInButton
+              href={withLocale(ROUTES.login.path, locale)}
+              label={variant === "marketing" ? t("login") : t("account")}
+              title={t("login")}
+              description={common("tagline")}
+              closeLabel={common("close")}
+              appName={common("appName")}
+            />
             <Button asChild>
               <Link href={withLocale(ROUTES.plus.path, locale)}>
                 {t("downloadApp")}

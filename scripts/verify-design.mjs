@@ -502,8 +502,16 @@ const missingDirective = [];
 // Every component, not only the primitives. A section that quietly uses
 // `useState` without the directive fails at the first page that renders it,
 // with an error pointing at the page rather than at the file.
+//
+// It read `uiCode` here until Phase 6, which is a map of `components/ui` only —
+// so for every file outside that directory the source was the empty string, no
+// hook matched, and the rule passed by looking at nothing. It had been blind to
+// `components/layout`, `app/` and `features/` since Phase 3. Same shape of bug
+// as the comment stripper in Phase 5: a guard that reports a pass it never
+// tested is worse than no guard, because it is also a claim.
+const sourceOf = new Map(componentCode);
 for (const f of componentFiles.filter((x) => x.endsWith(".tsx"))) {
-  const code = uiCode.get(f) ?? "";
+  const code = sourceOf.get(f) ?? "";
   const usesHooks =
     /\buse(?:State|Effect|Id|Ref|Reducer|Context|Transition|SyncExternalStore|Memo|Callback)\s*\(/.test(
       code,

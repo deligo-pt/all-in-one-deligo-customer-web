@@ -152,6 +152,57 @@ export const ICONS = {
     source: "clarity:shopping-cart-outline-badged",
     body: `<circle cx="13.33" cy="29.75" r="2.25" fill="currentColor" class="clr-i-outline--badged clr-i-outline-path-1--badged"/><circle cx="27" cy="29.75" r="2.25" fill="currentColor" class="clr-i-outline--badged clr-i-outline-path-2--badged"/><path fill="currentColor" d="M22.57 7a7.5 7.5 0 0 1-.07-1a7.5 7.5 0 0 1 .07-1H11.49l.65 2Z" class="clr-i-outline--badged clr-i-outline-path-3--badged"/><path fill="currentColor" d="M30 13.5h-.42L28.33 19h-15L8.76 4.53a1 1 0 0 0-.66-.65L4 2.62a1 1 0 1 0-.59 1.92L7 5.64l4.59 14.5l-1.64 1.34l-.13.13A2.66 2.66 0 0 0 9.74 25A2.75 2.75 0 0 0 12 26h16.69a1 1 0 0 0 0-2H11.84a.67.67 0 0 1-.56-1l2.41-2h15.44a1 1 0 0 0 1-.78l1.57-6.91a7.5 7.5 0 0 1-1.7.19" class="clr-i-outline--badged clr-i-outline-path-4--badged"/><circle cx="30" cy="6" r="5" fill="currentColor" class="clr-i-outline--badged clr-i-outline-path-5--badged clr-i-badge"/><path fill="none" d="M0 0h36v36H0z"/>`,
   },
+  // Added in Phase 6 for the sign-in flow. All `drawn`: the Figma auth frames
+  // were not re-measured for this pass (see Plan.md, Phase 6), so no Iconify
+  // name can be claimed for them honestly. If the frames name real sets, these
+  // six are the ones to swap.
+  phone: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<path d="M7.5 3h9a1.5 1.5 0 0 1 1.5 1.5v15A1.5 1.5 0 0 1 16.5 21h-9A1.5 1.5 0 0 1 6 19.5v-15A1.5 1.5 0 0 1 7.5 3Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M10.5 18h3" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`,
+  },
+  key: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<circle cx="8" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 12h9m-3 0v3m-2.5-3v2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  gift: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<path d="M4 11h16v8.5a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19.5Zm-.5-4h17a.5.5 0 0 1 .5.5V11H3V7.5a.5.5 0 0 1 .5-.5Zm8.5 0v14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M12 7S10.5 3 8.5 3a2 2 0 0 0 0 4Zm0 0s1.5-4 3.5-4a2 2 0 0 1 0 4Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>`,
+  },
+  "arrow-left": {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<path d="M19 12H5m0 0 6-6m-6 6 6 6" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  user: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<circle cx="12" cy="8" r="4" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`,
+  },
+  devices: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<path d="M14 17H3.5A1.5 1.5 0 0 1 2 15.5v-9A1.5 1.5 0 0 1 3.5 5h13A1.5 1.5 0 0 1 18 6.5V8" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 10h4a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-4a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M6 20h5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`,
+  },
+  // Added in Phase 7 for the food vertical. `tag` is the design's own
+  // `ic:outline-local-offer` on the discount pill; the other two are drawn.
+  clock: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.75"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  tag: {
+    viewBox: "0 0 24 24",
+    source: "ic:outline-local-offer",
+    body: `<path fill="currentColor" d="m21.41 11.58l-9-9C12.05 2.22 11.55 2 11 2H4c-1.1 0-2 .9-2 2v7c0 .55.22 1.05.59 1.42l9 9c.36.36.86.58 1.41.58s1.05-.22 1.41-.59l7-7c.37-.36.59-.86.59-1.41s-.23-1.06-.59-1.42M13 20.01L4 11V4h7v-.01l9 9z"/><circle cx="6.5" cy="6.5" r="1.5" fill="currentColor"/>`,
+  },
+  sliders: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<path d="M4 6h10m4 0h2M4 12h4m4 0h8M4 18h10m4 0h2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="16" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="10" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/>`,
+  },
 } as const satisfies Record<string, { viewBox: string; source: string; body: string }>;
 
 export type IconName = keyof typeof ICONS;

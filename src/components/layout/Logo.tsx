@@ -19,12 +19,17 @@ export function Logo({
   label,
   className,
   size = "md",
+  tone = "brand",
 }: {
   locale: Locale;
   /** The accessible name of the home link — the app's name. */
   label: string;
   className?: string;
   size?: "md" | "lg";
+  /** `inverse` for the wordmark on a brand-filled panel, where pink on pink is
+   *  invisible. The mark itself is an SVG with its own fills and is legible on
+   *  both, so only the text changes. */
+  tone?: "brand" | "inverse";
 }) {
   return (
     <Link
@@ -48,7 +53,8 @@ export function Logo({
       <span
         aria-hidden
         className={cn(
-          "text-brand font-semibold",
+          "font-semibold",
+          tone === "inverse" ? "text-ink-inverse" : "text-brand",
           size === "lg" ? "text-32" : "text-20",
         )}
       >

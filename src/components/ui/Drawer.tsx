@@ -25,6 +25,7 @@ export function Drawer({
   title,
   description,
   closeLabel,
+  header,
   className,
   children,
 }: {
@@ -34,6 +35,17 @@ export function Drawer({
   title: ReactNode;
   description?: ReactNode;
   closeLabel: string;
+  /**
+   * Replaces the default title row with a bar of the caller's own.
+   *
+   * The sign-in drawer's header is a 110px bar carrying the wordmark and a
+   * bare pink cross — measured from the design, and nothing like the
+   * title-and-description row every other drawer wants. `title` is still
+   * required when this is given and is rendered for assistive technology
+   * only: a dialog with no accessible name announces itself as "dialog",
+   * which says something has happened and nothing about what.
+   */
+  header?: ReactNode;
   className?: string;
   children?: ReactNode;
 }) {
@@ -43,7 +55,10 @@ export function Drawer({
         <Dialog.Overlay className="bg-ink-strong/50 data-[state=open]:animate-fade-in data-[state=closed]:animate-fade-out fixed inset-0 z-40" />
         <Dialog.Content
           className={cn(
-            "bg-surface fixed inset-y-0 z-50 flex w-[min(28rem,100vw)] flex-col gap-6 p-8 shadow-lg",
+            "bg-surface fixed inset-y-0 z-50 flex w-[min(28rem,100vw)] flex-col shadow-lg",
+            // A drawer with its own header lays out its own chrome; the
+            // default one keeps the padding and rhythm it has always had.
+            header ? "gap-0" : "gap-6 p-8",
             "data-[state=open]:animate-slide-in data-[state=closed]:animate-slide-out",
             side === "end"
               ? "end-0 [--drawer-offset:100%] rtl:[--drawer-offset:-100%]"
@@ -51,23 +66,35 @@ export function Drawer({
             className,
           )}
         >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-col gap-2">
-              <Dialog.Title className="text-20 text-ink-strong font-semibold">
-                {title}
-              </Dialog.Title>
+          {header ? (
+            <>
+              <Dialog.Title className="sr-only">{title}</Dialog.Title>
               {description ? (
-                <Dialog.Description className="text-14 text-ink-muted">
+                <Dialog.Description className="sr-only">
                   {description}
                 </Dialog.Description>
               ) : null}
+              {header}
+            </>
+          ) : (
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-2">
+                <Dialog.Title className="text-20 text-ink-strong font-semibold">
+                  {title}
+                </Dialog.Title>
+                {description ? (
+                  <Dialog.Description className="text-14 text-ink-muted">
+                    {description}
+                  </Dialog.Description>
+                ) : null}
+              </div>
+              <Dialog.Close asChild>
+                <Button variant="ghost" size="icon-sm" aria-label={closeLabel}>
+                  <Icon name="close" className="size-4" />
+                </Button>
+              </Dialog.Close>
             </div>
-            <Dialog.Close asChild>
-              <Button variant="ghost" size="icon-sm" aria-label={closeLabel}>
-                <Icon name="close" className="size-4" />
-              </Button>
-            </Dialog.Close>
-          </div>
+          )}
           <div className="flex-1 overflow-y-auto">{children}</div>
         </Dialog.Content>
       </Dialog.Portal>

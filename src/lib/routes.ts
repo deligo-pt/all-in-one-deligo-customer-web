@@ -17,7 +17,8 @@
  * Paths carry no locale. `withLocale` adds it; that is the only place the
  * `/pt` prefix is constructed.
  */
-export type RouteGroup = "marketing" | "shop" | "services" | "account" | "checkout";
+export type RouteGroup =
+  "marketing" | "shop" | "services" | "account" | "checkout" | "auth";
 
 export type Route = {
   /** Locale-less path, always rooted. */
@@ -52,6 +53,10 @@ export const ROUTES = {
   faqs: { path: "/faqs", group: "marketing", phase: 12 },
 
   food: { path: "/food", group: "shop", phase: 7 },
+  // The listing is its own page, not the landing scrolled: the design draws
+  // them as two frames with different headers, and "See Restaurant" on the
+  // landing is a navigation rather than an anchor.
+  restaurants: { path: "/food/restaurants", group: "shop", phase: 7 },
   groceries: { path: "/groceries", group: "shop", phase: 13 },
   electronics: { path: "/electronics", group: "shop", phase: 13 },
   search: { path: "/search", group: "shop", phase: 16 },
@@ -61,6 +66,12 @@ export const ROUTES = {
   ride: { path: "/ride", group: "services", phase: 14, flagged: true },
   hotel: { path: "/hotel", group: "services", phase: 14, flagged: true },
   parcel: { path: "/parcel", group: "services", phase: 14, flagged: true },
+
+  // Sign-in is a route as well as a drawer. The drawer is the design's normal
+  // path and keeps the customer where they were; this is what a bookmark, a
+  // shared link, an expired session and a browser with no JavaScript all land
+  // on. Both render the same panel — see `src/features/auth`.
+  login: { path: "/login", group: "auth", phase: 6 },
 
   cart: { path: "/cart", group: "checkout", phase: 9 },
   checkout: { path: "/checkout", group: "checkout", phase: 10 },

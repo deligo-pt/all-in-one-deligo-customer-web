@@ -28,8 +28,18 @@ import type errorsEn from "./dictionaries/en/errors";
 import type footerEn from "./dictionaries/en/footer";
 import type navEn from "./dictionaries/en/nav";
 import type homeEn from "./dictionaries/en/home";
+import type authEn from "./dictionaries/en/auth";
+import type foodEn from "./dictionaries/en/food";
 
-export const NAMESPACES = ["common", "errors", "nav", "footer", "home"] as const;
+export const NAMESPACES = [
+  "common",
+  "errors",
+  "nav",
+  "footer",
+  "home",
+  "auth",
+  "food",
+] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -48,6 +58,8 @@ export type Dictionary = {
   nav: typeof navEn;
   footer: typeof footerEn;
   home: typeof homeEn;
+  auth: typeof authEn;
+  food: typeof foodEn;
 };
 
 /** Every key a namespace defines — what `t()` will accept. */
@@ -74,6 +86,8 @@ const loaders: Record<Locale, Record<Namespace, () => Promise<Messages>>> = {
     nav: () => import("./dictionaries/en/nav").then((m) => m.default),
     footer: () => import("./dictionaries/en/footer").then((m) => m.default),
     home: () => import("./dictionaries/en/home").then((m) => m.default),
+    auth: () => import("./dictionaries/en/auth").then((m) => m.default),
+    food: () => import("./dictionaries/en/food").then((m) => m.default),
   },
   pt: {
     common: () => import("./dictionaries/pt/common").then((m) => m.default),
@@ -81,6 +95,8 @@ const loaders: Record<Locale, Record<Namespace, () => Promise<Messages>>> = {
     nav: () => import("./dictionaries/pt/nav").then((m) => m.default),
     footer: () => import("./dictionaries/pt/footer").then((m) => m.default),
     home: () => import("./dictionaries/pt/home").then((m) => m.default),
+    auth: () => import("./dictionaries/pt/auth").then((m) => m.default),
+    food: () => import("./dictionaries/pt/food").then((m) => m.default),
   },
 };
 
