@@ -19,8 +19,9 @@
  * storage invented before Phase 15 decides where tokens live.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DEV_ONLY_ROUTES } from "./dev-only-routes.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(ROOT, "src");
@@ -266,8 +267,27 @@ check(
   "Phone and email are two ways to identify yourself, and so are Google and Facebook. The design puts all four in one list; a tab bar above a provider list says they are different kinds of thing.",
 );
 
+/**
+ * The rule is about the dial code as a *constant* — the thing that has to
+ * change when DeliGo serves a second country — not about the characters
+ * `+351` appearing anywhere.
+ *
+ * Phase 12 transcribed the design's sample phone number, "+351 912 345 678",
+ * into a development fixture and this fired. The fixture is a picture of a
+ * Figma frame on a page that 404s in production; it defines nothing and
+ * nothing reads a dial code out of it. Flagging it would have taught the next
+ * person to change the design's own number to keep a guard quiet, which is the
+ * guard winning an argument it should not have been in.
+ *
+ * Sample content on a development-only page is exempt. Everything else — every
+ * component, every route, every shipping module — still is not.
+ */
+const isDevFixture = (f) =>
+  DEV_ONLY_ROUTES.some((name) => rel(f).includes(`${sep}${name}${sep}`));
+
 const dialCodeElsewhere = [...code]
   .filter(([f]) => f !== join(FEATURE, "countries.ts"))
+  .filter(([f]) => !isDevFixture(f))
   .filter(([, s]) => /\+351/.test(s))
   .map(([f]) => rel(f));
 check(

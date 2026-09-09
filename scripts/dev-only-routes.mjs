@@ -3,8 +3,8 @@
  *
  * `/tokens` renders the design system, `/primitives` the component gallery,
  * `/formats` the locale-aware formatters, `/auth-states` every state of the
- * sign-in panel and `/food-states` the food screens against the design's own
- * sample content. Each calls `notFound()` when `NODE_ENV === "production"`, so
+ * sign-in panel, `/food-states`, `/cart-states` and
+ * `/checkout-states` the food, cart and checkout screens — the last three against the design's own sample content. Each calls `notFound()` when `NODE_ENV === "production"`, so
  * no customer can reach one.
  *
  * Shared by two guards that would otherwise each keep their own copy and
@@ -19,4 +19,8 @@ export const DEV_ONLY_ROUTES = [
   "formats",
   "auth-states",
   "food-states",
+  "cart-states",
+  "checkout-states",
+  "orders-states",
+  "account-states",
 ];

@@ -198,9 +198,24 @@ check(
   `Expected ${rel(fixturePath)} — sample content in its own file is what makes "does anything else import this?" a question with a mechanical answer.`,
 );
 
+/**
+ * Who imports *this* fixture — resolved, not spelled.
+ *
+ * The first version matched the string `from "./fixture"`, which is a
+ * spelling. Phase 9 added a second states page with a fixture of its own, and
+ * this rule reported it as a food-fixture leak: the pattern could not tell two
+ * files apart because it never looked at where either import pointed. Every
+ * specifier is now resolved against the importing file and compared to the
+ * actual path — the relationship the rule was always about.
+ */
+const importedPaths = (file, src) =>
+  [...src.matchAll(/\bfrom\s*["'](\.[^"']*)["']/g)]
+    .map((m) => resolve(dirname(file), m[1]))
+    .map((target) => (/\.tsx?$/.test(target) ? target : `${target}.ts`));
+
 const fixtureImporters = [...code]
   .filter(([f]) => f !== fixturePath)
-  .filter(([, s]) => /from "(?:\.\/|\.\.\/)*fixture"|food-states\/fixture/.test(s))
+  .filter(([f, s]) => importedPaths(f, s).includes(fixturePath))
   .map(([f]) => rel(f));
 const allowed = fixtureImporters.filter(
   (f) => !f.includes(`food-states${sep}page.tsx`),

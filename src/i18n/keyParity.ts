@@ -33,6 +33,14 @@ import type authEn from "./dictionaries/en/auth";
 import type authPt from "./dictionaries/pt/auth";
 import type foodEn from "./dictionaries/en/food";
 import type foodPt from "./dictionaries/pt/food";
+import type cartEn from "./dictionaries/en/cart";
+import type cartPt from "./dictionaries/pt/cart";
+import type checkoutEn from "./dictionaries/en/checkout";
+import type checkoutPt from "./dictionaries/pt/checkout";
+import type ordersEn from "./dictionaries/en/orders";
+import type ordersPt from "./dictionaries/pt/orders";
+import type accountEn from "./dictionaries/en/account";
+import type accountPt from "./dictionaries/pt/account";
 
 /** Resolves only when `T` is `never`. When two dictionaries diverge, `T` is the
  *  union of the offending key names and the compiler prints them. */
@@ -87,4 +95,32 @@ export type FoodEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
 >;
 export type FoodPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
   OnlyInFirst<typeof foodPt, typeof foodEn>
+>;
+
+export type CartEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
+  OnlyInFirst<typeof cartEn, typeof cartPt>
+>;
+export type CartPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
+  OnlyInFirst<typeof cartPt, typeof cartEn>
+>;
+
+export type CheckoutEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
+  OnlyInFirst<typeof checkoutEn, typeof checkoutPt>
+>;
+export type CheckoutPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
+  OnlyInFirst<typeof checkoutPt, typeof checkoutEn>
+>;
+
+export type OrdersEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
+  OnlyInFirst<typeof ordersEn, typeof ordersPt>
+>;
+export type OrdersPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
+  OnlyInFirst<typeof ordersPt, typeof ordersEn>
+>;
+
+export type AccountEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
+  OnlyInFirst<typeof accountEn, typeof accountPt>
+>;
+export type AccountPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
+  OnlyInFirst<typeof accountPt, typeof accountEn>
 >;

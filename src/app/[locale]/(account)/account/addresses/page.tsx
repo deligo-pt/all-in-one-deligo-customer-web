@@ -1,8 +1,71 @@
-import { PagePlaceholder } from "@/components/shared/PagePlaceholder";
+import type { Metadata } from "next";
+import {
+  AccountListView,
+  AccountUnavailableError,
+  accountNav,
+  notWiredAccount,
+  type AccountListCopy,
+  type AccountListRow,
+} from "@/features/account";
+import { getLocale, getTranslations } from "@/i18n/server";
 
-// Placeholder until Phase 12. The route exists now because the header
-// and footer link to it, and a link whose target does not exist is a 404 that
-// nobody finds until a customer does. See src/lib/routes.ts.
-export default function Page() {
-  return <PagePlaceholder route="addresses" />;
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account");
+  return { title: t("addressesTitle") };
+}
+
+/** `/account/addresses` — adapted from the 412px `Address` frame (D-16). */
+export default async function AddressesPage() {
+  const [t, locale] = await Promise.all([getTranslations("account"), getLocale()]);
+
+  let rows: readonly AccountListRow[] = [];
+  let unavailable = false;
+  try {
+    const addresses = await notWiredAccount.addresses();
+    rows = addresses.map((a) => ({
+      id: a.id,
+      title: a.label,
+      body: a.line,
+      isDefault: a.isDefault,
+      removable: true,
+    }));
+  } catch (error) {
+    if (!(error instanceof AccountUnavailableError)) throw error;
+    unavailable = true;
+  }
+
+  const nav = accountNav(locale, {
+    profile: t("navProfile"),
+    orders: t("navOrders"),
+    addresses: t("navAddresses"),
+    payment: t("navPayment"),
+    vouchers: t("navVouchers"),
+    referrals: t("navReferrals"),
+    settings: t("navSettings"),
+  });
+
+  const copy: AccountListCopy = {
+    title: t("addressesTitle"),
+    subtitle: t("addressesSubtitle"),
+    navLabel: t("navLabel"),
+    add: t("addAddress"),
+    remove: t("remove"),
+    default: t("defaultLabel"),
+    emptyTitle: t("addressesEmpty"),
+    emptyBody: t("addressesEmptyBody"),
+    unavailableTitle: t("unavailableTitle"),
+    unavailableBody: t("unavailableBody"),
+    notWired: t("notWired"),
+  };
+
+  return (
+    <AccountListView
+      rows={rows}
+      nav={nav}
+      activeId="addresses"
+      icon="location"
+      copy={copy}
+      unavailable={unavailable}
+    />
+  );
 }

@@ -203,6 +203,50 @@ export const ICONS = {
     source: "drawn",
     body: `<path d="M4 6h10m4 0h2M4 12h4m4 0h8M4 18h10m4 0h2" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/><circle cx="16" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="10" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="16" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.75"/>`,
   },
+
+  // ── Payment and location, added in Phase 10 ──────────────────────────────
+  /** MB WAY's mark in the design. A phone, not a brand — MB WAY's own logo is
+     trademarked and is not ours to redraw. */
+  mobile: {
+    viewBox: "0 0 24 24",
+    source: "material-symbols:mobile-outline-sharp",
+    body: `<path fill="currentColor" d="M12.713 5.713Q13 5.425 13 5t-.288-.712T12 4t-.712.288T11 5t.288.713T12 6t.713-.288M5 23V1h14v5.1h1v4.8h-1V23zm2-2h10V3H7zm0 0V3z"/>`,
+  },
+  card: {
+    viewBox: "0 0 512 512",
+    source: "ion:card-outline",
+    body: `<rect width="416" height="320" x="48" y="96" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32" rx="56" ry="56"/><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="60" d="M48 192h416M128 300h48v20h-48z"/>`,
+  },
+  /** The design's own glyph. **Apple Pay and Google Pay both have brand
+     guidelines** that require their official marks at set clear-space and
+     sizes; these outline glyphs are what the file draws and are a placeholder
+     for the licensed artwork, exactly as the store badges are (D-5). */
+  apple: {
+    viewBox: "0 0 24 24",
+    source: "si:apple-line",
+    body: `<path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="1.5" d="M19.764 8.819c-.116.09-2.165 1.244-2.165 3.81c0 2.968 2.607 4.019 2.685 4.045c-.012.064-.414 1.438-1.374 2.838c-.857 1.232-1.75 2.462-3.11 2.462c-1.361 0-1.711-.79-3.281-.79c-1.53 0-2.074.816-3.318.816s-2.113-1.14-3.11-2.54C4.933 17.816 4 15.26 4 12.837c0-3.888 2.528-5.95 5.017-5.95c1.322 0 2.424.868 3.254.868c.79 0 2.022-.92 3.526-.92c.57 0 2.618.051 3.967 1.984Zm-4.68-3.63c.621-.739 1.061-1.763 1.061-2.787A2 2 0 0 0 16.107 2c-1.012.038-2.216.674-2.942 1.516c-.57.648-1.102 1.672-1.102 2.71c0 .156.026.312.038.362c.064.012.168.026.272.026c.908 0 2.05-.608 2.71-1.426Z"/>`,
+  },
+  paypal: {
+    viewBox: "0 0 32 32",
+    source: "la:paypal",
+    body: `<path fill="currentColor" d="m8.906 5l-.187.781l-3.688 17L4.75 24h4.875l-.594 2.781L8.75 28h6.969l.156-.813l1.031-4.812h2.688c3.761 0 7.066-2.445 7.906-6.375c.441-2.066-.027-3.816-1-5c-.79-.96-1.86-1.54-2.969-1.813c-.215-.988-.668-1.828-1.281-2.468C21.113 5.535 19.535 5 18.062 5zm1.625 2h7.531c.981 0 2.063.379 2.75 1.094c.688.715 1.09 1.734.72 3.469c-.66 3.093-2.997 4.812-5.938 4.812H11.28l-.156.781L10.094 22H7.25zm2.531 1.469l-.187.781l-1.031 4.625l-.281 1.219h3.53c1.778 0 3.313-1.293 3.75-3.031h.032c.004-.02-.004-.043 0-.063c.219-.875.078-1.773-.406-2.438c-.496-.68-1.332-1.093-2.219-1.093zm1.594 2h1.594c.313 0 .477.09.594.25s.199.418.093.812v.031c-.187.81-1.144 1.532-1.843 1.532h-1.031zm8.938.875c.527.215 1.023.508 1.375.937c.582.707.902 1.684.562 3.281c-.66 3.094-2.996 4.813-5.937 4.813H15.28l-.156.781L14.094 26H11.25l.438-2h.03l.157-.813l1.031-4.812h2.688c3.761 0 7.066-2.445 7.906-6.375c.047-.227.066-.438.094-.656"/>`,
+  },
+  /** See the note on `apple`. */
+  google: {
+    viewBox: "0 0 640 640",
+    source: "fa7-brands:google",
+    body: `<path fill="currentColor" d="M564 325.8C564 467.3 467.1 568 324 568C186.8 568 76 457.2 76 320S186.8 72 324 72c66.8 0 123 24.5 166.3 64.9l-67.5 64.9c-88.3-85.2-252.5-21.2-252.5 118.2c0 86.5 69.1 156.6 153.7 156.6c98.2 0 135-70.4 140.8-106.9H324v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4"/>`,
+  },
+  wallet: {
+    viewBox: "0 0 24 24",
+    source: "fluent:money-24-regular",
+    body: `<path fill="currentColor" d="M10.5 8a3 3 0 1 0 0 6a3 3 0 0 0 0-6M9 11a1.5 1.5 0 1 1 3 0a1.5 1.5 0 0 1-3 0M2 7.25A2.25 2.25 0 0 1 4.25 5h12.5A2.25 2.25 0 0 1 19 7.25v7.5A2.25 2.25 0 0 1 16.75 17H4.25A2.25 2.25 0 0 1 2 14.75zm2.25-.75a.75.75 0 0 0-.75.75V8h.75A.75.75 0 0 0 5 7.25V6.5zm-.75 6h.75a2.25 2.25 0 0 1 2.25 2.25v.75h8v-.75a2.25 2.25 0 0 1 2.25-2.25h.75v-3h-.75a2.25 2.25 0 0 1-2.25-2.25V6.5h-8v.75A2.25 2.25 0 0 1 4.25 9.5H3.5zm14-4.5v-.75a.75.75 0 0 0-.75-.75H16v.75c0 .414.336.75.75.75zm0 6h-.75a.75.75 0 0 0-.75.75v.75h.75a.75.75 0 0 0 .75-.75zm-14 .75c0 .414.336.75.75.75H5v-.75a.75.75 0 0 0-.75-.75H3.5zm.901 3.75A3 3 0 0 0 7 20h10.25A4.75 4.75 0 0 0 22 15.25V10a3 3 0 0 0-1.5-2.599v7.849a3.25 3.25 0 0 1-3.25 3.25z"/>`,
+  },
+  map: {
+    viewBox: "0 0 24 24",
+    source: "material-symbols:map-outline",
+    body: `<path fill="currentColor" d="m15 21l-6-2.1l-4.65 1.8q-.5.2-.925-.112T3 19.75v-14q0-.325.188-.575T3.7 4.8L9 3l6 2.1l4.65-1.8q.5-.2.925.113T21 4.25v14q0 .325-.187.575t-.513.375zm-1-2.45V6.85l-4-1.4v11.7zm2 0l3-1V5.7l-3 1.15zM5 18.3l3-1.15V5.45l-3 1zM16 6.85v11.7zm-8-1.4v11.7z"/>`,
+  },
 } as const satisfies Record<string, { viewBox: string; source: string; body: string }>;
 
 export type IconName = keyof typeof ICONS;

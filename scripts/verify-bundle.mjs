@@ -28,7 +28,22 @@ import { fileURLToPath } from "node:url";
 import { DEV_ONLY_ROUTES } from "./dev-only-routes.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const BUDGET_KB = 180;
+/**
+ * **200 KB, raised from 180 on 9 Sep 2026 (decision D-7).**
+ *
+ * The original number was a guess made before a single screen existed, and it
+ * did real work: two phases were made cheaper by chasing it — 36 KB out of
+ * feature barrels in Phase 6, 9 KB by deleting a tab bar the design did not
+ * have. It is raised rather than abandoned because it was still binding: the
+ * listing sat at 98% and Phase 9 adds a cart on top of the same shell.
+ *
+ * What did not change is the part that matters. 127 KB of every route is the
+ * framework, so the budget is really "how much of our own code may a route
+ * ship", and that allowance went from 53 KB to 73 KB. A raise is not a licence
+ * to stop splitting: three barrel leaks have been caught by this script, each
+ * worth 9–27 KB, and every one of them would still be a bug at 200.
+ */
+const BUDGET_KB = 200;
 
 const dist = [".next-build", ".next"]
   .map((d) => join(ROOT, d))

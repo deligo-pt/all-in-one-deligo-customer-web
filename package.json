@@ -19,7 +19,11 @@
     "verify:shell": "node --no-warnings scripts/verify-shell.mjs",
     "verify:auth": "node --no-warnings scripts/verify-auth.mjs",
     "verify:food": "node --no-warnings scripts/verify-food.mjs",
-    "verify": "pnpm verify:structure && pnpm verify:design && pnpm verify:i18n && pnpm verify:shell && pnpm verify:auth && pnpm verify:food && pnpm verify:bundle",
+    "verify:cart": "node --no-warnings scripts/verify-cart.mjs",
+    "verify:checkout": "node --no-warnings scripts/verify-checkout.mjs",
+    "verify:orders": "node --no-warnings scripts/verify-orders.mjs",
+    "verify:account": "node --no-warnings scripts/verify-account.mjs",
+    "verify": "pnpm verify:structure && pnpm verify:design && pnpm verify:i18n && pnpm verify:shell && pnpm verify:auth && pnpm verify:food && pnpm verify:cart && pnpm verify:checkout && pnpm verify:orders && pnpm verify:account && pnpm verify:bundle",
     "gate": "pnpm typecheck && pnpm lint && pnpm build:check && pnpm verify"
   },
   "dependencies": {

@@ -30,6 +30,10 @@ import type navEn from "./dictionaries/en/nav";
 import type homeEn from "./dictionaries/en/home";
 import type authEn from "./dictionaries/en/auth";
 import type foodEn from "./dictionaries/en/food";
+import type cartEn from "./dictionaries/en/cart";
+import type checkoutEn from "./dictionaries/en/checkout";
+import type ordersEn from "./dictionaries/en/orders";
+import type accountEn from "./dictionaries/en/account";
 
 export const NAMESPACES = [
   "common",
@@ -39,6 +43,10 @@ export const NAMESPACES = [
   "home",
   "auth",
   "food",
+  "cart",
+  "checkout",
+  "orders",
+  "account",
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -60,6 +68,10 @@ export type Dictionary = {
   home: typeof homeEn;
   auth: typeof authEn;
   food: typeof foodEn;
+  cart: typeof cartEn;
+  checkout: typeof checkoutEn;
+  orders: typeof ordersEn;
+  account: typeof accountEn;
 };
 
 /** Every key a namespace defines — what `t()` will accept. */
@@ -88,6 +100,10 @@ const loaders: Record<Locale, Record<Namespace, () => Promise<Messages>>> = {
     home: () => import("./dictionaries/en/home").then((m) => m.default),
     auth: () => import("./dictionaries/en/auth").then((m) => m.default),
     food: () => import("./dictionaries/en/food").then((m) => m.default),
+    cart: () => import("./dictionaries/en/cart").then((m) => m.default),
+    checkout: () => import("./dictionaries/en/checkout").then((m) => m.default),
+    orders: () => import("./dictionaries/en/orders").then((m) => m.default),
+    account: () => import("./dictionaries/en/account").then((m) => m.default),
   },
   pt: {
     common: () => import("./dictionaries/pt/common").then((m) => m.default),
@@ -97,6 +113,10 @@ const loaders: Record<Locale, Record<Namespace, () => Promise<Messages>>> = {
     home: () => import("./dictionaries/pt/home").then((m) => m.default),
     auth: () => import("./dictionaries/pt/auth").then((m) => m.default),
     food: () => import("./dictionaries/pt/food").then((m) => m.default),
+    cart: () => import("./dictionaries/pt/cart").then((m) => m.default),
+    checkout: () => import("./dictionaries/pt/checkout").then((m) => m.default),
+    orders: () => import("./dictionaries/pt/orders").then((m) => m.default),
+    account: () => import("./dictionaries/pt/account").then((m) => m.default),
   },
 };
 

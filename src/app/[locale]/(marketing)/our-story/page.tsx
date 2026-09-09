@@ -1,8 +1,21 @@
-import { PagePlaceholder } from "@/components/shared/PagePlaceholder";
+import type { Metadata } from "next";
+import { ContentPage } from "@/components/shared/ContentPage";
+import { getTranslations } from "@/i18n/server";
 
-// Placeholder until Phase 12. The route exists now because the header
-// and footer link to it, and a link whose target does not exist is a 404 that
-// nobody finds until a customer does. See src/lib/routes.ts.
-export default function Page() {
-  return <PagePlaceholder route="ourStory" />;
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("account");
+  return { title: t("ourStoryTitle") };
+}
+
+/** One of the twelve prose pages the design does not draw and whose words are
+ *  not ours to write — see `ContentPage` and D-16. */
+export default async function OurStoryPage() {
+  const t = await getTranslations("account");
+  return (
+    <ContentPage
+      title={t("ourStoryTitle")}
+      pendingTitle={t("contentPendingTitle")}
+      pendingBody={t("contentPendingBody")}
+    />
+  );
 }
