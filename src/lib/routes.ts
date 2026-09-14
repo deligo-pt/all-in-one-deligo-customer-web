@@ -85,6 +85,10 @@ export const ROUTES = {
 
   cart: { path: "/cart", group: "checkout", phase: 9 },
   checkout: { path: "/checkout", group: "checkout", phase: 10 },
+  // Where REDUNIQ sends the customer back (Phase 18). The paths are the old
+  // app's, because the return URL is configured on the backend, not here.
+  paymentSuccess: { path: "/payment-success", group: "checkout", phase: 18 },
+  paymentFailed: { path: "/payment-failed", group: "checkout", phase: 18 },
 
   account: { path: "/account", group: "account", phase: 12 },
   orders: { path: "/account/orders", group: "account", phase: 11 },

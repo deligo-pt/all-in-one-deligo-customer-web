@@ -147,6 +147,11 @@ export function OrderSummary({
                   ].join(" ")}
                 >
                   {label(charge)}
+                  {charge.note ? (
+                    <span className="text-12 text-ink-muted block font-normal">
+                      {charge.note}
+                    </span>
+                  ) : null}
                 </dt>
                 <dd
                   className={[

@@ -29,8 +29,8 @@ export default async function VouchersPage() {
   try {
     const vouchers = await notWiredAccount.vouchers();
     rows = vouchers.map((v) => ({
-      id: v.code,
-      title: v.code,
+      id: v.id,
+      title: v.code ?? v.title,
       body: v.description,
       meta: v.terms,
     }));

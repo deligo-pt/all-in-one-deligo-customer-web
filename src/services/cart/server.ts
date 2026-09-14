@@ -4,7 +4,7 @@ import { formatCurrency } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/i18n/locale";
 import { hasServerSession, serverApi } from "@/services/api/server";
 
-type RawCartItem = {
+export type RawCartItem = {
   productId: string;
   name?: string;
   image?: string;
@@ -35,7 +35,7 @@ const money = (amount: number | undefined, locale: Locale) =>
 const vendorOf = (item: RawCartItem) =>
   typeof item.vendorId === "object" ? item.vendorId : undefined;
 
-function toLine(item: RawCartItem, locale: Locale): CartLine {
+export function toLine(item: RawCartItem, locale: Locale): CartLine {
   const addons = (item.addons ?? [])
     .filter((a) => a.name)
     .map((a) => ((a.quantity ?? 1) > 1 ? `${a.name} ×${a.quantity}` : a.name!));

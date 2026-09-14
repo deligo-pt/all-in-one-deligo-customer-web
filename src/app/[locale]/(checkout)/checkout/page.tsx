@@ -1,14 +1,29 @@
 import type { Metadata } from "next";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Icon } from "@/components/ui/Icon";
 import {
-  CheckoutUnavailableError,
+  CheckoutStart,
   CheckoutView,
-  notWiredCheckout,
   type Checkout,
   type CheckoutCopy,
-  type DeliveryDay,
+  type SavedAddress,
+  type SavedCard,
   type Voucher,
 } from "@/features/checkout";
 import { getLocale, getTranslations } from "@/i18n/server";
+import { isCheckoutId } from "@/lib/checkout";
+import { withLocale } from "@/lib/i18n/path";
+import { ROUTES } from "@/lib/routes";
+import { readCart } from "@/services/cart/server";
+import {
+  readAddresses,
+  readCheckout,
+  readSavedCards,
+  readVouchers,
+} from "@/services/checkout/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("checkout");
@@ -16,75 +31,105 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * `/checkout` — the last screen before money moves.
+ * `/checkout` — the last screen before money moves (Phase 18).
  *
- * A Server Component that reads the checkout, its vouchers and its delivery
- * windows, and hands one client view the result. Three separate reads because
- * they fail separately: a cart that cannot be read is a broken page, while
- * vouchers that cannot be listed is a sheet that says so and a checkout that
- * still works. `Promise.allSettled` rather than `all` for exactly that reason
- * — one rejection must not take the other two down.
- *
- * In Track B all three reject, so the page renders its unavailable state while
- * every card, dialog and control beneath it is built and operable. The
- * populated design is at `/checkout-states`.
+ * Without `?id=` the cart's active store is turned into a checkout summary in
+ * the browser (`CheckoutStart`), which then lands here with its id. With one,
+ * the summary is read on the server alongside its offers, the saved cards and
+ * the saved addresses. Those three fail separately — a voucher list that cannot
+ * be read is a sheet that says so, not a broken checkout — and a summary that
+ * has already become an order goes to its confirmation.
  */
-export default async function CheckoutPage() {
-  // Three namespaces, because the screen is made of three things. Its own
-  // words; the dish modal's instruction placeholder, which the design repeats
-  // verbatim; and the cart's summary panel, which this route renders whole —
-  // the panel's copy belongs with the panel, not copied into a second
-  // dictionary that could drift from it.
-  const [t, cart, food, locale] = await Promise.all([
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ id?: string | string[] }>;
+}) {
+  const [t, cart, food, locale, query] = await Promise.all([
     getTranslations("checkout"),
     getTranslations("cart"),
     getTranslations("food"),
     getLocale(),
+    searchParams,
   ]);
+  const cartHref = withLocale(ROUTES.cart.path, locale);
+  const id = typeof query.id === "string" && isCheckoutId(query.id) ? query.id : null;
 
-  const [read, voucherRead, slotRead] = await Promise.allSettled([
-    notWiredCheckout.read(),
-    notWiredCheckout.listVouchers(),
-    notWiredCheckout.listSlots(),
+  const frame = (title: string, body: string) => (
+    <div className="max-w-shell mx-auto w-full px-8 py-16">
+      <EmptyState
+        icon={<Icon name="cart" className="size-8" />}
+        title={title}
+        description={body}
+        action={
+          <Button asChild>
+            <Link href={cartHref}>{t("backToCart")}</Link>
+          </Button>
+        }
+      />
+    </div>
+  );
+
+  if (!id) {
+    let hasActiveStore = false;
+    try {
+      hasActiveStore = Boolean(
+        (await readCart())?.stores.some((store) => store.active),
+      );
+    } catch {
+      return frame(t("unavailableTitle"), t("unavailableBody"));
+    }
+    if (!hasActiveStore) return frame(t("emptyTitle"), t("emptyBody"));
+    return (
+      <CheckoutStart
+        checkoutPath={withLocale(ROUTES.checkout.path, locale)}
+        cartHref={cartHref}
+        copy={{
+          preparing: t("preparing"),
+          unavailableTitle: t("unavailableTitle"),
+          backToCart: t("backToCart"),
+        }}
+      />
+    );
+  }
+
+  let read: Awaited<ReturnType<typeof readCheckout>>;
+  try {
+    read = await readCheckout(id);
+  } catch {
+    return frame(t("unavailableTitle"), t("unavailableBody"));
+  }
+  if ("orderId" in read)
+    redirect(
+      `${withLocale(ROUTES.paymentSuccess.path, locale)}?order=${encodeURIComponent(read.orderId)}`,
+    );
+  const checkout: Checkout = read.checkout;
+
+  const [voucherRead, cardRead, addressRead] = await Promise.allSettled([
+    readVouchers(id, checkout.voucherCode),
+    readSavedCards(),
+    readAddresses(),
   ]);
-
-  const settled = <T,>(
-    result: PromiseSettledResult<T>,
-  ): { value: T | null; unavailable: boolean } => {
-    if (result.status === "fulfilled")
-      return { value: result.value, unavailable: false };
-    if (result.reason instanceof CheckoutUnavailableError)
-      return { value: null, unavailable: true };
-    throw result.reason;
-  };
-
-  const checkout = settled<Checkout>(read);
-  const vouchers = settled<readonly Voucher[]>(voucherRead);
-  const slots = settled<readonly DeliveryDay[]>(slotRead);
+  const vouchers: Voucher[] =
+    voucherRead.status === "fulfilled" ? voucherRead.value : [];
+  const cards: SavedCard[] = cardRead.status === "fulfilled" ? cardRead.value : [];
+  const addresses: SavedAddress[] =
+    addressRead.status === "fulfilled" ? addressRead.value : [];
 
   const copy: CheckoutCopy = {
     title: t("title"),
-    schedule: {
-      label: t("scheduleLabel"),
-      change: t("scheduleChange"),
-      choose: t("scheduleChoose"),
-      chooseBody: t("scheduleChooseBody"),
-    },
     delivery: {
       title: t("deliveryTitle"),
       edit: t("deliveryEdit"),
       noAddress: t("deliveryNoAddress"),
       mapAlt: t("deliveryMapAlt"),
       instructionTitle: t("instructionTitle"),
-      // The design repeats the dish modal's sentence verbatim, so this reads
-      // the `food` namespace rather than keeping a second copy of it that a
-      // translator could change in one place and not the other.
+      // The design repeats the dish modal's sentence verbatim.
       instructionPlaceholder: food("specialInstructionsPlaceholder"),
     },
     payment: {
       title: t("paymentTitle"),
       showAll: t("paymentShowAll"),
-      showLess: t("paymentShowLess"),
       methodName: {
         mbway: t("methodMbway"),
         card: t("methodCard"),
@@ -101,17 +146,13 @@ export default async function CheckoutPage() {
         "google-pay": t("methodGooglePayBody"),
         other: t("methodOtherBody"),
       },
-      cardNumber: t("cardNumber"),
-      cardNumberPlaceholder: t("cardNumberPlaceholder"),
-      cardHolder: t("cardHolder"),
-      cardHolderPlaceholder: t("cardHolderPlaceholder"),
-      cardExpiry: t("cardExpiry"),
-      cardExpiryPlaceholder: t("cardExpiryPlaceholder"),
-      cardCvv: t("cardCvv"),
-      cardCvvPlaceholder: t("cardCvvPlaceholder"),
-      cardNotice: t("cardNotice"),
+      savedCards: t("savedCards"),
+      newCard: t("newCard"),
+      saveCard: t("saveCard"),
+      saveCardBody: t("saveCardBody"),
+      gatewayNotice: t("gatewayNotice"),
+      instantNotice: t("instantNotice"),
     },
-    tip: { title: t("tipTitle"), later: t("tipLater"), tipLabel: t("tipLabel") },
     summary: {
       deliveryIn: cart("deliveryIn"),
       addMoreItems: cart("addMoreItems"),
@@ -127,68 +168,43 @@ export default async function CheckoutPage() {
       grandTotal: cart("grandTotal"),
       placeOrder: cart("placeOrder"),
     },
-    location: {
-      title: t("locationTitle"),
-      body: t("locationBody"),
-      close: t("scheduleChange"),
-      addressLabel: t("locationAddressLabel"),
-      addressPlaceholder: t("locationAddressPlaceholder"),
-      locateMe: t("locationLocateMe"),
-      confirm: t("locationConfirm"),
-      mapAlt: t("deliveryMapAlt"),
-      notWired: t("notWired"),
+    payNow: t("payNow"),
+    address: {
+      title: t("addressTitle"),
+      body: t("addressBody"),
+      close: t("confirmedClose"),
+      active: t("addressActive"),
+      emptyTitle: t("addressEmpty"),
+      emptyBody: t("addressEmptyBody"),
     },
     voucher: {
       title: t("voucherTitle"),
-      close: t("scheduleChange"),
+      close: t("confirmedClose"),
       codeLabel: t("voucherCodeLabel"),
       codePlaceholder: t("voucherCodePlaceholder"),
       apply: t("voucherApply"),
       applied: t("voucherApplied"),
-      terms: t("voucherTerms"),
+      remove: t("voucherRemove"),
       emptyTitle: t("voucherEmpty"),
       emptyBody: t("voucherEmptyBody"),
       unavailableTitle: t("voucherUnavailable"),
       unavailableBody: t("voucherUnavailableBody"),
     },
-    scheduleModal: {
-      title: t("scheduleTitle"),
-      body: t("scheduleBody"),
-      close: t("scheduleChange"),
-      yourDelivery: t("scheduleYourDelivery"),
-      recommended: t("scheduleRecommended"),
-      emptyTitle: t("scheduleEmpty"),
-      emptyBody: t("scheduleEmptyBody"),
-      unavailableTitle: t("scheduleUnavailable"),
-      unavailableBody: t("scheduleUnavailableBody"),
-    },
-    confirmed: {
-      title: t("confirmedTitle"),
-      body: t("confirmedBody"),
-      close: t("scheduleChange"),
-      reference: t("confirmedReference"),
-      delivery: t("confirmedDelivery"),
-      payment: t("confirmedPayment"),
-      total: t("confirmedTotal"),
-      stayUpdated: t("confirmedStayUpdated"),
-      stayUpdatedBody: t("confirmedStayUpdatedBody"),
-      backHome: t("confirmedBackHome"),
-    },
-    unavailableTitle: t("unavailableTitle"),
-    unavailableBody: t("unavailableBody"),
-    notWired: t("notWired"),
+    chooseMethod: t("chooseMethod"),
+    actionFailed: t("actionFailed"),
   };
 
   return (
     <CheckoutView
-      checkout={checkout.value}
-      vouchers={vouchers.value ?? []}
-      days={slots.value ?? []}
+      // A new summary is a new screen: nothing chosen for the old one carries over.
+      key={checkout.id}
+      checkout={checkout}
+      vouchers={vouchers}
+      vouchersUnavailable={voucherRead.status === "rejected"}
+      cards={cards}
+      addresses={addresses}
       locale={locale}
       copy={copy}
-      unavailable={checkout.unavailable}
-      vouchersUnavailable={vouchers.unavailable}
-      slotsUnavailable={slots.unavailable}
     />
   );
 }

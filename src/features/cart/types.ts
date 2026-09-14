@@ -78,6 +78,9 @@ export type CartCharge = {
   amount: string;
   /** The voucher's code, shown beside the discount row: "DELIGO20". */
   code?: string;
+  /** The row's VAT as the API reports it, resolved on the server:
+   *  "incl. VAT 0,57 €" or "+ VAT 0,02 €" (Phase 18). */
+  note?: string;
 };
 
 export type CartTotals = {
