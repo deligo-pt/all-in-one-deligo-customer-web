@@ -28,6 +28,9 @@ const orders = {
   stepPacked: "Packed",
   stepReady: "Ready for pickup",
   stepCollected: "Collected",
+  stepPicked: "Picked",
+  stepRiderPicked: "Rider Picked",
+  stepOnWay: "On Way",
 
   // ── The detail ───────────────────────────────────────────────────────────
   riderTitle: "Your rider",

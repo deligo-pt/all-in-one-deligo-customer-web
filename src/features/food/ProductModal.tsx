@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { QuantityStepper } from "@/components/ui/QuantityStepper";
-import { Textarea } from "@/components/ui/Input";
 import { ImageSlot } from "@/components/shared/ImageSlot";
 import { OptionGroupField } from "./OptionGroupField";
 import type { ProductDetail } from "./types";
@@ -12,14 +11,18 @@ import type { ProductDetail } from "./types";
 export type ProductCopy = {
   required: string;
   chooseRequired: string;
-  specialInstructions: string;
-  specialInstructionsPlaceholder: string;
   addToCart: string;
   quantity: string;
   increase: string;
   decrease: string;
   close: string;
-  notWired: string;
+};
+
+/** What the customer chose, in the cart's terms. */
+export type ProductChoice = {
+  quantity: number;
+  variationSku?: string;
+  addons: { optionSku: string; quantity: number }[];
 };
 
 /**
@@ -48,28 +51,34 @@ export type ProductCopy = {
  * groups that are unsatisfied, and says so once at the bottom — the same rule
  * the old app arrived at, for the same reason.
  *
- * ## Nothing is added yet
+ * ## Adding (Phase 17)
  *
- * `/carts/add` is Phase 17's. The button is real, named and blocked by real
- * validation; pressing it reports that the cart is not connected. A button
- * that appeared to work and silently did nothing is the failure this project
- * exists to stop repeating.
+ * The size goes as `variationSku`, each add-on as `optionSku`; the quantity is
+ * the absolute one the line will have, which the menu computes. The modal
+ * closes when the API accepts the line and shows the API's sentence when it
+ * does not. The design's "Special Instructions" field is not drawn: the cart
+ * has nowhere to keep it, and the order's delivery note is asked at checkout.
  */
 export function ProductModal({
   product,
   open,
   onOpenChange,
   copy,
+  onAdd,
 }: {
   product: ProductDetail;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   copy: ProductCopy;
+  /** Adds the choice to the cart; resolves `null` on success, or the
+   *  sentence to show. The modal closes only on success. */
+  onAdd: (choice: ProductChoice) => Promise<string | null>;
 }) {
   const [selection, setSelection] = useState<Record<string, readonly string[]>>({});
   const [quantity, setQuantity] = useState(1);
-  const [instructions, setInstructions] = useState("");
   const [attempted, setAttempted] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
 
   const unmet = useMemo(
     () =>
@@ -103,7 +112,33 @@ export function ProductModal({
           <Button
             shape="pill"
             size="lg"
-            onClick={() => setAttempted(true)}
+            loading={pending}
+            disabled={pending}
+            onClick={async () => {
+              setAttempted(true);
+              setFailure(null);
+              if (blocked) return;
+              const variation = product.options.find(
+                (g) => (g.kind ?? "variation") === "variation",
+              );
+              const choice: ProductChoice = {
+                quantity,
+                variationSku: variation ? selection[variation.id]?.[0] : undefined,
+                addons: product.options
+                  .filter((g) => g.kind === "addon")
+                  .flatMap((g) =>
+                    (selection[g.id] ?? []).map((optionSku) => ({
+                      optionSku,
+                      quantity: 1,
+                    })),
+                  ),
+              };
+              setPending(true);
+              const problem = await onAdd(choice);
+              setPending(false);
+              if (problem) setFailure(problem);
+              else onOpenChange(false);
+            }}
             // Not `disabled`: a button that cannot be pressed cannot explain
             // why. It is pressable, it refuses, and the refusal points at the
             // group that is missing.
@@ -149,24 +184,13 @@ export function ProductModal({
           />
         ))}
 
-        <div className="flex flex-col gap-4">
-          <h4 className="text-16 text-ink font-semibold">{copy.specialInstructions}</h4>
-          <Textarea
-            value={instructions}
-            onChange={(event) => setInstructions(event.target.value)}
-            aria-label={copy.specialInstructions}
-            placeholder={copy.specialInstructionsPlaceholder}
-            className="bg-surface-muted rounded-8"
-          />
-        </div>
-
-        {attempted ? (
+        {attempted && (blocked || failure) ? (
           <p
             id="product-error"
             role="status"
             className="text-14 bg-brand-tint text-brand-strong rounded-12 px-4 py-3 font-medium"
           >
-            {blocked ? copy.chooseRequired : copy.notWired}
+            {blocked ? copy.chooseRequired : failure}
           </p>
         ) : null}
       </div>

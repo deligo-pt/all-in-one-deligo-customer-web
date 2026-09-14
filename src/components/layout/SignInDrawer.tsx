@@ -99,7 +99,7 @@ export function SignInDrawer({
             locale={outer.locale}
             messages={{ ...outer.messages, auth: messages }}
           >
-            <AuthPanel />
+            <AuthPanel onSignedIn={() => onOpenChange(false)} />
           </TranslationProvider>
         ) : (
           <div className="flex justify-center py-10">

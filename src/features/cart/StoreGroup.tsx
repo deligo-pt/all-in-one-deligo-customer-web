@@ -134,9 +134,11 @@ export function StoreGroup({
         )}
         {/* The store's own number, printed. Nothing on this screen adds up a
             column of prices — see `types.ts`. */}
-        <p className="text-24 text-ink-strong font-semibold">
-          {`${copy.subtotal}: ${store.subtotal}`}
-        </p>
+        {store.subtotal ? (
+          <p className="text-24 text-ink-strong font-semibold">
+            {`${copy.subtotal}: ${store.subtotal}`}
+          </p>
+        ) : null}
       </footer>
     </section>
   );

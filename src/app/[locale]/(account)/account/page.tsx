@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SignOutButton } from "@/components/shared/SignOutButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import {
@@ -47,6 +48,15 @@ export default async function AccountPage() {
           icon={<Icon name="user" className="size-8" />}
           title={t("unavailableTitle")}
           description={t("unavailableBody")}
+          // Signing out needs no profile. Without this the only way out of a
+          // session is to wait for its token to expire (Phase 15).
+          action={
+            <SignOutButton
+              label={t("logout")}
+              homeHref={withLocale("/", locale)}
+              className="text-16 text-danger"
+            />
+          }
         />
       </div>
     );
@@ -109,6 +119,7 @@ export default async function AccountPage() {
       preferences={preferences}
       nav={nav}
       editHref={withLocale(ROUTES.settings.path, locale)}
+      homeHref={withLocale("/", locale)}
       copy={copy}
     />
   );

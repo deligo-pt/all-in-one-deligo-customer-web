@@ -28,3 +28,14 @@ design; it still needs replacing with the supplied assets before launch.
 
 None of these images carry a watermark — they were checked individually, which
 corrects the assumption behind decision D-5.
+
+## Phase 13 — groceries and electronics
+
+| File | Used by | Source in Figma | Source px |
+|---|---|---|---|
+| `groceries-hero.webp` | `/groceries` hero | `Groceries` (`3003:47544`) › `hero` | **626 × 417** |
+| `electronics.webp` | `/electronics` launch notice | `electronics` (`3658:46835`) › `image` | 1200 × 800 |
+
+Checked individually for D-12 on 14 September 2026: neither is watermarked.
+The grocery hero has the same 2.3× upscale problem as the landing hero. The
+food hero is still not shipped (watermarked Adobe Stock comp, D-12).

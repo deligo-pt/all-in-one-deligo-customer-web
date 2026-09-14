@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 
 /**
@@ -8,10 +9,11 @@ import { Icon } from "@/components/ui/Icon";
  * `brand-soft` border; the address block at one end and the count at 32/600 at
  * the other, split by a vertical rule.
  *
- * **The count is a string, and the address is optional.** Neither is known
- * until Phase 16 reads the profile and asks `/vendors/nearby/open`. Without an
- * address this renders the prompt to set one, which is the state a first-time
- * visitor is actually in and the one the design does not draw.
+ * **The count is a string, and the address is optional.** The address is the
+ * profile's active one or the guest's chosen location (Phase 16). Without one
+ * this renders the prompt to set one, which is the state a first-time visitor
+ * is actually in and the one the design does not draw. "Change" goes to the
+ * vertical's front door, where the address bar is.
  */
 export function DeliveryBar({
   address,
@@ -20,7 +22,7 @@ export function DeliveryBar({
   changeLabel,
   setAddressLabel,
   availabilityLabel,
-  onChange,
+  changeHref,
 }: {
   address?: string;
   /** "120+" — exactly as the API phrases it. */
@@ -29,7 +31,7 @@ export function DeliveryBar({
   changeLabel: string;
   setAddressLabel: string;
   availabilityLabel: string;
-  onChange?: () => void;
+  changeHref: string;
 }) {
   return (
     <div className="border-brand-soft bg-surface-subtle rounded-16 flex flex-wrap items-center gap-6 border px-6 py-4">
@@ -42,16 +44,12 @@ export function DeliveryBar({
         <span className="text-16 text-ink truncate">{address ?? setAddressLabel}</span>
       </div>
 
-      {/* Phase 16 opens the address picker. A button that says what it will do
-          and does not do it yet is still the right control to put here — the
-          alternative is a link to nowhere. */}
-      <button
-        type="button"
-        onClick={onChange}
+      <Link
+        href={changeHref}
         className="text-16 text-brand font-medium underline-offset-4 hover:underline"
       >
         {changeLabel}
-      </button>
+      </Link>
 
       {countLabel ? (
         <>

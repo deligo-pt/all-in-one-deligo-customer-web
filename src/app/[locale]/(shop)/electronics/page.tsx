@@ -1,8 +1,28 @@
-import { PagePlaceholder } from "@/components/shared/PagePlaceholder";
+import type { Metadata } from "next";
+import { ComingSoon } from "@/components/shared/ComingSoon";
+import { getTranslations } from "@/i18n/server";
 
-// Placeholder until Phase 13. The route exists now because the header
-// and footer link to it, and a link whose target does not exist is a 404 that
-// nobody finds until a customer does. See src/lib/routes.ts.
-export default function Page() {
-  return <PagePlaceholder route="electronics" />;
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations("groceries");
+  return { title: t("electronicsTitle"), description: t("electronicsBody") };
+}
+
+/**
+ * `/electronics` — the design's `electronics` frames (1440×940, 412×917) are a
+ * launch notice and nothing else. No catalogue, no listing, no cart: building
+ * any of them would be inventing a product the design has not.
+ */
+export default async function ElectronicsPage() {
+  const t = await getTranslations("groceries");
+  return (
+    <ComingSoon
+      image="/images/electronics.webp"
+      copy={{
+        badge: t("electronicsBadge"),
+        title: t("electronicsTitle"),
+        body: t("electronicsBody"),
+        imageAlt: t("electronicsImageAlt"),
+      }}
+    />
+  );
 }

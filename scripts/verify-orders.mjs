@@ -200,8 +200,16 @@ check(
 
 check(
   "the tracker is a position on a known list, not a percentage",
-  /ORDER_STEPS\.indexOf\(/.test(tracker) && !/percent/.test(tracker),
+  /\bsteps\.indexOf\(/.test(tracker) && !/percent/.test(tracker),
   "A number would put the frontend in charge of deciding what 60% of an order looks like.",
+);
+
+check(
+  "the tracker's list is chosen by the order's vertical",
+  // Phase 13: a grocery store picks where a kitchen cooks. One hard-coded list
+  // draws "Kitchen" on a grocery order.
+  /ORDER_STEPS\[order\.vertical/.test(detail) && /groceries:\s*\[/.test(types),
+  "The food journey and the grocery journey are different lists of the same length. A tracker that ignores the vertical is right for one of them.",
 );
 
 check(

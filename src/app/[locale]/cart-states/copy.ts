@@ -55,5 +55,7 @@ export function cartCopy(
     unavailableTitle: t("unavailableTitle"),
     unavailableBody: t("unavailableBody"),
     notWired: t("notWired"),
+    actionFailed: t("actionFailed"),
+    selectToSeeTotal: t("selectToSeeTotal"),
   };
 }

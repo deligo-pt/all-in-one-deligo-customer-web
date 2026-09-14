@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DEFAULT_DIAL_CODE, toContactNumber } from "./countries";
+import { OTP_LENGTH } from "./OtpInput";
 import { notWiredTransport } from "./transport";
 import {
   isAuthFailure,
@@ -29,7 +30,24 @@ export type AuthStep = "identify" | "verify";
  * right to notice.
  */
 export type AuthCondition =
-  "unavailable" | "missingPhone" | "missingEmail" | "missingCode" | "codeSent";
+  | "notWired"
+  | "unavailable"
+  | "missingPhone"
+  | "missingEmail"
+  | "missingCode"
+  | "codeSent"
+  | "socialEmailRequired"
+  | "socialAlreadyLinked"
+  | "socialUnavailable"
+  | "socialFailed";
+
+/** The failures with copy of their own (Phase 15). */
+const SOCIAL_CONDITION = {
+  "social-email-required": "socialEmailRequired",
+  "social-already-linked": "socialAlreadyLinked",
+  "social-unavailable": "socialUnavailable",
+  "social-failed": "socialFailed",
+} as const satisfies Record<string, AuthCondition>;
 
 export type AuthNotice =
   | { kind: "error"; condition: Exclude<AuthCondition, "codeSent"> }
@@ -47,7 +65,7 @@ export type AuthPending = "request" | "verify" | "resend" | SocialProvider | nul
 const RESEND_COOLDOWN_SECONDS = 30;
 
 export type AuthFlowOptions = {
-  /** Phase 15 passes the real one. */
+  /** `AuthPanel` passes the connected one; the states page keeps this default. */
   transport?: AuthTransport;
   /** Where the flow starts. Used by the development states page to render a
    *  step the current transport cannot reach, and by nothing else. */
@@ -59,8 +77,7 @@ export type AuthFlowOptions = {
    *  looked at. */
   initialSentTo?: LoginIdentifier | null;
   initialDeviceLimit?: boolean;
-  /** Called once a session exists. Phase 15 navigates; Phase 6 has nowhere to
-   *  go, so the default does nothing. */
+  /** Called once a session exists. */
   onSignedIn?: () => void;
 };
 
@@ -114,7 +131,9 @@ export function useAuthFlow({
    * device has been registered yet.
    */
   const retryRef = useRef<
-    { type: "verify" } | { type: "social"; provider: SocialProvider } | null
+    | { type: "verify" }
+    | { type: "social"; provider: SocialProvider; token: string }
+    | null
   >(null);
 
   /** The identifier a code was actually sent to. Held separately from the two
@@ -187,11 +206,19 @@ export function useAuthFlow({
       setNotice({ kind: "error", condition: "rejected", text: error.message });
       return;
     }
-    // `not-wired`, and anything that reached here without being an
-    // AuthFailure at all. Both mean the same thing to a customer in Track B,
-    // and inventing a more specific sentence for the second would be
-    // inventing.
-    setNotice({ kind: "error", condition: "unavailable" });
+    if (isAuthFailure(error) && error.kind in SOCIAL_CONDITION) {
+      const condition = SOCIAL_CONDITION[error.kind as keyof typeof SOCIAL_CONDITION];
+      setNotice({ kind: "error", condition });
+      return;
+    }
+    // The offline states page's transport says so in its own words; anything
+    // else — no answer, an unusable one, a thrown non-failure — is one
+    // sentence, because a more specific one would be a guess.
+    setNotice({
+      kind: "error",
+      condition:
+        isAuthFailure(error) && error.kind === "not-wired" ? "notWired" : "unavailable",
+    });
   }, []);
 
   const requestOtp = useCallback(
@@ -243,14 +270,14 @@ export function useAuthFlow({
   );
 
   const signInWith = useCallback(
-    async (provider: SocialProvider, forceLogin = false) => {
+    async (provider: SocialProvider, token: string, forceLogin = false) => {
       setNotice(null);
       setPending(provider);
       try {
-        await transport.socialLogin({ provider, forceLogin });
+        await transport.socialLogin({ provider, token, forceLogin });
         onSignedIn?.();
       } catch (error) {
-        report(error, { type: "social", provider });
+        report(error, { type: "social", provider, token });
       } finally {
         setPending(null);
       }
@@ -281,7 +308,7 @@ export function useAuthFlow({
     retryRef.current = null;
     if (!retry) return;
     if (retry.type === "verify") void verifyOtp(true);
-    else void signInWith(retry.provider, true);
+    else void signInWith(retry.provider, retry.token, true);
   }, [signInWith, verifyOtp]);
 
   return useMemo(
@@ -300,9 +327,9 @@ export function useAuthFlow({
       deviceLimitSeen,
       setPhone,
       setEmail,
-      // Six digits, digits only. Typing a seventh does nothing rather than
-      // silently replacing the first, and a pasted "code: 123456" still works.
-      setOtp: (value: string) => setOtp(value.replace(/\D/g, "").slice(0, 6)),
+      // `OTP_LENGTH` digits, digits only. Typing one more does nothing rather
+      // than silently replacing the first, and a pasted "code: 8417" still works.
+      setOtp: (value: string) => setOtp(value.replace(/\D/g, "").slice(0, OTP_LENGTH)),
       setDeviceLimitOpen: openDeviceLimit,
       changeMode,
       backToIdentify,
@@ -310,6 +337,11 @@ export function useAuthFlow({
       resendCode: () => requestOtp("resend"),
       verifyOtp: () => verifyOtp(),
       signInWith,
+      /** A provider's SDK could not produce a token. */
+      socialUnavailable: () =>
+        setNotice({ kind: "error", condition: "socialUnavailable" }),
+      /** Marks a provider as in flight while its own dialog is open. */
+      setPending,
       clearSessionAndRetry,
     }),
     [

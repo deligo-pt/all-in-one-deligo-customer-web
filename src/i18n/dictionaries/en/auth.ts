@@ -34,9 +34,9 @@ const auth = {
   // The email variant says email, and warns about the spam folder: an OTP mail
   // is a one-off from an unfamiliar sender, which is exactly what filters hold
   // back, and somebody who never thinks to look there concludes it is broken.
-  verifySubtitlePhone: "Enter the 6-digit code we sent to your phone number.",
+  verifySubtitlePhone: "Enter the {length}-digit code we sent to your phone number.",
   verifySubtitleEmail:
-    "Enter the 6-digit code we sent to your email address. If it isn’t there, check your spam folder.",
+    "Enter the {length}-digit code we sent to your email address. If it isn’t there, check your spam folder.",
   codeLabel: "Verification code",
 
   changePhone: "Change Phone Number",
@@ -59,12 +59,19 @@ const auth = {
 
   phoneRequired: "Enter your phone number.",
   emailRequired: "Enter your email address.",
-  otpRequired: "Enter the 6-digit code we sent you.",
+  otpRequired: "Enter the {length}-digit code we sent you.",
 
   // Track B's honest answer. The screens are built before the API is connected
   // (Plan.md §8, Phase 15), and the alternative to saying so is a form that
   // appears to work and silently does nothing — which is the class of bug this
   // rebuild exists to stop repeating.
+  signInUnavailable: "We couldn’t reach DeliGo. Check your connection and try again.",
+  socialFailed: "Sign-in failed. Please try again.",
+  socialEmailRequired:
+    "We could not get your email address from that account. Allow email access and try again, or log in with your phone number.",
+  socialAlreadyLinked: "That account is already connected to another DeliGo user.",
+  socialUnavailable: "This sign-in option is temporarily unavailable.",
+
   notWired:
     "Sign-in is not connected yet. This screen is complete; the API behind it arrives in a later phase, and nothing you type here is sent anywhere.",
 

@@ -67,7 +67,7 @@ export default async function AuthStatesPage() {
             <h2 className="text-13 text-ink-subtle tracking-wide uppercase">
               {state.id}
             </h2>
-            <AuthPanel {...state.props} />
+            <AuthPanel offline {...state.props} />
           </section>
         ))}
       </div>

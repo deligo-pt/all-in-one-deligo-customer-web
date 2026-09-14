@@ -114,6 +114,7 @@ const srcFiles = filesUnder(SRC);
 const code = new Map(srcFiles.map((f) => [f, stripComments(readFileSync(f, "utf8"))]));
 
 const panel = read(join(FEATURE, "AuthPanel.tsx"));
+const otpInput = read(join(FEATURE, "OtpInput.tsx"));
 const otpField = read(join(FEATURE, "OtpInput.tsx"));
 const flow = read(join(FEATURE, "useAuthFlow.ts"));
 const types = read(join(FEATURE, "types.ts"));
@@ -154,14 +155,14 @@ for (const [name, source] of [
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§2  Nothing is wired, and nothing pretends to be");
+section("§2  The network and the session are someone else's");
 
 const NETWORK = /\bfetch\s*\(|\baxios\b|XMLHttpRequest|navigator\.sendBeacon/;
 const callers = featureFiles.filter((f) => NETWORK.test(code.get(f) ?? ""));
 check(
-  `no file in the feature makes a network call (${featureFiles.length} files)`,
+  `no file in the feature makes a network call of its own (${featureFiles.length} files)`,
   callers.length === 0,
-  `Track B builds the screens and Phase 15 connects them. A request placed here now is one the API layer will not know about — no interceptor, no token refresh, no error normalisation.\n      ${callers.map(rel).join("\n      ")}`,
+  `Since Phase 15 requests go through the session client (\`@/services/session/browser\`). A request placed here directly is one the API layer does not know about — no interceptor, no token refresh, no error normalisation.\n      ${callers.map(rel).join("\n      ")}`,
 );
 
 const METHODS = ["requestOtp", "verifyOtp", "socialLogin"];
@@ -174,7 +175,7 @@ check(
 
 const rejects = (transport.match(/Promise\.reject\(/g) ?? []).length;
 check(
-  `every method of the shipped transport fails (${rejects}/${METHODS.length} reject)`,
+  `every method of the offline transport fails (${rejects}/${METHODS.length} reject)`,
   rejects >= METHODS.length,
   "A stub that resolves is a sign-in that appears to work. The customer sees success, no session exists, and the next page is a logged-out one — which is exactly the class of bug this rebuild exists to stop shipping.",
 );
@@ -184,7 +185,7 @@ const storers = featureFiles.filter((f) => STORAGE.test(code.get(f) ?? ""));
 check(
   "the feature stores no credential of its own",
   storers.length === 0,
-  `Where the session lives is Phase 15's decision, and it has to be one decision — the old app kept it in cookies with an interceptor that knew about it. A token written here would be a second store that nothing else reads or clears.\n      ${storers.map(rel).join("\n      ")}`,
+  `Phase 15 decided: cookies written by \`/api/session\`, through \`saveSession\`. A token written here would be a second store that nothing else reads or clears.\n      ${storers.map(rel).join("\n      ")}`,
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -247,6 +248,24 @@ check(
     panel + otpField,
   ),
   "It is what makes iOS and Android offer the code straight from the SMS notification. Without it, everybody retypes six digits from another app.",
+);
+
+check(
+  "the code length is one number, and it is the backend's",
+  // Phase 15, first real sign-in: the design draws six boxes, the API sends
+  // four digits. Six hard-coded in three places is how that shipped.
+  /export const OTP_LENGTH = 4;/.test(otpInput) &&
+    /slice\(0, OTP_LENGTH\)/.test(read(join(FEATURE, "useAuthFlow.ts"))) &&
+    ![otpInput, panel, read(join(FEATURE, "useAuthFlow.ts"))].some((src) =>
+      /slice\(0, \d\)|length: \d\b|< \d\)/.test(src),
+    ) &&
+    ["en", "pt"].every(
+      (l) =>
+        !/\b[46] ?-?(digit|dígitos)/.test(
+          readFileSync(join(SRC, "i18n", "dictionaries", l, "auth.ts"), "utf8"),
+        ),
+    ),
+  "Two boxes that can never be filled and a Verify button that never enables. The boxes, the input limit, the button and the copy must read one constant.",
 );
 
 check(

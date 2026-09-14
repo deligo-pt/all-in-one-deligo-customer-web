@@ -3,19 +3,25 @@
 import { useId, useRef } from "react";
 import { cn } from "@/lib/cn";
 
-/** The design draws six boxes. The backend's codes are six digits. */
-export const OTP_LENGTH = 6;
+/**
+ * How many digits a code has: **four**, which is what the backend sends (the
+ * first real sign-in, 14 Sep, and every Postman example — "7185", "6996").
+ * The design draws six boxes; six would leave two that can never be filled
+ * and a Verify button that never enables. The boxes, the input limit, the
+ * button and the copy all read this one number.
+ */
+export const OTP_LENGTH = 4;
 
 /**
- * The six-box verification code, measured: 48×56 each, 8px radius, 16px apart;
+ * The segmented verification code, measured: 48×56 each, 8px radius, 16px apart;
  * an empty box is filled `line-subtle` with no border, the focused one is
  * transparent with a 2px brand border.
  *
- * ## Six boxes, built so they do not cost what six boxes usually cost
+ * ## Separate boxes, built so they do not cost what separate boxes usually cost
  *
  * The first version of this screen used one input, on the grounds that a
  * segmented control normally breaks the three things that matter most on an
- * OTP field. The design draws six, so it is six — and each of those three is
+ * OTP field. The design draws boxes, so it is boxes — and each of those three is
  * handled rather than accepted:
  *
  *  - **Autofill.** `autocomplete="one-time-code"` sits on the first box, which

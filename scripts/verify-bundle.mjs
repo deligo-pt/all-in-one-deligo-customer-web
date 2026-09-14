@@ -121,13 +121,73 @@ const pages = htmlFiles(join(dist, "server", "app"))
   .filter((page) => !DEV_ONLY_ROUTES.some((name) => page.route.endsWith(`/${name}`)))
   .sort((a, b) => b.kb - a.kb);
 
+/**
+ * Dynamic routes (Phase 16). A page that reads the session or the location
+ * cookie renders per request and leaves no HTML to read scripts from — and
+ * those are now the heaviest pages in the app. Their first load is taken from
+ * the route's client reference manifest instead: the root main files plus
+ * every entry chunk the manifest lists. That includes the error and not-found
+ * boundaries, so it over-counts — by 3.5 KB on every one of five prerendered
+ * routes checked (`/en`, `/en/food`, `/en/login`, `/en/checkout`,
+ * `/en/account`). An upper bound is the safe side of a budget.
+ */
+function manifestFiles(dir) {
+  if (!existsSync(dir)) return [];
+  const out = [];
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    if (statSync(full).isDirectory()) out.push(...manifestFiles(full));
+    else if (entry === "page_client-reference-manifest.js") out.push(full);
+  }
+  return out;
+}
+const buildManifest = JSON.parse(
+  readFileSync(join(dist, "build-manifest.json"), "utf8"),
+);
+const prerenderedRoutes = new Set(
+  pages.map((p) => p.route.replace(/^\/(en|pt)(?=\/|$)/, "")),
+);
+const appDir = join(dist, "server", "app");
+for (const file of manifestFiles(appDir)) {
+  const key =
+    "/" +
+    relative(appDir, file)
+      .split(sep)
+      .join("/")
+      .replace(/_client-reference-manifest\.js$/, "");
+  const path =
+    key
+      .replace(/^\/\[locale\]/, "")
+      .replace(/\/\([^)]+\)/g, "")
+      .replace(/\/page$/, "") || "/";
+  if (!key.startsWith("/[locale]/") || prerenderedRoutes.has(path === "/" ? "" : path))
+    continue;
+  if (DEV_ONLY_ROUTES.some((name) => path === `/${name}`) || path.includes("[..."))
+    continue;
+  globalThis.__RSC_MANIFEST = {};
+  new Function(readFileSync(file, "utf8"))();
+  const manifest = globalThis.__RSC_MANIFEST[key];
+  if (!manifest) continue;
+  const chunks = new Set([
+    ...(buildManifest.rootMainFiles ?? []),
+    ...Object.values(manifest.entryJSFiles).flat(),
+  ]);
+  pages.push({
+    route: `${path} (dynamic, upper bound)`,
+    kb: [...chunks].reduce((sum, c) => sum + gzippedSize(`/_next/${c}`), 0) / 1024,
+    legacyKb: 0,
+    files: chunks.size,
+  });
+}
+pages.sort((a, b) => b.kb - a.kb);
+
 console.log(`\n\x1b[1mFirst-load JS — budget ${BUDGET_KB} KB gzipped\x1b[0m`);
 if (pages.length === 0) {
   console.error("\n\x1b[31m✗ no prerendered pages found — has the build run?\x1b[0m\n");
   process.exit(1);
 }
 console.log(
-  `  ${pages.length} prerendered routes · polyfills excluded (${pages[0].legacyKb.toFixed(1)} KB, legacy browsers only)\n`,
+  `  ${pages.length} routes (${pages.filter((p) => p.route.includes("dynamic")).length} dynamic) · polyfills excluded (${Math.max(...pages.map((p) => p.legacyKb)).toFixed(1)} KB, legacy browsers only)\n`,
 );
 
 const over = [];
@@ -139,7 +199,7 @@ for (const page of pages) {
   // forty identical placeholder routes are noise.
   if (pages.indexOf(page) < 6 || pct >= 90) {
     console.log(
-      `  ${ok ? "\x1b[32m✓\x1b[0m" : "\x1b[31m✗\x1b[0m"} ${page.route.padEnd(34)} ${page.kb.toFixed(1).padStart(7)} KB   ${String(pct).padStart(3)}%`,
+      `  ${ok ? "\x1b[32m✓\x1b[0m" : "\x1b[31m✗\x1b[0m"} ${page.route.padEnd(52)} ${page.kb.toFixed(1).padStart(7)} KB   ${String(pct).padStart(3)}%`,
     );
   }
 }

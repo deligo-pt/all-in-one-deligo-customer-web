@@ -59,12 +59,15 @@ const cart = {
     "Nothing has been added yet. Choose a restaurant and whatever you pick shows up here.",
   browse: "Browse restaurants",
 
-  unavailableTitle: "Your cart is not connected yet",
-  unavailableBody:
-    "This screen is built; the cart behind it is connected in a later phase. Nothing here is placeholder data — there is simply nothing to show until there is.",
+  unavailableTitle: "Your cart couldn’t be loaded",
+  unavailableBody: "We couldn’t reach your cart just now. Try again in a moment.",
 
-  notWired:
-    "The cart is not connected yet. This control is real and the request it would send arrives in a later phase — nothing was changed.",
+  goToCheckout: "Checkout",
+  actionFailed: "That didn’t go through. Your cart is shown as it is now.",
+  selectToSeeTotal:
+    "Select a store to see its total — orders are placed one store at a time.",
+  previewOnly: "This is the design preview — nothing here changes a real cart.",
+  notWired: "Vouchers are applied at checkout, which is connected in the next phase.",
 } satisfies Record<string, string>;
 
 export default cart;

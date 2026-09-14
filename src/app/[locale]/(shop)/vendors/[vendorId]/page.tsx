@@ -1,36 +1,48 @@
+import { notFound, redirect } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
-import {
-  CatalogUnavailableError,
-  VendorMenu,
-  notWiredCatalog,
-  type MenuCopy,
-  type VendorDetail,
-} from "@/features/food";
-import { getTranslations } from "@/i18n/server";
+import { VendorMenu, type MenuCopy, type VendorDetail } from "@/features/food";
+import { getLocale, getTranslations } from "@/i18n/server";
+import { withLocale } from "@/lib/i18n/path";
+import { ROUTES } from "@/lib/routes";
+import { isApiError } from "@/services/api/error";
+import { readCart } from "@/services/cart/server";
+import { foodCatalog, vendorUserIdFromMongoId } from "@/services/catalog/food";
 
 /**
- * `/vendors/[vendorId]` — one restaurant.
+ * `/vendors/[vendorId]` — one restaurant (Phase 16).
  *
- * The hero, the identity row, the offers, the menu and the cart panel, over
- * the `VendorDetail` shape Phase 16 fills. In Track B the catalogue rejects
- * and the page says so; every component below it is built and is reviewable
- * populated at `/food-states`.
+ * The id is the vendor's `userId` ("V-…"). A search hit carries the Mongo
+ * `_id` instead, so an id that is not a `userId` is resolved through one of
+ * the vendor's products and redirected to the canonical URL.
  *
- * `notFound()` is deliberately **not** called for the unavailable case. A
- * vendor id that does not exist is a 404; a catalogue that is not connected is
- * not — and answering the second with the first would train everyone to read
- * "restaurant not found" as "not built yet", right up until a real one goes
- * missing.
+ * An unknown vendor is a 404. A catalogue that cannot be reached is not —
+ * answering it with "not found" would teach everyone to read a missing
+ * restaurant as a network blip.
  */
-export default async function VendorPage() {
-  const t = await getTranslations("food");
+export default async function VendorPage({
+  params,
+}: {
+  params: Promise<{ vendorId: string }>;
+}) {
+  const [{ vendorId }, t, cartT, locale] = await Promise.all([
+    params,
+    getTranslations("food"),
+    getTranslations("cart"),
+    getLocale(),
+  ]);
+
+  if (!vendorId.startsWith("V-")) {
+    const userId = await vendorUserIdFromMongoId(vendorId).catch(() => null);
+    if (!userId) notFound();
+    redirect(withLocale(ROUTES.vendor.path.replace("[vendorId]", userId), locale));
+  }
 
   let vendor: VendorDetail | null = null;
   try {
-    vendor = await notWiredCatalog.getVendor("");
+    vendor = await (await foodCatalog()).getVendor(vendorId);
   } catch (error) {
-    if (!(error instanceof CatalogUnavailableError)) throw error;
+    if (isApiError(error) && error.status === 404) notFound();
   }
 
   if (!vendor) {
@@ -54,23 +66,59 @@ export default async function VendorPage() {
     menuNav: t("menuNavigation"),
     noMatches: t("noItems"),
     noMatchesBody: t("noItemsBody"),
-    cartTitle: t("yourCart"),
-    cartEmpty: t("cartEmpty"),
+    noMenu: t("noMenu"),
+    noMenuBody: t("noMenuBody"),
+    cart: {
+      title: t("yourCart"),
+      empty: t("cartEmpty"),
+      line: {
+        remove: cartT("remove"),
+        quantity: cartT("quantity"),
+        increase: cartT("increaseQuantity"),
+        decrease: cartT("decreaseQuantity"),
+        itemImage: cartT("itemImage"),
+      },
+      charge: {
+        subtotal: cartT("chargeSubtotal"),
+        delivery: cartT("chargeDelivery"),
+        service: cartT("chargeService"),
+        tip: cartT("chargeTip"),
+        discount: cartT("chargeDiscount"),
+      },
+      grandTotal: cartT("grandTotal"),
+      checkout: cartT("goToCheckout"),
+      selectForCheckout: cartT("chooseStore"),
+      actionFailed: cartT("actionFailed"),
+    },
+    signInToAdd: t("signInToAdd"),
+    signIn: t("signInAction"),
+    offlineAdd: t("offlineAdd"),
     addToCart: t("addToCart"),
     rating: t("rating"),
     product: {
       required: t("optionRequired"),
       chooseRequired: t("chooseRequiredOptions"),
-      specialInstructions: t("specialInstructions"),
-      specialInstructionsPlaceholder: t("specialInstructionsPlaceholder"),
       addToCart: t("addToCart"),
       quantity: t("quantity"),
       increase: t("increaseQuantity"),
       decrease: t("decreaseQuantity"),
       close: t("closeProduct"),
-      notWired: t("cartNotWired"),
     },
   };
 
-  return <VendorMenu vendor={vendor} copy={copy} />;
+  // Signed in, this vendor's part of the cart sits beside the menu. A cart
+  // that cannot be read leaves the panel empty; the menu still works.
+  const cart = await readCart().catch(() => null);
+  const self = withLocale(ROUTES.vendor.path.replace("[vendorId]", vendorId), locale);
+
+  return (
+    <VendorMenu
+      vendor={vendor}
+      copy={copy}
+      locale={locale}
+      cart={cart?.stores.find((store) => store.vendorId === vendor.recordId)}
+      checkoutHref={withLocale(ROUTES.checkout.path, locale)}
+      loginHref={`${withLocale(ROUTES.login.path, locale)}?next=${encodeURIComponent(self)}`}
+    />
+  );
 }

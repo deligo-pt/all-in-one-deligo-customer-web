@@ -58,7 +58,12 @@ export function MenuItemCard({
         <div className="mt-auto flex items-center justify-between gap-3">
           {/* Verbatim. The API sends "9.90€" and that is what is read out —
               no re-formatting, no symbol chosen here. */}
-          <p className="text-16 text-brand font-semibold">{item.price}</p>
+          <p className="text-16 text-brand flex items-baseline gap-2 font-semibold">
+            {item.price}
+            {item.originalPrice ? (
+              <s className="text-12 text-ink-muted font-normal">{item.originalPrice}</s>
+            ) : null}
+          </p>
           <Button
             size="icon-sm"
             variant="ghost"

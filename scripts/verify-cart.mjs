@@ -107,7 +107,9 @@ const code = new Map(
 
 const featureFiles = filesUnder(FEATURE);
 const types = read(join(FEATURE, "types.ts"));
-const transport = read(join(FEATURE, "transport.ts"));
+const transport = read(join(FEATURE, "api.ts"));
+const serverRead = read(join(SRC, "services", "cart", "server.ts"));
+const sidePanel = read(join(FEATURE, "StoreCartPanel.tsx"));
 const summary = read(join(FEATURE, "summary.ts"));
 const view = read(join(FEATURE, "CartView.tsx"));
 const group = read(join(FEATURE, "StoreGroup.tsx"));
@@ -121,7 +123,7 @@ section("§1  The money is the backend's, and this screen does no arithmetic");
 check(
   "the cart types money as text, not as a number",
   /price: string/.test(types) &&
-    /subtotal: string/.test(types) &&
+    /subtotal\??: string/.test(types) &&
     /amount: string/.test(types) &&
     !/(?:price|subtotal|amount|total): number/.test(types),
   "A `number` invites a `toFixed(2)`, then a rounding rule, then a currency symbol chosen here. Plan.md §2.2 carries one rule from the old app: money is displayed exactly as returned. A type that cannot hold a float cannot quietly re-derive one.",
@@ -192,24 +194,52 @@ check(
   `Track B builds the screens and Phase 17 connects them. A request placed here now is one the API layer will not know about — no interceptor, no token refresh, no error normalisation.\n      ${callers.map(rel).join("\n      ")}`,
 );
 
-const METHODS = ["read", "setQuantity", "remove"];
-const missing = METHODS.filter((m) => !new RegExp(`\\b${m}\\b`).test(types));
+const METHODS = ["setQuantity", "remove", "select", "add"];
+const missing = METHODS.filter((m) => !new RegExp(`\\b${m}\\(`).test(types));
+const unimplemented = METHODS.filter(
+  (m) => !new RegExp(`async ${m}\\(`).test(transport),
+);
 check(
-  `the transport contract names every call the screen makes (${METHODS.join(", ")})`,
-  missing.length === 0,
-  `A contract missing one of these is a control Phase 17 has to redesign around.\n      ${missing.join(", ")}`,
+  `the contract names every write, and the client transport implements each (${METHODS.join(", ")})`,
+  missing.length === 0 && unimplemented.length === 0,
+  `Phase 17. \`features/cart/api.ts\` is the only implementation.\n      ${[...missing, ...unimplemented].join(", ")}`,
 );
 
-const rejects = (transport.match(/Promise\.reject\(/g) ?? []).length;
 check(
-  `every method of the shipped transport fails (${rejects}/${METHODS.length} reject)`,
-  rejects >= METHODS.length,
-  "A stub that resolves with two sample pizzas is the worst possible bug in this project: it survives review precisely because it looks right, and it puts a price nobody set in front of a customer.",
+  "each write goes to the endpoint measured for it, and removal is never a zero",
+  /post\("\/carts\/add-to-cart"/.test(transport) &&
+    /delete\("\/carts\/delete-item"/.test(transport) &&
+    /patch\("\/carts\/toggle-item-status"/.test(transport) &&
+    /toggleMode: "VENDOR_BULK"/.test(transport) &&
+    !/quantity:\s*0\b/.test(transport),
+  "Measured: quantity 0 is a validation error, removal is `delete-item`, and the store switch is `VENDOR_BULK`.",
+);
+
+check(
+  "selecting a store never toggles the active one off",
+  /if \(store\.active\) return;/.test(transport),
+  "`toggle-item-status` is a toggle: sent for the active store it deactivates it, and the cart is left with no order to check out.",
+);
+
+check(
+  "the cart is read on the server, and only the active store carries totals",
+  /\/carts\/view-cart/.test(serverRead) &&
+    /\.\.\.\(active\s*\?/.test(serverRead) &&
+    /calc\.grandTotal/.test(serverRead) &&
+    !/\.reduce\(/.test(serverRead),
+  "`cartCalculation` is the backend's sum over active lines (measured: adding from a second store deactivated the first and the total followed). A store total for an inactive store would be one this screen made up.",
+);
+
+check(
+  "every write re-reads the cart, failed or not",
+  [view, sidePanel].every((src) => /finally \{\s*router\.refresh\(\);/.test(src)),
+  "An optimistic cart is a second opinion on quantities and prices; the server's cart is re-rendered after each write instead.",
 );
 
 check(
   "`setQuantity` sets rather than increments",
-  /setQuantity/.test(types) && !/\bincrement\b/.test(types),
+  /setQuantity\(line: CartLine, quantity: number\)/.test(types) &&
+    !/\bincrement\b/.test(types),
   "`/carts/add-to-cart` **sets** the quantity of a line; the old app proves it. An interface promising increments would have to fake them on top of a set, which is how two tabs of the same cart end up disagreeing.",
 );
 
@@ -254,18 +284,34 @@ check(
   "`verify:shell` asserts everything on that list 404s in production, and `verify:bundle` excludes it from the budget on the strength of that. A page holding a sample cart that is *not* on the list is a page a customer can open.",
 );
 
-check(
-  "the barrel exports no component that an importer would not render",
-  !/export \{[^}]*\b(?:StoreGroup|CartLineRow|VerticalTabs)\b/.test(
-    read(join(FEATURE, "index.ts")),
+/**
+ * Every component on the barrel is rendered by shipping code outside the
+ * feature. Phase 9 banned names (`StoreGroup|CartLineRow|VerticalTabs`);
+ * Phase 10 removed `OrderSummary` from that list and Phase 13 needed
+ * `CartLineRow` for the grocery store's panel. The rule was never a list of
+ * names — it is that no component reaches an importer that never renders it,
+ * which is what cost 27 KB, 9.3 KB and 11 KB in Phases 6 and 8.
+ */
+const shippingOutside = [...code]
+  .filter(([f]) => !f.startsWith(FEATURE + sep))
+  .filter(([f]) => !DEV_ONLY_ROUTES.some((r) => f.includes(`${sep}${r}${sep}`)))
+  .map(([, s]) => s)
+  .join("\n");
+const barrelComponents = [
+  ...read(join(FEATURE, "index.ts")).matchAll(
+    /export \{([^}]+)\} from "\.\/([A-Z]\w*)"/g,
   ),
-  // `OrderSummary` was added to this list in Phase 9 and removed from it in
-  // Phase 10, when `/checkout` turned out to draw the same 415px panel. The
-  // rule was never "no components on the barrel" — it is that a value export
-  // must not reach a route that never renders it, which is what cost 27 KB,
-  // 9.3 KB and 11 KB in Phases 6 and 8. Both importers render the summary;
-  // neither renders a store group, a line row or the tab strip.
-  "A static import of a barrel hands the importer every export. Three times this project has shipped a component to a route that never rendered it — 27 KB and 9.3 KB in Phase 6, 11 KB in Phase 8. The rows, the tabs and the store group are `/cart`'s alone.",
+]
+  .flatMap((m) => m[1].split(","))
+  .map((n) => n.trim())
+  .filter((n) => /^[A-Z]/.test(n));
+const unrendered = barrelComponents.filter(
+  (n) => !new RegExp(`<${n}\\b`).test(shippingOutside),
+);
+check(
+  `every component the barrel exports is rendered outside the feature (${barrelComponents.length})`,
+  barrelComponents.length > 0 && unrendered.length === 0,
+  `A static import of a barrel hands the importer every export. Three times this project has shipped a component to a route that never rendered it — 27 KB and 9.3 KB in Phase 6, 11 KB in Phase 8.\n      ${unrendered.join(", ")}`,
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -297,13 +343,14 @@ section("§5  The two structural decisions, asserted");
 
 check(
   "a store group carries its own totals, because a store group is one order",
-  /totals: CartTotals/.test(types) && /store\.totals\.total/.test(panel),
+  /totals\?: CartTotals/.test(types) && /store\.totals\?\.total/.test(panel),
   "D-4 assumes the backend cannot place one order across two vendors. Hanging a single `totals` off the cart would encode the opposite, and the summary panel would have nothing to be about.",
 );
 
 check(
-  "the summary panel follows a store the current filter still shows",
-  /visible\.find\(/.test(view) && /visible\[0\]/.test(view),
+  "the summary panel is the API's active store, while the filter still shows it",
+  /visible\.find\(\(store\) => store\.active\)/.test(view) &&
+    /copy\.selectToSeeTotal/.test(view),
   "A `Place Order` describing a store that the Groceries tab has just hidden is a button aimed at something invisible. Derived at render, not synchronised in an effect — `set-state-in-effect` is a mistake this project has already made twice.",
 );
 

@@ -44,12 +44,17 @@ export const CART_VERTICALS: readonly CartVertical[] = [
  * what a "buy this again" or an add-on request needs.
  */
 export type CartLine = {
+  /** `productId::variationSku` — the pair the API identifies a line by. */
   id: string;
+  /** The product's Mongo `_id`; `PROD-…` is rejected by the cart. */
   productId: string;
+  /** The chosen size, when the product has variations. */
+  variationSku?: string;
   name: string;
   description?: string;
   image?: string;
-  /** Verbatim, symbol included: "12.50€". */
+  /** The line's total, formatted once from the API's `itemSummary.grandTotal`
+   *  (unit price × quantity plus add-ons, the backend's arithmetic). */
   price: string;
   quantity: number;
   /** "Large · Extra cheese" — the chosen options, joined by the API. Without
@@ -96,13 +101,23 @@ export type CartStore = {
   name: string;
   vertical: CartVertical;
   lines: readonly CartLine[];
-  /** Verbatim: "18.40€". */
-  subtotal: string;
+  /**
+   * Whether this store's lines are the ones checkout will order.
+   *
+   * Measured (Phase 17): the API keeps **one** store active. Adding from a
+   * store activates it and deactivates the rest; `VENDOR_BULK` toggling an
+   * inactive store does the same. `cartCalculation` totals only active lines.
+   */
+  active: boolean;
+  /** The active store's subtotal. Absent for the others: the API totals only
+   *  active lines, and adding them up here would be a second opinion. */
+  subtotal?: string;
   /** "25–35 min" — the sentence's numbers only; the words are ours. */
   deliveryEstimate?: string;
   /** "#DG-8291". */
   orderRef?: string;
-  totals: CartTotals;
+  /** Present on the active store only — see `subtotal`. */
+  totals?: CartTotals;
 };
 
 export type Cart = {
@@ -131,18 +146,29 @@ export type Cart = {
  * delivery fee and a discount threshold, and the only place that knows how is
  * the server.
  */
-export type CartTransport = {
-  /** `/carts/view-cart`. */
-  read(): Promise<Cart>;
-  /** `/carts/add-to-cart` — sets, never adds. Zero removes the line. */
-  setQuantity(lineId: string, quantity: number): Promise<Cart>;
-  /** `/carts/delete-item`. */
-  remove(lineId: string): Promise<Cart>;
+/** What adding needs: the product, the absolute quantity, the size and the
+ *  add-ons chosen (`optionSku` + quantity each). */
+export type AddToCartInput = {
+  productId: string;
+  quantity: number;
+  variationSku?: string;
+  addons?: readonly { optionSku: string; quantity: number }[];
 };
 
-export class CartUnavailableError extends Error {
-  constructor() {
-    super("cart-not-wired");
-    this.name = "CartUnavailableError";
-  }
-}
+/**
+ * The cart's writes (Phase 17), each measured on the live API. They resolve
+ * or throw `ApiError`; the screen re-reads the cart from the server after
+ * every one of them, successful or not.
+ */
+export type CartTransport = {
+  /** `POST /carts/add-to-cart` — **sets** the quantity; it never adds to it.
+   *  Omitting `addons` keeps a line's add-ons. Zero is rejected. */
+  setQuantity(line: CartLine, quantity: number): Promise<void>;
+  /** `DELETE /carts/delete-item` — one request for any number of lines. */
+  remove(lines: readonly CartLine[]): Promise<void>;
+  /** `PATCH /carts/toggle-item-status` with `VENDOR_BULK` — only when the
+   *  store is not already active, since a second toggle deactivates it. */
+  select(store: CartStore): Promise<void>;
+  /** `POST /carts/add-to-cart` from a menu. */
+  add(input: AddToCartInput): Promise<void>;
+};

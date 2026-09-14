@@ -107,7 +107,9 @@ const code = new Map(
 );
 
 const types = read(join(FEATURE, "types.ts"));
-const catalog = read(join(FEATURE, "catalog.ts"));
+const adapter = read(join(SRC, "services", "catalog", "food.ts"));
+const shared = read(join(SRC, "services", "catalog", "shared.ts"));
+const listingPage = read(join(APP, "(shop)", "food", "restaurants", "page.tsx"));
 const listing = read(join(FEATURE, "VendorListing.tsx"));
 const menu = read(join(FEATURE, "VendorMenu.tsx"));
 const itemCard = read(join(FEATURE, "MenuItemCard.tsx"));
@@ -174,19 +176,118 @@ check(
   `Track B builds the screens and Phase 16 connects them. A request placed here now is one the API layer will not know about — no interceptor, no token refresh, no error normalisation.\n      ${callers.map(rel).join("\n      ")}`,
 );
 
-const METHODS = ["listVendors", "listCuisines", "getVendor", "getProduct"];
-const missing = METHODS.filter((m) => !new RegExp(`\\b${m}\\b`).test(types));
+const METHODS = ["listVendors", "listCuisines", "getVendor"];
+const missing = METHODS.filter((m) => !new RegExp(`\\b${m}\\(`).test(types));
+const unimplemented = METHODS.filter((m) => !new RegExp(`async ${m}\\(`).test(adapter));
 check(
-  `the catalogue contract names every read the screens need (${METHODS.join(", ")})`,
-  missing.length === 0,
-  `A contract missing one of these is a screen Phase 16 has to redesign around.\n      ${missing.join(", ")}`,
+  `the contract names every read, and the API adapter implements each (${METHODS.join(", ")})`,
+  missing.length === 0 &&
+    unimplemented.length === 0 &&
+    /Promise<FoodCatalog>/.test(adapter),
+  `Phase 16: \`services/catalog/food.ts\` is the only implementation.\n      ${[...missing, ...unimplemented].join(", ")}`,
 );
 
-const rejects = (catalog.match(/Promise\.reject\(/g) ?? []).length;
 check(
-  `every method of the shipped catalogue fails (${rejects}/${METHODS.length} reject)`,
-  rejects >= METHODS.length,
-  "A stub that resolves with sample restaurants is the worst possible bug in this project: it survives review precisely because it looks right, and it ships prices nobody set.",
+  "each read goes to the endpoint measured for it",
+  [
+    "/vendors/nearby/open",
+    "/categories/cuisine/open",
+    "/products/open",
+    "/product-categories/open",
+  ].every((path) => adapter.includes(`"${path}"`) || adapter.includes(`\`${path}/`)) &&
+    /businessType: "RESTAURANT"/.test(adapter),
+  "`/vendors/customer` returns one vendor; `/vendors/nearby/open/:id` needs the userId; products and their categories take the Mongo `_id`. Each was measured before this was written.",
+);
+
+check(
+  "the price shown is the API's `finalPrice`, formatted once",
+  /money\(p\.finalPrice/.test(adapter) &&
+    /formatCurrency\(/.test(shared) &&
+    ![adapter, shared].some((src) =>
+      src
+        .split("\n")
+        .some(
+          (line) =>
+            CONVERSION.test(line) || (MONEY_WORD.test(line) && OPERATOR.test(line)),
+        ),
+    ),
+  "`price` minus `discount` is a second opinion on a number the backend already decided. The discount rule has a FLAT and a PERCENTAGE branch and a BOGO nobody modelled; `finalPrice` has none.",
+);
+
+check(
+  "every image host the API returns is configured, and none can crash a page",
+  /remotePatterns: REMOTE_IMAGE_HOSTS/.test(
+    readFileSync(join(ROOT, "next.config.ts"), "utf8"),
+  ) &&
+    ["res.cloudinary.com", "**.deligo.pt"].every((h) =>
+      read(join(SRC, "lib", "imageHosts.ts")).includes(`"${h}"`),
+    ) &&
+    /unoptimized=\{!shouldOptimiseImage\(src\)\}/.test(
+      read(join(SRC, "components", "shared", "ImageSlot.tsx")),
+    ),
+  "Found on the first real listing: `next/image` throws during render for an unconfigured host, and the API's photos come from res.cloudinary.com and storage-test.deligo.pt.",
+);
+
+const grouping = adapter.slice(
+  adapter.indexOf("export function groupMenu"),
+  adapter.indexOf("export async function vendorProducts"),
+);
+const productsRead = adapter.slice(
+  adapter.indexOf("export async function vendorProducts"),
+  adapter.indexOf("/** The food catalogue for this request"),
+);
+check(
+  "no active product is dropped for its category — it goes to 'Other', last",
+  /else other\.push\(/.test(grouping) &&
+    /if \(other\.length\)[\s\S]*?menu\.push\(/.test(grouping) &&
+    /t\("otherCategory"\)/.test(grouping),
+  "Found on a live vendor (V-IN0AMES9): active products under a shared category, no vendor categories, and a menu that rendered empty. The old app's rule: unfiled products under \"Other\", after the vendor's own sections.",
+);
+
+check(
+  "a signed-in customer's menu is the authenticated product list",
+  /hasServerSession\(\)[\s\S]*?api\.get\("\/products",/.test(productsRead) &&
+    /api\.get\("\/products\/open",/.test(productsRead) &&
+    /vendorProducts\(raw\._id\)/.test(adapter),
+  "`/products/open` and `/products` are different lists: 2 of 9 products for V-IN0AMES9 on the open one. The old app used `/products` whenever there was a session.",
+);
+
+check(
+  "an empty menu and a search with no matches are different sentences",
+  /vendor\.menu\.length === 0 \?/.test(menu) &&
+    /copy\.noMenu\b/.test(menu) &&
+    /copy\.noMatches\b/.test(menu),
+  '"No items match that search" on a page where nobody searched is a sentence about the wrong thing.',
+);
+
+const addBody = menu.slice(
+  menu.indexOf("async function add("),
+  menu.indexOf("return (", menu.indexOf("async function add(")),
+);
+check(
+  "adding sends the line's absolute quantity — what the cart holds plus what was chosen",
+  /quantity: inCart\(item\.id\) \+ 1/.test(menu) &&
+    /quantity: inCart\(product\.id, choice\.variationSku\) \+ choice\.quantity/.test(
+      menu,
+    ),
+  "Measured (Phase 17): `/carts/add-to-cart` sets the quantity. Sending 1 for a dish already in the cart twice empties two of them.",
+);
+
+check(
+  "a preview or a guest never writes a cart",
+  addBody.indexOf("if (products)") > -1 &&
+    addBody.indexOf("if (!signedIn)") > -1 &&
+    addBody.indexOf("if (products)") < addBody.indexOf("cartApi.add(") &&
+    addBody.indexOf("if (!signedIn)") < addBody.indexOf("cartApi.add("),
+  "The states page renders the fixture with a signed-in session in development; without the check, pressing + there adds a real line to a real cart.",
+);
+
+check(
+  "the cuisine filter is one slug, in the URL, applied by the API",
+  /restaurantCuisineType: cuisine/.test(adapter) &&
+    /searchParams/.test(listingPage) &&
+    /params\.get\("cuisine"\)/.test(listing),
+  "The API matches one slug and silently ignores a list or a display name (measured). A filter that runs in the browser disagrees with the server the first time the list is paginated.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -245,7 +346,7 @@ section("§4  The screens say which nothing they are showing");
 // "not connected" — and losing one of them leaves the other answering for
 // both, which is the exact confusion the next rule is about.
 for (const [name, source, atLeast] of [
-  ["the listing", listing, 2],
+  ["the listing", listing, 3],
   ["the vendor page", menu, 1],
 ]) {
   const rendered = (source.match(/<EmptyState\b/g) ?? []).length;
@@ -257,11 +358,12 @@ for (const [name, source, atLeast] of [
 }
 
 check(
-  "the listing tells 'no matches' apart from 'not connected'",
+  "the listing tells 'no location', 'no matches' and 'not reachable' apart",
   /unavailable \?/.test(listing) &&
     /vendors\.length === 0 \?/.test(listing) &&
     /copy\.emptyTitle/.test(listing) &&
-    /copy\.unavailableTitle/.test(listing),
+    /copy\.unavailableTitle/.test(listing) &&
+    /copy\.noLocationTitle/.test(listing),
   "Different sentences, different fixes, and only one of them is the customer's to make. Collapsing them is how somebody clears filters that were never the problem.",
 );
 

@@ -3,7 +3,6 @@
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
-import type { MenuCategory } from "./types";
 
 /**
  * The bar that sits above a vendor's menu: an item search on one side, the
@@ -34,7 +33,8 @@ export function MenuNav({
   searchPlaceholder,
   navLabel,
 }: {
-  categories: readonly MenuCategory[];
+  /** Only the anchor and the label — a grocery aisle is as good as a menu section. */
+  categories: readonly { id: string; name: string }[];
   activeId?: string;
   query: string;
   onQueryChange: (next: string) => void;

@@ -18,22 +18,26 @@
  */
 export { VendorListing, type ListingCopy } from "./VendorListing";
 export { VendorMenu, type MenuCopy } from "./VendorMenu";
-export { notWiredCatalog } from "./catalog";
-export { CatalogUnavailableError, EMPTY_FILTERS } from "./types";
-export type { ProductCopy } from "./ProductModal";
+// The store-page parts groceries reuse (Phase 13). Each is already in the
+// graph of a food route, so exporting it adds nothing to one — and every one
+// is rendered by a grocery route.
+export { DeliveryBar } from "./DeliveryBar";
+export { MenuNav } from "./MenuNav";
+export { VendorCard } from "./VendorCard";
+export { VendorIntro } from "./VendorIntro";
+export type { ProductChoice, ProductCopy } from "./ProductModal";
 export type {
   Cuisine,
   Deal,
-  DeliveryOption,
   FoodCatalog,
-  FoodFilters,
   MenuCategory,
   MenuItem,
   OptionChoice,
   OptionGroup,
   ProductDetail,
-  SortOption,
   Vendor,
   VendorDetail,
+  VendorPage,
+  ListingLocation,
   VendorStatus,
 } from "./types";

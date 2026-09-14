@@ -21,6 +21,8 @@
 export type VendorStatus = "open" | "closing-soon" | "closed";
 
 export type Vendor = {
+  /** The vendor's `userId` ("V-…"). `/vendors/nearby/open/:id` 404s on the
+   *  Mongo `_id`, which is what products reference instead. */
   id: string;
   name: string;
   /** The card's photograph. Absent is normal and renders as a placeholder. */
@@ -41,6 +43,7 @@ export type Vendor = {
 };
 
 export type Cuisine = {
+  /** The slug `restaurantCuisineType=` takes — never the display name. */
   id: string;
   name: string;
   image?: string;
@@ -62,10 +65,17 @@ export type MenuItem = {
   name: string;
   description?: string;
   image?: string;
-  /** Verbatim from the API, symbol included. */
+  /** The price to pay, formatted once from the API's `finalPrice`. */
   price: string;
-  /** "BESTSELLER", "20% OFF" — the vendor's own merchandising flag. */
+  /** The price before the vendor's discount, when there is one. */
+  originalPrice?: string;
+  /** "20% OFF" — the vendor's own discount, as sent. */
   badge?: string;
+  /** Variation groups, carried on the product itself (Phase 16). */
+  options?: readonly OptionGroup[];
+  /** Add-on group ids. The groups need a session (`/add-ons/:id`) and load
+   *  when the dish is opened, never with the menu. */
+  addonGroupIds?: readonly string[];
 };
 
 /**
@@ -95,15 +105,17 @@ export type OptionChoice = {
  */
 export type OptionGroup = {
   id: string;
+  /** A size is sent as `variationSku`, an add-on as `addons[].optionSku`
+   *  (Phase 17). Absent is a variation. */
+  kind?: "variation" | "addon";
   name: string;
   minSelectable: number;
   maxSelectable: number;
   choices: readonly OptionChoice[];
 };
 
-/** A menu item with everything needed to order it. `/products/:id` plus one
- *  `/add-ons/:id` per group — two requests, which is why this is its own type
- *  rather than fields on `MenuItem`. */
+/** A menu item with every option group resolved — its variations plus the
+ *  add-on groups fetched when the dish is opened. */
 export type ProductDetail = MenuItem & {
   options: readonly OptionGroup[];
 };
@@ -116,6 +128,8 @@ export type MenuCategory = {
 };
 
 export type VendorDetail = Vendor & {
+  /** The Mongo `_id` — what products and cart lines reference the vendor by. */
+  recordId?: string;
   address?: string;
   /** "(10k+ Reviews)" — a label, not a count to be formatted. */
   reviewsLabel?: string;
@@ -124,50 +138,28 @@ export type VendorDetail = Vendor & {
   menu: readonly MenuCategory[];
 };
 
-/** The listing's filter state. Owned by the client; sent to the API in Phase 16. */
-export type SortOption = "recommended" | "best-value" | "price-asc" | "price-desc";
-export type DeliveryOption = "instant" | "pickup";
-
-export type FoodFilters = {
-  sort: SortOption;
-  delivery: readonly DeliveryOption[];
-  deals: readonly string[];
-  dietary: readonly string[];
-  cuisines: readonly string[];
+/** One page of the listing. `countLabel` is the API's total, formatted. */
+export type VendorPage = {
+  vendors: readonly Vendor[];
+  countLabel?: string;
 };
 
-export const EMPTY_FILTERS: FoodFilters = {
-  sort: "recommended",
-  delivery: [],
-  deals: [],
-  dietary: [],
-  cuisines: [],
-};
+/** Where the listing is for. Structural, so the feature does not import the
+ *  location module; `@/lib/location`'s `DeliveryLocation` satisfies it. */
+export type ListingLocation = { latitude: number; longitude: number; label: string };
 
 /**
- * What Phase 16 implements.
- *
- * Every method resolves or throws. There is no `{ ok: false }`: a catalogue
- * that cannot be read is exceptional, the pages have one place that catches
- * it, and a result type would put a branch at every call site that would
- * eventually be forgotten at one of them.
+ * The catalogue contract, implemented against the API in
+ * `services/catalog/food.ts` (Phase 16). Every method resolves or throws.
  */
 export type FoodCatalog = {
-  /** `/vendors/nearby/open/:id` — the listing, already filtered by the API. */
-  listVendors(filters: FoodFilters): Promise<readonly Vendor[]>;
-  /** `/categories/cuisine` — the circles above the listing. */
+  /** `/vendors/nearby/open` — restaurants near a location, filtered by the API. */
+  listVendors(input: {
+    cuisine?: string;
+    location: ListingLocation;
+  }): Promise<VendorPage>;
+  /** `/categories/cuisine/open`. */
   listCuisines(): Promise<readonly Cuisine[]>;
-  /** `/vendors/customer/:id` plus its products, as one screen's worth. */
+  /** `/vendors/nearby/open/:userId`, its products and its product categories. */
   getVendor(vendorId: string): Promise<VendorDetail>;
-  /** `/products/:id`, plus one `/add-ons/:id` per group it references. Its own
-   *  read because the listing does not carry option groups — the old app made
-   *  exactly these calls, and the second one needs a session. */
-  getProduct(productId: string): Promise<ProductDetail>;
 };
-
-export class CatalogUnavailableError extends Error {
-  constructor() {
-    super("catalog-not-wired");
-    this.name = "CatalogUnavailableError";
-  }
-}

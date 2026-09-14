@@ -23,23 +23,16 @@ const food = {
   addressPlaceholder: "Enter your address",
   addressLabel: "Delivery address",
   locateMe: "Locate me",
+  locationNotFound: "We couldn’t find that address. Try adding the city or postcode.",
+  locationDenied: "Location access is off for this site. Type your address instead.",
+  locationUnavailable: "We couldn’t get a location right now. Try typing your address.",
+  locationPosition:
+    "Your device couldn’t tell where you are. Check that location services are on for your browser, or type your address.",
+  currentLocation: "Current location",
   seeRestaurants: "See Restaurant",
   trustedBy: "Trusted by millions globally",
 
   // ── The listing ──────────────────────────────────────────────────────────
-  filtersTitle: "Filter",
-  filtersReset: "Reset All",
-  sortBy: "Sort by",
-  sortRecommended: "Recommended",
-  sortBestValue: "Best Value",
-  sortPriceAsc: "Price: Low to High",
-  sortPriceDesc: "Price: High to Low",
-  delivery: "Delivery",
-  deliveryInstant: "Instant",
-  deliveryPickup: "Pickup",
-  deals: "Deals",
-  dietary: "Dietary",
-  cuisine: "Cuisine",
 
   deliveringTo: "Delivering to",
   changeAddress: "Change",
@@ -51,15 +44,39 @@ const food = {
   rating: "Rating",
 
   noRestaurants: "No restaurants match these filters",
-  noRestaurantsBody: "Try clearing a filter, or widening the delivery options.",
+  noRestaurantsBody:
+    "No restaurant near this address serves that cuisine. Clear it to see them all.",
 
   // The catalogue is not connected yet — a different sentence from "no
   // matches", because it has a different fix and neither is the customer's.
-  catalogueUnavailable: "Restaurants are not available yet",
+  catalogueUnavailable: "Restaurants are unavailable right now",
   catalogueUnavailableBody:
-    "This screen is built; the catalogue behind it is connected in a later phase. Nothing here is placeholder data — there is simply nothing to show until it is.",
+    "We couldn’t reach the restaurant list just now. Try again in a moment.",
 
   // ── A vendor's page ──────────────────────────────────────────────────────
+  openUntil: "Open · Closes at {time}",
+  closedOpensAt: "Closed · Opens at {time}",
+  percentOff: "{value}% OFF",
+  amountOff: "{value} OFF",
+  reviewsCount_one: "({count} review)",
+  reviewsCount_other: "({count} reviews)",
+  clearCuisine: "Show all cuisines",
+  noLocationTitle: "Where should we deliver?",
+  noLocationBody:
+    "Set your address or use your current location, and we’ll show the restaurants that deliver there.",
+  searchHeading: "Search",
+  searchTitle: "Results for “{query}”",
+  searchCount_one: "{count} dish",
+  searchCount_other: "{count} dishes",
+  searchPrompt: "Type at least {min} letters in the search box to find a dish.",
+  searchEmpty: "Nothing matches “{query}”",
+  searchEmptyBody:
+    "Try a shorter word, or the name of the dish instead of the restaurant.",
+  searchUnavailable: "Search is unavailable right now",
+  searchUnavailableBody: "We couldn’t reach search just now. Try again in a moment.",
+  outOfStock: "Out of stock",
+  previousPage: "Previous",
+  nextPage: "Next",
   reviews: "Reviews",
   availableDeals: "Available Deals",
   availableDealsBody: "Save more on your favorite items",
@@ -68,13 +85,18 @@ const food = {
   menuNavigation: "Menu categories",
   noItems: "No items match that search",
   noItemsBody: "Try a shorter word, or clear the search to see the whole menu.",
+  noMenu: "This restaurant hasn’t added its menu yet",
+  noMenuBody: "Check back soon, or pick another restaurant nearby.",
+  otherCategory: "Other",
+  signInToAdd: "Sign in to add dishes to your cart.",
+  signInAction: "Sign in",
+  offlineAdd: "This is the design preview — nothing is added from here.",
   yourCart: "Your cart",
   cartEmpty: "Your cart is empty",
   addToCart: "Add to cart",
   // ── The dish modal ───────────────────────────────────────────────────────
   optionRequired: "REQUIRED",
   chooseRequiredOptions: "Choose an option in each required group to continue.",
-  specialInstructions: "Special Instructions",
   specialInstructionsPlaceholder:
     "Any allergies or special requests? Let us know here...",
   quantity: "Quantity",
@@ -83,12 +105,10 @@ const food = {
   closeProduct: "Close",
   // The cart endpoint is Phase 17's. Saying so beats a button that appears to
   // work and silently does nothing.
-  cartNotWired:
-    "The cart is not connected yet. Everything you have chosen here is real; the request that would send it arrives in a later phase.",
 
-  vendorUnavailable: "This restaurant is not available yet",
+  vendorUnavailable: "This restaurant is unavailable right now",
   vendorUnavailableBody:
-    "The page is built; the menu behind it arrives with the catalogue in a later phase.",
+    "We couldn’t load this restaurant just now. Try again in a moment.",
 } satisfies Record<string, string>;
 
 export default food;

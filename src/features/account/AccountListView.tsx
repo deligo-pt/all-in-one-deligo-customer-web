@@ -124,9 +124,7 @@ export function AccountListView({
                 <div className="flex min-w-0 flex-col gap-1">
                   <p className="text-16 text-ink flex items-center gap-3 font-medium">
                     {row.title}
-                    {row.isDefault ? (
-                      <Badge tone="brand">{copy.default}</Badge>
-                    ) : null}
+                    {row.isDefault ? <Badge tone="brand">{copy.default}</Badge> : null}
                   </p>
                   {row.body ? (
                     <p className="text-14 text-ink-muted">{row.body}</p>

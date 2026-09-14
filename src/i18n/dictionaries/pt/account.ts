@@ -1,7 +1,8 @@
 /** The account area's words, in Portuguese. See `en/account.ts`. */
 const account = {
   title: "Perfil",
-  subtitle: "Os seus dados, as suas preferências e tudo o que está guardado nesta conta.",
+  subtitle:
+    "Os seus dados, as suas preferências e tudo o que está guardado nesta conta.",
   navLabel: "Secções da conta",
   editProfile: "Editar perfil",
   changeImage: "Alterar imagem",
@@ -12,7 +13,8 @@ const account = {
   phone: "Número de telemóvel",
   email: "Endereço de email",
   emergencyContact: "Contacto de emergência",
-  emergencyContactBody: "Usado apenas quando necessário em situações de conta ou de segurança.",
+  emergencyContactBody:
+    "Usado apenas quando necessário em situações de conta ou de segurança.",
   contactName: "Nome do contacto",
   preferences: "Definições e preferências",
   memberSince: "Membro desde",
@@ -40,7 +42,8 @@ const account = {
   paymentSubtitle: "Cartões e carteiras guardados nesta conta.",
   addPayment: "Adicionar um método de pagamento",
   paymentEmpty: "Sem métodos de pagamento guardados",
-  paymentEmptyBody: "Tudo o que optar por guardar na finalização da compra aparece aqui. Os dados do cartão ficam com o fornecedor de pagamento, nunca com a DeliGo.",
+  paymentEmptyBody:
+    "Tudo o que optar por guardar na finalização da compra aparece aqui. Os dados do cartão ficam com o fornecedor de pagamento, nunca com a DeliGo.",
   vouchersTitle: "Vouchers",
   vouchersSubtitle: "Códigos disponíveis nesta conta.",
   vouchersEmpty: "Sem vouchers neste momento",
@@ -54,15 +57,19 @@ const account = {
   settingsTitle: "Definições",
   settingsSubtitle: "Idioma, notificações e o que acontece aos seus dados.",
   dangerZone: "Eliminar esta conta",
-  dangerZoneBody: "Eliminar remove o seu perfil, moradas e métodos de pagamento guardados. Os pedidos já feitos são mantidos durante o tempo exigido por lei.",
+  dangerZoneBody:
+    "Eliminar remove o seu perfil, moradas e métodos de pagamento guardados. Os pedidos já feitos são mantidos durante o tempo exigido por lei.",
   deleteAccount: "Eliminar conta",
   remove: "Remover",
   defaultLabel: "Predefinido",
   unavailableTitle: "A sua conta ainda não está ligada",
-  unavailableBody: "Este ecrã está construído; a conta por trás dele é ligada numa fase posterior. Nada aqui são dados de exemplo — simplesmente não há nada para mostrar até que exista.",
-  notWired: "Isto ainda não está ligado. O controlo é real e o pedido que enviaria chega numa fase posterior — nada foi alterado ou removido.",
+  unavailableBody:
+    "Este ecrã está construído; a conta por trás dele é ligada numa fase posterior. Nada aqui são dados de exemplo — simplesmente não há nada para mostrar até que exista.",
+  notWired:
+    "Isto ainda não está ligado. O controlo é real e o pedido que enviaria chega numa fase posterior — nada foi alterado ou removido.",
   contentPendingTitle: "Esta página aguarda o seu conteúdo",
-  contentPendingBody: "A página está construída. As palavras ainda não estão escritas — e uma política, um conjunto de termos ou a descrição de uma empresa não é algo que esta aplicação deva inventar.",
+  contentPendingBody:
+    "A página está construída. As palavras ainda não estão escritas — e uma política, um conjunto de termos ou a descrição de uma empresa não é algo que esta aplicação deva inventar.",
   aboutTitle: "Sobre a DeliGo",
   ourStoryTitle: "A nossa história",
   careersTitle: "Carreiras",

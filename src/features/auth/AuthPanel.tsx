@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Icon } from "@/components/ui/Icon";
@@ -10,6 +12,11 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { cn } from "@/lib/cn";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
+import { safeNextPath } from "@/lib/session";
+import { apiAuthTransport } from "./api";
+import { facebookLogin, loadFacebookSdk } from "./facebookSdk";
+import { GoogleSlot } from "./GoogleSlot";
+import { notWiredTransport } from "./transport";
 import type { MessageKey } from "@/i18n/namespaces";
 import { BrandMark } from "./BrandMark";
 import { OtpInput, OTP_LENGTH } from "./OtpInput";
@@ -39,12 +46,22 @@ const DeviceLimitDialog = dynamic(
  * cannot see, and one that can be dropped from Portuguese unnoticed.
  */
 const NOTICE_MESSAGE = {
-  unavailable: "notWired",
+  notWired: "notWired",
+  unavailable: "signInUnavailable",
   missingPhone: "phoneRequired",
   missingEmail: "emailRequired",
   missingCode: "otpRequired",
   codeSent: "codeSent",
+  socialEmailRequired: "socialEmailRequired",
+  socialAlreadyLinked: "socialAlreadyLinked",
+  socialUnavailable: "socialUnavailable",
+  socialFailed: "socialFailed",
 } as const satisfies Record<AuthCondition, MessageKey<"auth">>;
+
+/** Public identifiers, inlined at build. Empty leaves the design's button in
+ *  place, reporting the option unavailable. */
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+const FACEBOOK_APP_ID = process.env.NEXT_PUBLIC_FACEBOOK_APP_ID ?? "";
 
 /**
  * The sign-in flow, entire.
@@ -75,19 +92,56 @@ const NOTICE_MESSAGE = {
  * `/login/verify` would be a URL that can be opened with no identifier behind
  * it — a page that can only apologise. Only the start is addressable.
  *
- * Nothing is wired. Every submit reaches `notWiredTransport` and comes back
- * `not-wired`, which the notice says plainly; Phase 15 replaces the transport
- * and not one line of this file. The form underneath is real — real
- * validation, real `autoComplete`, real Enter-to-submit — so the day it is
- * connected there is no second round of form bugs to find.
+ * ## Connected (Phase 15)
+ *
+ * Submits go through `apiAuthTransport`. `offline` keeps the not-wired
+ * transport for the development states page, which must never send a code.
+ * After a session exists, `/login` goes to `?next=` (or home) and the drawer
+ * refreshes the page it is open over.
  */
 export function AuthPanel({
   className,
+  offline = false,
+  onSignedIn,
   ...options
-}: AuthFlowOptions & { className?: string }) {
+}: Omit<AuthFlowOptions, "transport"> & { className?: string; offline?: boolean }) {
   const { t, locale } = useTranslation("auth");
   const { t: common } = useTranslation("common");
-  const flow = useAuthFlow(options);
+  const router = useRouter();
+  const flow = useAuthFlow({
+    ...options,
+    transport: offline ? notWiredTransport : apiAuthTransport,
+    onSignedIn: () => {
+      onSignedIn?.();
+      if (window.location.pathname === withLocale(ROUTES.login.path, locale)) {
+        const next = safeNextPath(
+          new URLSearchParams(window.location.search).get("next"),
+        );
+        router.replace(next ?? withLocale("/", locale));
+      }
+      router.refresh();
+    },
+  });
+
+  // Loaded before the button is pressed: `FB.login` must run inside the click.
+  useEffect(() => {
+    if (!offline) loadFacebookSdk(FACEBOOK_APP_ID, locale).catch(() => undefined);
+  }, [locale, offline]);
+
+  const startFacebook = () => {
+    if (offline) return void flow.signInWith("FACEBOOK", "");
+    flow.setPending("FACEBOOK");
+    facebookLogin()
+      .then((token) => {
+        flow.setPending(null);
+        // Cancelled is the customer's choice, and says nothing.
+        if (token) void flow.signInWith("FACEBOOK", token);
+      })
+      .catch(() => {
+        flow.setPending(null);
+        flow.socialUnavailable();
+      });
+  };
 
   const busy = flow.pending !== null;
   const identifying = flow.step === "identify";
@@ -120,8 +174,8 @@ export function AuthPanel({
           {identifying
             ? t("welcomeSubtitle")
             : flow.channel === "sms"
-              ? t("verifySubtitlePhone")
-              : t("verifySubtitleEmail")}
+              ? t("verifySubtitlePhone", { length: OTP_LENGTH })
+              : t("verifySubtitleEmail", { length: OTP_LENGTH })}
         </p>
       </div>
 
@@ -140,7 +194,8 @@ export function AuthPanel({
           >
             {flow.notice.condition === "rejected"
               ? flow.notice.text
-              : t(NOTICE_MESSAGE[flow.notice.condition])}
+              : // `{length}` is only in `otpRequired`; other messages ignore it.
+                t(NOTICE_MESSAGE[flow.notice.condition], { length: OTP_LENGTH })}
           </p>
         ) : null}
       </div>
@@ -267,17 +322,29 @@ export function AuthPanel({
           </div>
 
           <div className="flex flex-col gap-3">
-            <Button
-              variant="secondary"
-              block
-              className="rounded-12 text-14 h-12 font-normal"
-              disabled={busy}
-              loading={flow.pending === "GOOGLE"}
-              startIcon={<BrandMark provider="GOOGLE" className="size-5" />}
-              onClick={() => void flow.signInWith("GOOGLE")}
-            >
-              {t("continueWithGoogle")}
-            </Button>
+            <GoogleSlot
+              clientId={offline ? undefined : GOOGLE_CLIENT_ID}
+              locale={locale}
+              onCredential={(token) => void flow.signInWith("GOOGLE", token)}
+              onUnavailable={flow.socialUnavailable}
+              fallback={
+                <Button
+                  variant="secondary"
+                  block
+                  className="rounded-12 text-14 h-12 font-normal"
+                  disabled={busy}
+                  loading={flow.pending === "GOOGLE"}
+                  startIcon={<BrandMark provider="GOOGLE" className="size-5" />}
+                  onClick={() =>
+                    offline
+                      ? void flow.signInWith("GOOGLE", "")
+                      : flow.socialUnavailable()
+                  }
+                >
+                  {t("continueWithGoogle")}
+                </Button>
+              }
+            />
             <Button
               variant="secondary"
               block
@@ -285,7 +352,7 @@ export function AuthPanel({
               disabled={busy}
               loading={flow.pending === "FACEBOOK"}
               startIcon={<BrandMark provider="FACEBOOK" className="size-5" />}
-              onClick={() => void flow.signInWith("FACEBOOK")}
+              onClick={startFacebook}
             >
               {t("continueWithFacebook")}
             </Button>

@@ -28,6 +28,7 @@ export const CART_FIXTURE: Cart = {
       vendorId: "pizza-hut-lisbon",
       name: "Pizza Hut Lisbon",
       vertical: "food",
+      active: true,
       subtotal: "18.40€",
       deliveryEstimate: "25–35 min",
       orderRef: "#DG-8291",
@@ -66,6 +67,7 @@ export const CART_FIXTURE: Cart = {
       vendorId: "mercado-do-bairro",
       name: "Mercado do Bairro",
       vertical: "groceries",
+      active: false,
       subtotal: "18.40€",
       deliveryEstimate: "25–35 min",
       orderRef: "#DG-8292",
@@ -101,6 +103,7 @@ export const CART_FIXTURE: Cart = {
       vendorId: "lisboa-tech",
       name: "Lisboa Tech",
       vertical: "electronics",
+      active: false,
       subtotal: "18.40€",
       deliveryEstimate: "25–35 min",
       lines: [

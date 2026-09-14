@@ -9,6 +9,7 @@ import type { Messages } from "@/lib/i18n/translate";
 import {
   ACTIVE_STORE,
   FINISHED_ORDER,
+  GROCERY_ORDER,
   LIVE_ORDER,
   NOTIFICATIONS_FIXTURE,
   ORDERS_FIXTURE,
@@ -54,6 +55,11 @@ export default async function OrdersStatesPage() {
           order={LIVE_ORDER}
           homeHref={home}
           copy={detailCopy(t, c, LIVE_ORDER.rider?.name)}
+        />
+        <OrderDetail
+          order={GROCERY_ORDER}
+          homeHref={home}
+          copy={detailCopy(t, c, GROCERY_ORDER.rider?.name)}
         />
         <OrderDetail
           order={FINISHED_ORDER}

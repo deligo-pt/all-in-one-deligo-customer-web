@@ -20,6 +20,7 @@ const STORE: CartStore = {
   vendorId: "the-burger-lab",
   name: "The Burger Lab",
   vertical: "food",
+  active: true,
   subtotal: "28.49€",
   deliveryEstimate: "25-35 min",
   orderRef: "#DG-8291",

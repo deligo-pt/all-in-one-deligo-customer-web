@@ -27,11 +27,18 @@ export { CartView, type CartCopy } from "./CartView";
  * checkout renders none of them.
  */
 export { OrderSummary, type SummaryCopy } from "./OrderSummary";
-export { notWiredCart } from "./transport";
+export type { LineCopy } from "./CartLineRow";
+export {
+  StoreCartPanel,
+  type FulfilmentMode,
+  type StoreCartCopy,
+} from "./StoreCartPanel";
+export { cartApi } from "./api";
 export { buildTabs, cartItemCount, storeItemCount } from "./summary";
 export type { CartTab, TabId } from "./summary";
-export { CART_VERTICALS, CartUnavailableError } from "./types";
+export { CART_VERTICALS } from "./types";
 export type {
+  AddToCartInput,
   Cart,
   CartCharge,
   CartLine,

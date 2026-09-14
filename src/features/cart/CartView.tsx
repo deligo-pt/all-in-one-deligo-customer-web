@@ -12,7 +12,7 @@ import { ROUTES } from "@/lib/routes";
 import { OrderSummary, type SummaryCopy } from "./OrderSummary";
 import { StoreGroup, type StoreCopy } from "./StoreGroup";
 import { VerticalTabs } from "./VerticalTabs";
-import { notWiredCart } from "./transport";
+import { cartApi } from "./api";
 import type { CartTab, TabId } from "./summary";
 import type { Cart } from "./types";
 
@@ -26,7 +26,10 @@ export type CartCopy = StoreCopy &
     browse: string;
     unavailableTitle: string;
     unavailableBody: string;
+    /** Vouchers are Phase 18's. */
     notWired: string;
+    actionFailed: string;
+    selectToSeeTotal: string;
   };
 
 /**
@@ -73,6 +76,7 @@ export function CartView({
   copy,
   locale,
   unavailable = false,
+  offlineNotice,
 }: {
   cart: Cart;
   tabs: readonly CartTab[];
@@ -83,10 +87,11 @@ export function CartView({
   copy: CartCopy;
   locale: Locale;
   unavailable?: boolean;
+  /** Development preview: every press shows this and writes nothing. */
+  offlineNotice?: string;
 }) {
   const router = useRouter();
   const [active, setActive] = useState<TabId>("all");
-  const [chosenStoreId, setChosenStoreId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const groupName = useId();
@@ -96,24 +101,30 @@ export function CartView({
       ? cart.stores
       : cart.stores.filter((store) => store.vertical === active);
 
-  const summaryStore =
-    visible.find((store) => store.id === chosenStoreId) ?? visible[0] ?? null;
+  // The summary is the store the API has active — the one checkout will
+  // order — and only while the current filter still shows it.
+  const summaryStore = visible.find((store) => store.active) ?? null;
 
-  async function run(call: () => Promise<Cart>) {
+  // Every write re-reads the cart from the server afterwards, including the
+  // ones that failed: the screen shows the API's cart, never a guess at it.
+  async function run(call: () => Promise<void>) {
+    if (offlineNotice) return setNotice(offlineNotice);
     setBusy(true);
     setNotice(null);
     try {
       await call();
-      router.refresh();
-    } catch {
-      // Every failure reads the same to the customer here, because in Track B
-      // there is only one: the cart is not connected. Phase 17 replaces this
-      // with the normalised error the API client produces.
-      setNotice(copy.notWired);
+    } catch (error) {
+      setNotice(
+        error instanceof Error && error.message ? error.message : copy.actionFailed,
+      );
     } finally {
+      router.refresh();
       setBusy(false);
     }
   }
+
+  const lineById = (id: string) =>
+    cart.stores.flatMap((store) => store.lines).find((line) => line.id === id);
 
   const body = unavailable ? (
     <EmptyState
@@ -146,13 +157,17 @@ export function CartView({
             copy={copy}
             itemsLabel={itemsLabels[store.id] ?? ""}
             groupName={groupName}
-            selected={store.id === summaryStore?.id}
-            onSelect={setChosenStoreId}
+            selected={store.active}
+            onSelect={() => run(() => cartApi.select(store))}
             busy={busy}
-            onQuantityChange={(lineId, quantity) =>
-              run(() => notWiredCart.setQuantity(lineId, quantity))
-            }
-            onRemove={(lineId) => run(() => notWiredCart.remove(lineId))}
+            onQuantityChange={(lineId, quantity) => {
+              const line = lineById(lineId);
+              if (line) void run(() => cartApi.setQuantity(line, quantity));
+            }}
+            onRemove={(lineId) => {
+              const line = lineById(lineId);
+              if (line) void run(() => cartApi.remove([line]));
+            }}
           />
         ))}
       </div>
@@ -169,9 +184,11 @@ export function CartView({
                 locale,
               )}
               onApplyVoucher={() => setNotice(copy.notWired)}
-              onPlaceOrder={() => setNotice(copy.notWired)}
+              onPlaceOrder={() => router.push(withLocale(ROUTES.checkout.path, locale))}
             />
-          ) : null}
+          ) : (
+            <p className="text-14 text-ink-muted">{copy.selectToSeeTotal}</p>
+          )}
           <p role="status" className="text-14 text-ink-muted">
             {notice}
           </p>

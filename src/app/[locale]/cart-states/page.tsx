@@ -69,6 +69,7 @@ export default async function CartStatesPage() {
           headerLabel={headerLabel}
           copy={copy}
           locale={locale}
+          offlineNotice={t("previewOnly")}
         />
         <CartView
           cart={EMPTY_CART_FIXTURE}
@@ -77,6 +78,7 @@ export default async function CartStatesPage() {
           headerLabel={items(0)}
           copy={copy}
           locale={locale}
+          offlineNotice={t("previewOnly")}
         />
         <CartView
           cart={EMPTY_CART_FIXTURE}

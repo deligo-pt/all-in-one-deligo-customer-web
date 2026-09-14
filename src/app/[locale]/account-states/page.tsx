@@ -92,6 +92,7 @@ export default async function AccountStatesPage() {
           preferences={PREFERENCES_FIXTURE}
           nav={menu}
           editHref={withLocale(ROUTES.settings.path, locale)}
+          homeHref={withLocale("/", locale)}
           copy={profileCopy}
         />
         <AccountListView

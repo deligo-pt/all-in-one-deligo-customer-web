@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withBundleAnalyzer from "@next/bundle-analyzer";
+import { REMOTE_IMAGE_HOSTS } from "./src/lib/imageHosts";
 
 // Run `pnpm analyze` to open the interactive bundle report. Plan.md §6 sets a
 // hard budget (180 KB gzipped first-load JS per route); this is how it gets
@@ -66,10 +67,8 @@ const nextConfig: NextConfig = {
     // Cache optimized images for a week. Keyed by URL, so a changed source image
     // gets a new entry — there is no stale-asset risk in raising this.
     minimumCacheTTL: 60 * 60 * 24 * 7,
-    // `remotePatterns` is deliberately empty until Phase 16, when the real image
-    // hosts are known. A host missing from this list fails the image at render
-    // time, so the list must be derived from the backend's responses, not guessed.
-    remotePatterns: [],
+    // Measured from the API's responses in Phase 16 — see src/lib/imageHosts.ts.
+    remotePatterns: REMOTE_IMAGE_HOSTS.map((host) => ({ ...host })),
   },
 };
 

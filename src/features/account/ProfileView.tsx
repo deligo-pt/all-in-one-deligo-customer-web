@@ -1,3 +1,4 @@
+import { SignOutButton } from "@/components/shared/SignOutButton";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { ImageSlot } from "@/components/shared/ImageSlot";
@@ -46,12 +47,15 @@ export function ProfileView({
   preferences,
   nav,
   editHref,
+  homeHref,
   copy,
 }: {
   profile: Profile;
   preferences: readonly Preference[];
   nav: readonly AccountNavItem[];
   editHref: string;
+  /** Where signing out lands. */
+  homeHref: string;
   copy: ProfileCopy;
 }) {
   const field = (label: string, value: string) => (
@@ -80,7 +84,11 @@ export function ProfileView({
               sizes="160px"
               className="border-line size-40 rounded-full border"
             />
-            <Button asChild shape="pill" className="bg-brand-strong text-12 h-9 font-semibold">
+            <Button
+              asChild
+              shape="pill"
+              className="bg-brand-strong text-12 h-9 font-semibold"
+            >
               <a href={editHref}>{copy.editProfile}</a>
             </Button>
             <Button variant="link" className="text-12 text-ink-warm font-semibold">
@@ -93,7 +101,11 @@ export function ProfileView({
               <h2 className="text-20 text-ink-strong font-semibold">
                 {copy.personalInformation}
               </h2>
-              <Button asChild variant="link" className="text-12 text-brand-strong font-semibold">
+              <Button
+                asChild
+                variant="link"
+                className="text-12 text-brand-strong font-semibold"
+              >
                 <a href={editHref}>{copy.edit}</a>
               </Button>
             </div>
@@ -123,7 +135,9 @@ export function ProfileView({
 
         <aside className="flex flex-col gap-8 xl:w-[33rem] xl:shrink-0">
           <section className="border-line rounded-16 bg-surface flex flex-col border">
-            <h2 className="text-16 text-ink-muted px-4 pt-4 pb-2">{copy.preferences}</h2>
+            <h2 className="text-16 text-ink-muted px-4 pt-4 pb-2">
+              {copy.preferences}
+            </h2>
             <ul>
               {preferences.map((item) => (
                 <li key={item.id}>
@@ -150,9 +164,11 @@ export function ProfileView({
             <p className="text-16 text-ink-warm">
               {`${copy.accountId} ${profile.accountId}`}
             </p>
-            <Button variant="link" className="text-16 text-danger self-start">
-              {copy.logout}
-            </Button>
+            <SignOutButton
+              label={copy.logout}
+              homeHref={homeHref}
+              className="text-16 text-danger self-start"
+            />
             <p className="text-10 text-ink-warm">{copy.version}</p>
           </div>
         </aside>

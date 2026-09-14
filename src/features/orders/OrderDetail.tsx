@@ -10,7 +10,7 @@ import { ImageSlot } from "@/components/shared/ImageSlot";
 import { OrderTracker, type TrackerCopy } from "./OrderTracker";
 import { notWiredOrders } from "./transport";
 import type { ReviewCopy } from "./ReviewModal";
-import type { Order } from "./types";
+import { ORDER_STEPS, type Order } from "./types";
 
 /** The review is a dialog carrying two star groups and a textarea, and most
  *  visits to an order never open it. Same measurement as every dialog since
@@ -93,7 +93,11 @@ export function OrderDetail({
         <div className="flex min-w-0 flex-1 flex-col gap-8">
           {order.step ? (
             <section className="border-line rounded-24 bg-surface border p-6">
-              <OrderTracker step={order.step} copy={copy.tracker} />
+              <OrderTracker
+                steps={ORDER_STEPS[order.vertical ?? "food"]}
+                step={order.step}
+                copy={copy.tracker}
+              />
             </section>
           ) : null}
 

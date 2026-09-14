@@ -18,6 +18,7 @@ export type {
   OrderBucket,
   OrderRider,
   OrderStep,
+  TrackedVertical,
   OrdersTransport,
   ReviewInput,
 } from "./types";

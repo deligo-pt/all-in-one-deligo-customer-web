@@ -211,18 +211,4 @@ export const FOOD_FIXTURE = {
   cuisines: CUISINES,
   vendors: VENDORS,
   vendor: VENDOR,
-  facets: {
-    deals: [
-      { id: "all-offers", label: "All Offers" },
-      { id: "discounts", label: "Discounts" },
-      { id: "up-to-30", label: "Up to 30% OFF" },
-    ],
-    dietary: [
-      { id: "vegan", label: "Vegan" },
-      { id: "veggie", label: "Veggie" },
-      { id: "halal", label: "Halal" },
-      { id: "gluten-free", label: "Gluten free" },
-    ],
-    cuisines: CUISINES.map((c) => ({ id: c.id, label: c.name })),
-  },
 } as const;

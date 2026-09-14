@@ -35,8 +35,12 @@ export function VendorCard({
   locale,
   imageLabel,
   ratingLabel,
+  href,
 }: {
   vendor: Vendor;
+  /** Where the card leads. Defaults to the restaurant page; a grocery store
+   *  has its own. */
+  href?: string;
   locale: Locale;
   /** Alt text for a missing photograph — the vendor's name is not enough. */
   imageLabel: string;
@@ -44,7 +48,9 @@ export function VendorCard({
 }) {
   return (
     <Link
-      href={withLocale(ROUTES.vendor.path.replace("[vendorId]", vendor.id), locale)}
+      href={
+        href ?? withLocale(ROUTES.vendor.path.replace("[vendorId]", vendor.id), locale)
+      }
       className="border-line rounded-16 bg-surface group flex flex-col overflow-hidden border transition-shadow hover:shadow-md"
     >
       <div className="relative">

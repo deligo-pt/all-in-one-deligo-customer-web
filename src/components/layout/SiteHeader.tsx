@@ -157,6 +157,8 @@ export async function SiteHeader({
                 is what makes the signed-in case different. */}
             <SignInButton
               href={withLocale(ROUTES.login.path, locale)}
+              accountHref={withLocale(ROUTES.account.path, locale)}
+              accountLabel={t("account")}
               label={variant === "marketing" ? t("login") : t("account")}
               title={t("login")}
               description={common("tagline")}

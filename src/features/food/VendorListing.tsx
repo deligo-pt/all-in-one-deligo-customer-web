@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import Link from "next/link";
 import type { Locale } from "@/lib/i18n/locale";
 import { CuisineRow } from "./CuisineRow";
-import { DeliveryBar } from "./DeliveryBar";
-import { FilterPanel, type FilterCopy } from "./FilterPanel";
 import { VendorCard } from "./VendorCard";
-import { EMPTY_FILTERS, type Cuisine, type FoodFilters, type Vendor } from "./types";
+import { DeliveryBar } from "./DeliveryBar";
+import type { Cuisine, Vendor } from "./types";
 
 export type ListingCopy = {
-  filters: FilterCopy;
   deliveringTo: string;
   change: string;
   setAddress: string;
@@ -22,129 +22,139 @@ export type ListingCopy = {
   rating: string;
   emptyTitle: string;
   emptyBody: string;
+  clearFilter: string;
   unavailableTitle: string;
   unavailableBody: string;
+  noLocationTitle: string;
+  noLocationBody: string;
+  noLocationAction: string;
 };
 
 /**
- * The restaurant listing: a 312px filter rail and a 977px column beside it.
+ * The restaurant listing, connected (Phase 16).
  *
- * Measured from `food Home` at 1553px — rail and column on a 1312 container
- * with a 24px gutter, the delivery bar, a promotional banner, the cuisine row,
- * then "All Restaurant" as a three-column grid on 32px gaps.
+ * Measured from `food Home` at 1553px: the delivery bar, the cuisine row, then
+ * "All Restaurant" as a three-column grid on 32px gaps.
  *
- * ## The filters are real and filter nothing
+ * ## The filter rail is not rendered (D-18)
  *
- * State is held here and passed to the catalogue in Phase 16, where the API
- * does the work — `/vendors/nearby/open` takes the query, and a frontend that
- * filtered a page of results locally would produce a different answer from the
- * one the backend gives, on a list that is paginated. So the controls are
- * built, operable and keyboard-complete now; what they are wired to comes
- * later. "Reset All" is the exception: it needs no backend and already works.
+ * `/vendors/nearby/open` honours a business type, **one** cuisine slug and a
+ * name search — measured. Sort, deals, dietary and delivery type are ignored,
+ * so the rail's controls would change nothing on screen. The cuisine row is
+ * the filter that works; its choice lives in the URL (`?cuisine=`) and the
+ * server applies it, so a filtered listing can be shared, reloaded and
+ * paginated without a second idea of the result.
  *
- * ## Two empty states, not one
+ * ## Three nothings
  *
- * "No restaurants match these filters" and "the catalogue is not connected"
- * are different sentences and different fixes. Collapsing them is how a
- * customer ends up clearing filters that were never the problem.
+ * No location yet, no matches, not reachable — three sentences with three
+ * different fixes.
  */
 export function VendorListing({
   locale,
   vendors,
   cuisines,
-  facets,
   copy,
   address,
   countLabel,
+  changeHref,
   unavailable = false,
 }: {
   locale: Locale;
   vendors: readonly Vendor[];
   cuisines: readonly Cuisine[];
-  facets: {
-    deals: readonly { id: string; label: string }[];
-    dietary: readonly { id: string; label: string }[];
-    cuisines: readonly { id: string; label: string }[];
-  };
   copy: ListingCopy;
+  /** Absent: nobody has said where to deliver. */
   address?: string;
   countLabel?: string;
-  /** The catalogue could not be read at all — distinct from "no matches". */
+  /** Where the address is changed — the vertical's front door. */
+  changeHref: string;
   unavailable?: boolean;
 }) {
-  const [filters, setFilters] = useState<FoodFilters>(EMPTY_FILTERS);
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const selected = params.get("cuisine");
+
+  const choose = (id: string) => {
+    const next = new URLSearchParams(params);
+    if (selected === id) next.delete("cuisine");
+    else next.set("cuisine", id);
+    const query = next.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
 
   return (
-    <div className="max-w-shell mx-auto flex w-full flex-col gap-6 px-8 py-8 lg:flex-row">
-      <FilterPanel
-        value={filters}
-        onChange={setFilters}
-        copy={copy.filters}
-        deals={facets.deals}
-        dietary={facets.dietary}
-        cuisines={facets.cuisines}
-        className="w-full lg:w-78 lg:shrink-0"
+    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
+      <DeliveryBar
+        address={address}
+        countLabel={address ? countLabel : undefined}
+        deliveringToLabel={copy.deliveringTo}
+        changeLabel={copy.change}
+        setAddressLabel={copy.setAddress}
+        availabilityLabel={copy.availability}
+        changeHref={changeHref}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col gap-8">
-        <DeliveryBar
-          address={address}
-          countLabel={countLabel}
-          deliveringToLabel={copy.deliveringTo}
-          changeLabel={copy.change}
-          setAddressLabel={copy.setAddress}
-          availabilityLabel={copy.availability}
-        />
-
-        {cuisines.length ? (
-          <section className="flex flex-col gap-6">
-            <h2 className="text-20 text-ink font-semibold">{copy.favouriteCuisines}</h2>
-            <CuisineRow
-              cuisines={cuisines}
-              selected={filters.cuisines}
-              onToggle={(id) =>
-                setFilters((current) => ({
-                  ...current,
-                  cuisines: current.cuisines.includes(id)
-                    ? current.cuisines.filter((x) => x !== id)
-                    : [...current.cuisines, id],
-                }))
-              }
-            />
-          </section>
-        ) : null}
-
+      {address && cuisines.length ? (
         <section className="flex flex-col gap-6">
-          <h2 className="text-20 text-ink font-semibold">{copy.allRestaurants}</h2>
-
-          {unavailable ? (
-            <EmptyState
-              icon={<Icon name="shop" className="size-8" />}
-              title={copy.unavailableTitle}
-              description={copy.unavailableBody}
-            />
-          ) : vendors.length === 0 ? (
-            <EmptyState
-              icon={<Icon name="search" className="size-8" />}
-              title={copy.emptyTitle}
-              description={copy.emptyBody}
-            />
-          ) : (
-            <ul className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
-              {vendors.map((vendor) => (
-                <li key={vendor.id}>
-                  <VendorCard
-                    vendor={vendor}
-                    locale={locale}
-                    imageLabel={copy.vendorImage}
-                    ratingLabel={copy.rating}
-                  />
-                </li>
-              ))}
-            </ul>
-          )}
+          <h2 className="text-20 text-ink font-semibold">{copy.favouriteCuisines}</h2>
+          <CuisineRow
+            cuisines={cuisines}
+            selected={selected ? [selected] : []}
+            onToggle={choose}
+          />
         </section>
-      </div>
+      ) : null}
+
+      <section className="flex flex-col gap-6">
+        <h2 className="text-20 text-ink font-semibold">{copy.allRestaurants}</h2>
+
+        {!address ? (
+          <EmptyState
+            icon={<Icon name="location" className="size-8" />}
+            title={copy.noLocationTitle}
+            description={copy.noLocationBody}
+            action={
+              <Button asChild>
+                <Link href={changeHref}>{copy.noLocationAction}</Link>
+              </Button>
+            }
+          />
+        ) : unavailable ? (
+          <EmptyState
+            icon={<Icon name="shop" className="size-8" />}
+            title={copy.unavailableTitle}
+            description={copy.unavailableBody}
+          />
+        ) : vendors.length === 0 ? (
+          <EmptyState
+            icon={<Icon name="search" className="size-8" />}
+            title={copy.emptyTitle}
+            description={copy.emptyBody}
+            action={
+              selected ? (
+                <Button variant="outline" onClick={() => choose(selected)}>
+                  {copy.clearFilter}
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <ul className="grid gap-8 sm:grid-cols-2 xl:grid-cols-3">
+            {vendors.map((vendor) => (
+              <li key={vendor.id}>
+                <VendorCard
+                  vendor={vendor}
+                  locale={locale}
+                  imageLabel={copy.vendorImage}
+                  ratingLabel={copy.rating}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   );
 }

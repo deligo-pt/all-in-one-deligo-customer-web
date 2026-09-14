@@ -1,4 +1,4 @@
-import { ORDER_STEPS, type OrderStep } from "./types";
+import type { OrderStep } from "./types";
 
 export type TrackerCopy = { label: string; step: Record<OrderStep, string> };
 
@@ -11,12 +11,21 @@ export type TrackerCopy = { label: string; step: Record<OrderStep, string> };
  * `step` is a position on a known list, not a percentage. A number would put
  * the frontend in charge of deciding what 60% of an order looks like.
  */
-export function OrderTracker({ step, copy }: { step: OrderStep; copy: TrackerCopy }) {
-  const reached = ORDER_STEPS.indexOf(step);
+export function OrderTracker({
+  steps,
+  step,
+  copy,
+}: {
+  /** The vertical's journey, from `ORDER_STEPS`. */
+  steps: readonly OrderStep[];
+  step: OrderStep;
+  copy: TrackerCopy;
+}) {
+  const reached = steps.indexOf(step);
 
   return (
     <ol className="flex flex-wrap items-center gap-2" aria-label={copy.label}>
-      {ORDER_STEPS.map((name, index) => {
+      {steps.map((name, index) => {
         const done = index <= reached;
         return (
           <li key={name} className="flex flex-1 items-center gap-2">

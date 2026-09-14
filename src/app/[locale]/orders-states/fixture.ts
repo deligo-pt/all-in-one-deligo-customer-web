@@ -14,6 +14,7 @@ const STORE: CartStore = {
   vendorId: "burger-forge-porto",
   name: "Burger Forge Porto",
   vertical: "food",
+  active: true,
   subtotal: "15.60€",
   deliveryEstimate: "25-35 min",
   orderRef: "#DG-20458",
@@ -94,6 +95,54 @@ export const LIVE_ORDER: Order = LIST[0];
 export const FINISHED_ORDER: Order = LIST[1];
 
 export const ACTIVE_STORE = STORE;
+
+/** The Groceries tracking frame (`3003:47094`) — the same screen on the
+ *  grocery journey, so the second step list can be looked at (Phase 13). */
+export const GROCERY_ORDER: Order = {
+  id: "dg-8291",
+  reference: "#DG-8291",
+  vendorName: "FreshMart",
+  itemsLabel: "1x Green Tea Pack",
+  placedOn: "28 Oct 2026",
+  total: "30.97€",
+  bucket: "ongoing",
+  statusLabel: "In picking process",
+  vertical: "groceries",
+  step: "picked",
+  eta: "12min",
+  deliveryCode: "8417",
+  rider: { name: "João Silva", stats: "4.9" },
+  store: {
+    id: "store-freshmart",
+    vendorId: "freshmart",
+    name: "FreshMart",
+    vertical: "groceries",
+    active: true,
+    subtotal: "28.49€",
+    deliveryEstimate: "25-35 min",
+    orderRef: "#DG-8291",
+    lines: [
+      {
+        id: "g1",
+        productId: "green-tea-pack",
+        name: "Green Tea Pack",
+        description: "1kg (approx. 6 units)",
+        price: "9.90€",
+        quantity: 1,
+      },
+    ],
+    totals: {
+      total: "30.97€",
+      charges: [
+        { kind: "subtotal", amount: "28.49€" },
+        { kind: "delivery", amount: "2.99€" },
+        { kind: "service", amount: "1.50€" },
+        { kind: "tip", amount: "2.00€" },
+        { kind: "discount", amount: "-6.50€", code: "DELIGO20" },
+      ],
+    },
+  },
+};
 
 export const NOTIFICATIONS_FIXTURE: readonly NotificationGroup[] = [
   {

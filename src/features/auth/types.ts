@@ -9,9 +9,9 @@
  * §2.2) — so this is a transcription of a known contract, not a guess.
  *
  * Nothing here talks to Google or Facebook either. Their SDKs hand back a
- * token; the token is exchanged with **our** backend. `socialLogin` therefore
- * takes a provider and not a token — obtaining one is the transport's problem,
- * because it is the half that changes when a provider changes its SDK.
+ * token; the token is exchanged with **our** backend. Phase 15 moved obtaining
+ * the token into the panel: Google only hands an ID token to its own rendered
+ * button, so the click that starts it cannot live in a transport (D-17).
  */
 
 /** The two providers the design offers. Upper case because that is what the
@@ -57,8 +57,19 @@ export type OtpChannel = "sms" | "email";
  *                     with `forceLogin`.
  *  - `rejected`     — the backend said no. `message` is its own already
  *                     localised text and is shown verbatim.
+ *  - `unavailable`  — no answer, or one that could not be used (Phase 15).
+ *  - `social-*`     — the provider exchange failed for a reason with its own
+ *                     copy, keyed on `errorKey` (the old app's four).
  */
-export type AuthFailureKind = "not-wired" | "device-limit" | "rejected";
+export type AuthFailureKind =
+  | "not-wired"
+  | "device-limit"
+  | "rejected"
+  | "unavailable"
+  | "social-email-required"
+  | "social-already-linked"
+  | "social-unavailable"
+  | "social-failed";
 
 export class AuthFailure extends Error {
   readonly kind: AuthFailureKind;
@@ -95,6 +106,12 @@ export type AuthTransport = {
     otp: string;
     forceLogin?: boolean;
   }): Promise<void>;
-  /** `POST /auth/social-login` — exchanges a provider token for a session. */
-  socialLogin(input: { provider: SocialProvider; forceLogin?: boolean }): Promise<void>;
+  /** `POST /auth/social-login` — exchanges a provider token for a session.
+   *  `token` is Google's ID token or Facebook's access token, obtained by the
+   *  provider's own SDK in the panel and kept for a `forceLogin` retry. */
+  socialLogin(input: {
+    provider: SocialProvider;
+    token: string;
+    forceLogin?: boolean;
+  }): Promise<void>;
 };

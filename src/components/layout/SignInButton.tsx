@@ -4,6 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { useSession } from "@/hooks/useSession";
 
 /**
  * The header's way in.
@@ -36,6 +37,8 @@ const SignInDrawer = dynamic(
 
 export function SignInButton({
   href,
+  accountHref,
+  accountLabel,
   label,
   title,
   description,
@@ -43,6 +46,9 @@ export function SignInButton({
   appName,
 }: {
   href: string;
+  /** Where a signed-in customer goes instead (Phase 15). */
+  accountHref: string;
+  accountLabel: string;
   label: string;
   title: string;
   description: string;
@@ -55,6 +61,18 @@ export function SignInButton({
   // rather than sliding out — and Radix's focus restoration has nothing to
   // return focus from.
   const [everOpened, setEverOpened] = useState(false);
+  const signedIn = useSession();
+
+  // Signed in: the same place in the header leads to the account. Unknown
+  // (server render, first paint) renders the sign-in link, which works either
+  // way — the proxy sends a signed-in visitor on from `/login`.
+  if (signedIn) {
+    return (
+      <Button variant="outline" asChild>
+        <Link href={accountHref}>{accountLabel}</Link>
+      </Button>
+    );
+  }
 
   return (
     <>

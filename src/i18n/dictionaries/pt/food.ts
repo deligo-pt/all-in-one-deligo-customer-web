@@ -14,22 +14,17 @@ const food = {
   addressPlaceholder: "Introduza a sua morada",
   addressLabel: "Morada de entrega",
   locateMe: "Localizar-me",
+  locationNotFound:
+    "Não encontrámos essa morada. Experimente acrescentar a cidade ou o código postal.",
+  locationDenied:
+    "O acesso à localização está desativado para este site. Escreva a sua morada.",
+  locationUnavailable:
+    "Não conseguimos obter a localização agora. Experimente escrever a sua morada.",
+  locationPosition:
+    "O seu dispositivo não conseguiu determinar onde está. Verifique se os serviços de localização estão ativos para o navegador, ou escreva a sua morada.",
+  currentLocation: "Localização atual",
   seeRestaurants: "Ver restaurantes",
   trustedBy: "Escolhido por milhões em todo o mundo",
-
-  filtersTitle: "Filtrar",
-  filtersReset: "Limpar tudo",
-  sortBy: "Ordenar por",
-  sortRecommended: "Recomendado",
-  sortBestValue: "Melhor valor",
-  sortPriceAsc: "Preço: do mais baixo ao mais alto",
-  sortPriceDesc: "Preço: do mais alto ao mais baixo",
-  delivery: "Entrega",
-  deliveryInstant: "Imediata",
-  deliveryPickup: "Recolha",
-  deals: "Promoções",
-  dietary: "Dieta",
-  cuisine: "Cozinha",
 
   deliveringTo: "A entregar em",
   changeAddress: "Alterar",
@@ -41,12 +36,37 @@ const food = {
   rating: "Classificação",
 
   noRestaurants: "Nenhum restaurante corresponde a estes filtros",
-  noRestaurantsBody: "Experimente remover um filtro ou alargar as opções de entrega.",
+  noRestaurantsBody:
+    "Nenhum restaurante perto desta morada serve essa cozinha. Remova-a para ver todos.",
 
-  catalogueUnavailable: "Os restaurantes ainda não estão disponíveis",
+  catalogueUnavailable: "Os restaurantes estão indisponíveis de momento",
   catalogueUnavailableBody:
-    "Este ecrã está construído; o catálogo por trás dele é ligado numa fase posterior. Nada aqui são dados fictícios — simplesmente não há nada para mostrar até lá.",
+    "Não conseguimos carregar a lista de restaurantes agora. Tente novamente dentro de momentos.",
 
+  openUntil: "Aberto · Fecha às {time}",
+  closedOpensAt: "Fechado · Abre às {time}",
+  percentOff: "{value}% DESCONTO",
+  amountOff: "{value} DESCONTO",
+  reviewsCount_one: "({count} avaliação)",
+  reviewsCount_other: "({count} avaliações)",
+  clearCuisine: "Mostrar todas as cozinhas",
+  noLocationTitle: "Onde devemos entregar?",
+  noLocationBody:
+    "Defina a sua morada ou use a sua localização atual e mostramos os restaurantes que entregam aí.",
+  searchHeading: "Pesquisa",
+  searchTitle: "Resultados para “{query}”",
+  searchCount_one: "{count} prato",
+  searchCount_other: "{count} pratos",
+  searchPrompt: "Escreva pelo menos {min} letras na pesquisa para encontrar um prato.",
+  searchEmpty: "Nada corresponde a “{query}”",
+  searchEmptyBody:
+    "Experimente uma palavra mais curta, ou o nome do prato em vez do restaurante.",
+  searchUnavailable: "A pesquisa está indisponível de momento",
+  searchUnavailableBody:
+    "Não conseguimos contactar a pesquisa agora. Tente novamente dentro de momentos.",
+  outOfStock: "Esgotado",
+  previousPage: "Anterior",
+  nextPage: "Seguinte",
   reviews: "Avaliações",
   availableDeals: "Promoções disponíveis",
   availableDealsBody: "Poupe mais nos seus artigos favoritos",
@@ -56,23 +76,26 @@ const food = {
   noItems: "Nenhum artigo corresponde a essa pesquisa",
   noItemsBody:
     "Experimente uma palavra mais curta ou limpe a pesquisa para ver todo o menu.",
+  noMenu: "Este restaurante ainda não adicionou o menu",
+  noMenuBody: "Volte em breve ou escolha outro restaurante perto de si.",
+  otherCategory: "Outros",
+  signInToAdd: "Inicie sessão para adicionar pratos ao carrinho.",
+  signInAction: "Iniciar sessão",
+  offlineAdd: "Esta é a pré-visualização do design — nada é adicionado a partir daqui.",
   yourCart: "O seu carrinho",
   cartEmpty: "O seu carrinho está vazio",
   addToCart: "Adicionar ao carrinho",
   optionRequired: "OBRIGATÓRIO",
   chooseRequiredOptions: "Escolha uma opção em cada grupo obrigatório para continuar.",
-  specialInstructions: "Instruções especiais",
   specialInstructionsPlaceholder: "Alguma alergia ou pedido especial? Diga-nos aqui...",
   quantity: "Quantidade",
   increaseQuantity: "Aumentar quantidade",
   decreaseQuantity: "Diminuir quantidade",
   closeProduct: "Fechar",
-  cartNotWired:
-    "O carrinho ainda não está ligado. Tudo o que escolheu aqui é real; o pedido que o enviaria chega numa fase posterior.",
 
-  vendorUnavailable: "Este restaurante ainda não está disponível",
+  vendorUnavailable: "Este restaurante está indisponível de momento",
   vendorUnavailableBody:
-    "A página está construída; o menu por trás dela chega com o catálogo numa fase posterior.",
+    "Não conseguimos carregar este restaurante agora. Tente novamente dentro de momentos.",
 } satisfies Record<string, string>;
 
 export default food;

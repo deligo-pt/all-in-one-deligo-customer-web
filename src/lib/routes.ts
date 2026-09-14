@@ -58,6 +58,16 @@ export const ROUTES = {
   // landing is a navigation rather than an anchor.
   restaurants: { path: "/food/restaurants", group: "shop", phase: 7 },
   groceries: { path: "/groceries", group: "shop", phase: 13 },
+  // Grocery stores get their own pages rather than `/vendors/[vendorId]`: the
+  // design draws a product grid with a live cart, not a menu, and the layout
+  // is decided by the route rather than by sniffing a vendor's category.
+  groceryStores: { path: "/groceries/stores", group: "shop", phase: 13 },
+  groceryStore: {
+    path: "/groceries/stores/[storeId]",
+    group: "shop",
+    phase: 13,
+    dynamic: true,
+  },
   electronics: { path: "/electronics", group: "shop", phase: 13 },
   search: { path: "/search", group: "shop", phase: 16 },
   vendor: { path: "/vendors/[vendorId]", group: "shop", phase: 7, dynamic: true },
@@ -100,3 +110,20 @@ export type RouteName = keyof typeof ROUTES;
 export const FLAGGED_ROUTES = Object.entries(ROUTES)
   .filter(([, route]) => "flagged" in route)
   .map(([name]) => name as RouteName);
+
+/**
+ * The route groups that need a signed-in customer (Phase 15). Everything under
+ * them — the account, orders, notifications, cart and checkout — reads data
+ * that belongs to one person, and every one of those endpoints answers 401
+ * without a session.
+ */
+export const SIGNED_IN_GROUPS: readonly RouteGroup[] = ["account", "checkout"];
+
+const SIGNED_IN_PATTERNS = Object.values(ROUTES as Record<string, Route>)
+  .filter((route) => SIGNED_IN_GROUPS.includes(route.group))
+  .map((route) => new RegExp(`^${route.path.replace(/\[[^\]]+\]/g, "[^/]+")}/?$`));
+
+/** Whether a locale-less path needs a session. */
+export function requiresSession(path: string): boolean {
+  return SIGNED_IN_PATTERNS.some((pattern) => pattern.test(path));
+}

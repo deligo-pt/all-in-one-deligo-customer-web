@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { shouldOptimiseImage } from "@/lib/imageHosts";
 import { cn } from "@/lib/cn";
 
 /**
@@ -42,6 +43,7 @@ export function ImageSlot({
           fill
           priority={priority}
           sizes={sizes ?? "100vw"}
+          unoptimized={!shouldOptimiseImage(src)}
           className="object-cover"
         />
       </div>

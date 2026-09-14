@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { VendorListing, VendorMenu, type VendorDetail } from "@/features/food";
 import { TranslationProvider } from "@/i18n/TranslationProvider";
 import { getLocale } from "@/i18n/server";
 import { loadNamespace } from "@/i18n/namespaces";
+import { withLocale } from "@/lib/i18n/path";
+import { ROUTES } from "@/lib/routes";
 import { FOOD_FIXTURE } from "./fixture";
 import { listingCopy, menuCopy } from "./copy";
 
@@ -29,33 +32,44 @@ export default async function FoodStatesPage() {
   if (process.env.NODE_ENV === "production") notFound();
 
   const locale = await getLocale();
-  const [food, common] = await Promise.all([
+  const [food, common, cartMessages] = await Promise.all([
     loadNamespace(locale, "food"),
     loadNamespace(locale, "common"),
+    loadNamespace(locale, "cart"),
   ]);
   const t = (key: string) => (food[key] as string | undefined) ?? key;
+  const c = (key: string) => (cartMessages[key] as string | undefined) ?? key;
 
   const vendor: VendorDetail = FOOD_FIXTURE.vendor;
 
   return (
-    <TranslationProvider locale={locale} messages={{ common, food }}>
+    <TranslationProvider
+      locale={locale}
+      messages={{ common, food, cart: cartMessages }}
+    >
       <div className="flex flex-col gap-16 py-8">
-        <VendorListing
-          locale={locale}
-          vendors={FOOD_FIXTURE.vendors}
-          cuisines={FOOD_FIXTURE.cuisines}
-          facets={FOOD_FIXTURE.facets}
-          copy={listingCopy(t)}
-          address={FOOD_FIXTURE.address}
-          countLabel={FOOD_FIXTURE.countLabel}
-        />
+        {/* The listing reads `?cuisine=`; a static page needs the boundary. */}
+        <Suspense>
+          <VendorListing
+            locale={locale}
+            vendors={FOOD_FIXTURE.vendors}
+            cuisines={FOOD_FIXTURE.cuisines}
+            copy={listingCopy(t)}
+            address={FOOD_FIXTURE.address}
+            countLabel={FOOD_FIXTURE.countLabel}
+            changeHref={withLocale(ROUTES.food.path, locale)}
+          />
+        </Suspense>
         {/* `loadProduct` is what Phase 16 supplies from `/products/:id`. Here
             it reads the fixture, so the dish modal — its required groups, its
             refusal, its stepper — can be opened and looked at. */}
         <VendorMenu
           vendor={vendor}
-          copy={menuCopy(t)}
-          loadProduct={(id) => FOOD_FIXTURE.products[id]}
+          copy={menuCopy(t, c)}
+          locale={locale}
+          products={FOOD_FIXTURE.products}
+          checkoutHref={withLocale(ROUTES.checkout.path, locale)}
+          loginHref={withLocale(ROUTES.login.path, locale)}
         />
       </div>
     </TranslationProvider>

@@ -10,15 +10,29 @@ import type { CartStore } from "@/features/cart";
 
 /** Where an order is, in the customer's language. `step` drives the tracker;
  *  `label` is the backend's own word for it and is what gets rendered. */
-export type OrderStep = "confirmed" | "kitchen" | "packed" | "ready" | "collected";
+export type OrderStep =
+  | "confirmed"
+  | "kitchen"
+  | "picked"
+  | "packed"
+  | "ready"
+  | "rider-picked"
+  | "on-way"
+  | "collected";
 
-export const ORDER_STEPS: readonly OrderStep[] = [
-  "confirmed",
-  "kitchen",
-  "packed",
-  "ready",
-  "collected",
-];
+/** The verticals whose orders the design tracks. */
+export type TrackedVertical = "food" | "groceries";
+
+/**
+ * Each vertical's own journey. The two `add pizza` tracking frames (Food
+ * `2970:43519`, Groceries `3003:47094`) are one screen with a different list:
+ * a kitchen cooks, a store picks — and a grocery order goes out with a rider
+ * rather than waiting to be collected (Phase 13).
+ */
+export const ORDER_STEPS: Record<TrackedVertical, readonly OrderStep[]> = {
+  food: ["confirmed", "kitchen", "packed", "ready", "collected"],
+  groceries: ["confirmed", "picked", "packed", "rider-picked", "on-way"],
+};
 
 /** Which bucket the list tab puts it in. Total over every status the API can
  *  send — the old project shipped two independent allowlists and every status
@@ -50,6 +64,9 @@ export type Order = {
   statusLabel: string;
   /** How far along, for the tracker. Absent on a finished or cancelled order. */
   step?: OrderStep;
+  /** Which journey `step` is a position on. Absent is food, the only vertical
+   *  the old app ever placed an order in. */
+  vertical?: TrackedVertical;
   /** "ETA: 12 mins". */
   eta?: string;
   image?: string;

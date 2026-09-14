@@ -20,6 +20,9 @@ const orders = {
   stepPacked: "Embalado",
   stepReady: "Pronto para recolha",
   stepCollected: "Recolhido",
+  stepPicked: "Separado",
+  stepRiderPicked: "Com o estafeta",
+  stepOnWay: "A caminho",
 
   riderTitle: "O seu estafeta",
   riderImage: "Fotografia do estafeta",

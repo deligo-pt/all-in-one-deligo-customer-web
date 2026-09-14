@@ -37,12 +37,17 @@ const cart = {
     "Ainda não adicionou nada. Escolha um restaurante e tudo o que selecionar aparece aqui.",
   browse: "Explorar restaurantes",
 
-  unavailableTitle: "O seu carrinho ainda não está ligado",
+  unavailableTitle: "Não foi possível carregar o carrinho",
   unavailableBody:
-    "Este ecrã está construído; o carrinho por trás dele é ligado numa fase posterior. Nada aqui são dados de exemplo — simplesmente não há nada para mostrar até que exista.",
+    "Não conseguimos aceder ao carrinho agora. Tente novamente dentro de momentos.",
 
-  notWired:
-    "O carrinho ainda não está ligado. Este controlo é real e o pedido que enviaria chega numa fase posterior — nada foi alterado.",
+  goToCheckout: "Finalizar compra",
+  actionFailed: "Não foi possível concluir. O carrinho mostra o estado atual.",
+  selectToSeeTotal:
+    "Selecione uma loja para ver o total — as encomendas são feitas uma loja de cada vez.",
+  previewOnly:
+    "Esta é a pré-visualização do design — nada aqui altera um carrinho real.",
+  notWired: "Os vouchers são aplicados no checkout, que é ligado na próxima fase.",
 } satisfies Record<string, string>;
 
 export default cart;

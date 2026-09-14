@@ -13,25 +13,6 @@ import type { ListingCopy, MenuCopy } from "@/features/food";
  */
 export function listingCopy(t: (key: string) => string): ListingCopy {
   return {
-    filters: {
-      title: t("filtersTitle"),
-      reset: t("filtersReset"),
-      sort: t("sortBy"),
-      delivery: t("delivery"),
-      deals: t("deals"),
-      dietary: t("dietary"),
-      cuisine: t("cuisine"),
-      sortOption: {
-        recommended: t("sortRecommended"),
-        "best-value": t("sortBestValue"),
-        "price-asc": t("sortPriceAsc"),
-        "price-desc": t("sortPriceDesc"),
-      },
-      deliveryOption: {
-        instant: t("deliveryInstant"),
-        pickup: t("deliveryPickup"),
-      },
-    },
     deliveringTo: t("deliveringTo"),
     change: t("changeAddress"),
     setAddress: t("setAddress"),
@@ -42,12 +23,19 @@ export function listingCopy(t: (key: string) => string): ListingCopy {
     rating: t("rating"),
     emptyTitle: t("noRestaurants"),
     emptyBody: t("noRestaurantsBody"),
+    clearFilter: t("clearCuisine"),
     unavailableTitle: t("catalogueUnavailable"),
     unavailableBody: t("catalogueUnavailableBody"),
+    noLocationTitle: t("noLocationTitle"),
+    noLocationBody: t("noLocationBody"),
+    noLocationAction: t("setAddress"),
   };
 }
 
-export function menuCopy(t: (key: string) => string): MenuCopy {
+export function menuCopy(
+  t: (key: string) => string,
+  cart: (key: string) => string,
+): MenuCopy {
   return {
     reviews: t("reviews"),
     dealsTitle: t("availableDeals"),
@@ -57,21 +45,43 @@ export function menuCopy(t: (key: string) => string): MenuCopy {
     menuNav: t("menuNavigation"),
     noMatches: t("noItems"),
     noMatchesBody: t("noItemsBody"),
-    cartTitle: t("yourCart"),
-    cartEmpty: t("cartEmpty"),
+    noMenu: t("noMenu"),
+    noMenuBody: t("noMenuBody"),
+    cart: {
+      title: t("yourCart"),
+      empty: t("cartEmpty"),
+      line: {
+        remove: cart("remove"),
+        quantity: cart("quantity"),
+        increase: cart("increaseQuantity"),
+        decrease: cart("decreaseQuantity"),
+        itemImage: cart("itemImage"),
+      },
+      charge: {
+        subtotal: cart("chargeSubtotal"),
+        delivery: cart("chargeDelivery"),
+        service: cart("chargeService"),
+        tip: cart("chargeTip"),
+        discount: cart("chargeDiscount"),
+      },
+      grandTotal: cart("grandTotal"),
+      checkout: cart("goToCheckout"),
+      selectForCheckout: cart("chooseStore"),
+      actionFailed: cart("actionFailed"),
+    },
+    signInToAdd: t("signInToAdd"),
+    signIn: t("signInAction"),
+    offlineAdd: t("offlineAdd"),
     addToCart: t("addToCart"),
     rating: t("rating"),
     product: {
       required: t("optionRequired"),
       chooseRequired: t("chooseRequiredOptions"),
-      specialInstructions: t("specialInstructions"),
-      specialInstructionsPlaceholder: t("specialInstructionsPlaceholder"),
       addToCart: t("addToCart"),
       quantity: t("quantity"),
       increase: t("increaseQuantity"),
       decrease: t("decreaseQuantity"),
       close: t("closeProduct"),
-      notWired: t("cartNotWired"),
     },
   };
 }

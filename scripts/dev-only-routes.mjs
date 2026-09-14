@@ -23,4 +23,5 @@ export const DEV_ONLY_ROUTES = [
   "checkout-states",
   "orders-states",
   "account-states",
+  "groceries-states",
 ];

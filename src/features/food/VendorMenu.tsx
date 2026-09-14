@@ -1,16 +1,26 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
-import { ImageSlot } from "@/components/shared/ImageSlot";
-import { CartPanel } from "./CartPanel";
-import { DealCard } from "./DealCard";
+import {
+  StoreCartPanel,
+  cartApi,
+  type AddToCartInput,
+  type CartStore,
+  type StoreCartCopy,
+} from "@/features/cart";
 import { MenuItemCard } from "./MenuItemCard";
 import { MenuNav } from "./MenuNav";
-import type { ProductCopy } from "./ProductModal";
-import type { ProductDetail, VendorDetail } from "./types";
+import type { ProductChoice, ProductCopy } from "./ProductModal";
+import type { MenuItem, ProductDetail, VendorDetail } from "./types";
+import { useSession } from "@/hooks/useSession";
+import type { Locale } from "@/lib/i18n/locale";
+import { VendorIntro } from "./VendorIntro";
 
 /**
  * The dish modal arrives on the first press of an add button, not with the
@@ -36,8 +46,13 @@ export type MenuCopy = {
   menuNav: string;
   noMatches: string;
   noMatchesBody: string;
-  cartTitle: string;
-  cartEmpty: string;
+  noMenu: string;
+  noMenuBody: string;
+  cart: StoreCartCopy;
+  signInToAdd: string;
+  signIn: string;
+  /** The states page's answer to an add: it never writes a real cart. */
+  offlineAdd: string;
   addToCart: string;
   rating: string;
   product: ProductCopy;
@@ -69,20 +84,80 @@ export type MenuCopy = {
 export function VendorMenu({
   vendor,
   copy,
-  loadProduct,
+  locale,
+  products,
+  cart,
+  checkoutHref,
+  loginHref,
 }: {
   vendor: VendorDetail;
   copy: MenuCopy;
-  /**
-   * Turns a menu item into the thing that can be ordered — `/products/:id`
-   * plus its add-on groups. Phase 16 supplies it; without it the add buttons
-   * have nothing to open, which is the honest state while the catalogue is
-   * not connected.
-   */
-  loadProduct?: (itemId: string) => ProductDetail | undefined;
+  locale: Locale;
+  /** This vendor's part of the live cart, when it has one. */
+  cart?: CartStore;
+  checkoutHref: string;
+  /** `/login?next=` back to this page. */
+  loginHref: string;
+  /** Fully resolved dishes by id — the development states page's fixture.
+   *  Live, a dish opens with its variations and its add-on groups load. */
+  products?: Readonly<Record<string, ProductDetail>>;
 }) {
   const [query, setQuery] = useState("");
   const [product, setProduct] = useState<ProductDetail | null>(null);
+  const signedIn = useSession();
+  const router = useRouter();
+  const [notice, setNotice] = useState<{ text: string; signIn?: boolean } | null>(null);
+
+  /** The quantity a line already has. The API sets quantities, so adding one
+   *  more is sending this plus one. */
+  const inCart = (productId: string, variationSku?: string) =>
+    cart?.lines.find(
+      (line) => line.productId === productId && line.variationSku === variationSku,
+    )?.quantity ?? 0;
+
+  async function add(input: AddToCartInput): Promise<string | null> {
+    if (products) {
+      setNotice({ text: copy.offlineAdd });
+      return copy.offlineAdd;
+    }
+    if (!signedIn) {
+      setNotice({ text: copy.signInToAdd, signIn: true });
+      return copy.signInToAdd;
+    }
+    setNotice(null);
+    try {
+      await cartApi.add(input);
+      return null;
+    } catch (error) {
+      const text =
+        error instanceof Error && error.message
+          ? error.message
+          : copy.cart.actionFailed;
+      setNotice({ text });
+      return text;
+    } finally {
+      router.refresh();
+    }
+  }
+
+  const open = (item: MenuItem) => {
+    const fixed = products?.[item.id];
+    if (fixed) return setProduct(fixed);
+    const base: ProductDetail = { ...item, options: item.options ?? [] };
+    setProduct(base);
+    if (item.addonGroupIds?.length && signedIn) {
+      void import("./addons")
+        .then(({ loadAddonGroups }) => loadAddonGroups(item.addonGroupIds!, locale))
+        .then((groups) =>
+          setProduct((current) =>
+            current?.id === item.id
+              ? { ...current, options: [...base.options, ...groups] }
+              : current,
+          ),
+        )
+        .catch(() => undefined);
+    }
+  };
 
   const categories = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -99,62 +174,13 @@ export function VendorMenu({
       .filter((category) => category.items.length > 0);
   }, [query, vendor.menu]);
 
-  const meta = [
-    vendor.cuisines.join(" · ") || null,
-    vendor.deliveryTime ?? null,
-  ].filter(Boolean);
-
   return (
     <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
-      <ImageSlot
-        src={vendor.heroImage}
-        alt={vendor.name}
-        sizes="(max-width: 1440px) 100vw, 1312px"
-        className="rounded-16 aspect-[1312/448] w-full"
+      <VendorIntro
+        vendor={vendor}
+        dealsTitle={copy.dealsTitle}
+        dealsSubtitle={copy.dealsSubtitle}
       />
-
-      <header className="flex flex-col gap-3">
-        <h1 className="text-32 text-ink font-semibold">{vendor.name}</h1>
-        {vendor.address ? (
-          <p className="text-16 text-ink-muted flex items-center gap-2">
-            <Icon name="location" className="size-4 shrink-0" />
-            {vendor.address}
-          </p>
-        ) : null}
-        <p className="text-14 text-ink-muted flex flex-wrap items-center gap-2">
-          {vendor.rating ? (
-            <span className="text-ink inline-flex items-center gap-1 font-semibold">
-              <Icon name="star" className="text-rating size-4" />
-              {vendor.rating}
-              {vendor.reviewsLabel ? (
-                <span className="font-medium"> {vendor.reviewsLabel}</span>
-              ) : null}
-            </span>
-          ) : null}
-          {meta.map((entry) => (
-            <span key={entry} className="flex items-center gap-2">
-              <span aria-hidden>·</span>
-              {entry}
-            </span>
-          ))}
-        </p>
-      </header>
-
-      {vendor.deals.length ? (
-        <section className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-20 text-ink font-semibold">{copy.dealsTitle}</h2>
-            <p className="text-16 text-ink-muted">{copy.dealsSubtitle}</p>
-          </div>
-          <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {vendor.deals.map((deal) => (
-              <li key={deal.id}>
-                <DealCard deal={deal} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
 
       <MenuNav
         categories={vendor.menu}
@@ -168,7 +194,28 @@ export function VendorMenu({
 
       <div className="flex flex-col gap-8 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-8">
-          {categories.length === 0 ? (
+          {notice ? (
+            <div
+              role="status"
+              className="bg-surface-warm text-ink-warm text-14 rounded-12 flex flex-wrap items-center justify-between gap-3 p-4"
+            >
+              <span>{notice.text}</span>
+              {notice.signIn ? (
+                <Button size="sm" asChild>
+                  <Link href={loginHref}>{copy.signIn}</Link>
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          {vendor.menu.length === 0 ? (
+            // Nothing to search is not the same as a search that found
+            // nothing — and only the second is the customer's to fix.
+            <EmptyState
+              icon={<Icon name="shop" className="size-8" />}
+              title={copy.noMenu}
+              description={copy.noMenuBody}
+            />
+          ) : categories.length === 0 ? (
             <EmptyState
               icon={<Icon name="search" className="size-8" />}
               title={copy.noMatches}
@@ -188,10 +235,15 @@ export function VendorMenu({
                       <MenuItemCard
                         item={item}
                         addLabel={copy.addToCart}
-                        onAdd={
-                          loadProduct
-                            ? (id) => setProduct(loadProduct(id) ?? null)
-                            : undefined
+                        onAdd={() =>
+                          item.options?.length ||
+                          item.addonGroupIds?.length ||
+                          products?.[item.id]
+                            ? open(item)
+                            : void add({
+                                productId: item.id,
+                                quantity: inCart(item.id) + 1,
+                              })
                         }
                       />
                     </li>
@@ -204,7 +256,12 @@ export function VendorMenu({
 
         <div className="lg:w-104 lg:shrink-0">
           <div className="sticky top-[8rem]">
-            <CartPanel title={copy.cartTitle} emptyLabel={copy.cartEmpty} />
+            <StoreCartPanel
+              store={cart}
+              checkoutHref={checkoutHref}
+              copy={copy.cart}
+              offlineNotice={products ? copy.offlineAdd : undefined}
+            />
           </div>
         </div>
       </div>
@@ -219,6 +276,14 @@ export function VendorMenu({
             if (!next) setProduct(null);
           }}
           copy={copy.product}
+          onAdd={(choice: ProductChoice) =>
+            add({
+              productId: product.id,
+              quantity: inCart(product.id, choice.variationSku) + choice.quantity,
+              variationSku: choice.variationSku,
+              addons: choice.addons,
+            })
+          }
         />
       ) : null}
     </div>

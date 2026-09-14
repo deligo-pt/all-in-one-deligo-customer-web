@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 import {
-  CartUnavailableError,
   CartView,
   buildTabs,
   cartItemCount,
-  notWiredCart,
   storeItemCount,
   type Cart,
   type CartCopy,
 } from "@/features/cart";
+import { readCart } from "@/services/cart/server";
 import { getLocale, getTranslations } from "@/i18n/server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -19,16 +18,10 @@ export async function generateMetadata(): Promise<Metadata> {
 /**
  * `/cart` — the cart.
  *
- * A Server Component that reads the cart and hands one client view the result.
- * In Track B the transport rejects, `unavailable` is true, and the page says
- * so — while everything around the data is built: the filter row, the store
- * groups, the summary panel, the empty state and the refusal.
- *
- * The rejection is caught rather than thrown, for the same reason
- * `/food/restaurants` catches its own: Plan.md §2.3's "throws in development"
- * rule is for the verticals with **no** backend at all. The cart has a real
- * endpoint that is simply not connected yet, and a route that crashes in
- * development is a route nobody can look at.
+ * A Server Component that reads `/carts/view-cart` (Phase 17) and hands one
+ * client view the result; every write in that view re-renders this page. The
+ * proxy has already required a session. A cart that cannot be read renders
+ * its own sentence, not an empty cart.
  *
  * ## Every counted string is resolved here
  *
@@ -46,9 +39,8 @@ export default async function CartPage() {
   let cart: Cart = { stores: [] };
   let unavailable = false;
   try {
-    cart = await notWiredCart.read();
-  } catch (error) {
-    if (!(error instanceof CartUnavailableError)) throw error;
+    cart = (await readCart()) ?? { stores: [] };
+  } catch {
     unavailable = true;
   }
 
@@ -113,6 +105,8 @@ export default async function CartPage() {
     unavailableTitle: t("unavailableTitle"),
     unavailableBody: t("unavailableBody"),
     notWired: t("notWired"),
+    actionFailed: t("actionFailed"),
+    selectToSeeTotal: t("selectToSeeTotal"),
   };
 
   return (

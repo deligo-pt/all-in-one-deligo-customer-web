@@ -134,7 +134,7 @@ export function OrderSummary({
         </div>
 
         <dl className="border-line rounded-24 flex flex-col gap-4 border p-6">
-          {store.totals.charges.map((charge) => {
+          {(store.totals?.charges ?? []).map((charge) => {
             const discount = charge.kind === "discount";
             const strong = discount || charge.kind === "subtotal";
             return (
@@ -166,7 +166,7 @@ export function OrderSummary({
           <div className="flex items-start justify-between gap-4">
             <dt className="text-16 text-ink-strong">{copy.grandTotal}</dt>
             <dd className="text-20 text-brand shrink-0 font-semibold">
-              {store.totals.total}
+              {store.totals?.total}
             </dd>
           </div>
         </dl>

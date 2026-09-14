@@ -54,6 +54,9 @@ export default async function OrderPage() {
         packed: t("stepPacked"),
         ready: t("stepReady"),
         collected: t("stepCollected"),
+        picked: t("stepPicked"),
+        "rider-picked": t("stepRiderPicked"),
+        "on-way": t("stepOnWay"),
       },
     },
     summary: {

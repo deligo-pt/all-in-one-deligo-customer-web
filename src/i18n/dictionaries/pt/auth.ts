@@ -20,9 +20,9 @@ const auth = {
 
   verifyTitle: "Verifique a sua conta",
   verifySubtitlePhone:
-    "Introduza o código de 6 dígitos que enviámos para o seu telemóvel.",
+    "Introduza o código de {length} dígitos que enviámos para o seu telemóvel.",
   verifySubtitleEmail:
-    "Introduza o código de 6 dígitos que enviámos para o seu e-mail. Se não o encontrar, verifique a pasta de spam.",
+    "Introduza o código de {length} dígitos que enviámos para o seu e-mail. Se não o encontrar, verifique a pasta de spam.",
   codeLabel: "Código de verificação",
 
   changePhone: "Alterar número de telemóvel",
@@ -41,7 +41,15 @@ const auth = {
 
   phoneRequired: "Introduza o seu número de telemóvel.",
   emailRequired: "Introduza o seu endereço de e-mail.",
-  otpRequired: "Introduza o código de 6 dígitos que lhe enviámos.",
+  otpRequired: "Introduza o código de {length} dígitos que lhe enviámos.",
+
+  signInUnavailable:
+    "Não conseguimos contactar a DeliGo. Verifique a sua ligação e tente novamente.",
+  socialFailed: "A autenticação falhou. Tente novamente.",
+  socialEmailRequired:
+    "Não conseguimos obter o seu email dessa conta. Permita o acesso ao email e tente novamente, ou entre com o seu número de telemóvel.",
+  socialAlreadyLinked: "Essa conta já está associada a outro utilizador DeliGo.",
+  socialUnavailable: "Esta opção de entrada está temporariamente indisponível.",
 
   notWired:
     "A autenticação ainda não está ligada. Este ecrã está completo; a API por trás dele chega numa fase posterior e nada do que escrever aqui é enviado para lado nenhum.",
