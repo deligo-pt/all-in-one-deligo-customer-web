@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
-import {
-  AccountListView,
-  AccountUnavailableError,
-  accountNav,
-  notWiredAccount,
-  type AccountListCopy,
-  type Referral,
-} from "@/features/account";
+import { CopyButton } from "@/components/shared/CopyButton";
+import { AccountListView, accountNav, type Referral } from "@/features/account";
 import { getLocale, getTranslations } from "@/i18n/server";
+import { accountNavLabels, listCopy } from "@/services/account/copy";
+import { readReferral } from "@/services/account/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("account");
@@ -15,81 +11,71 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * `/account/referrals` — **D-11's home**.
+ * `/account/referrals` — the customer's own code, its numbers and the points
+ * balance (`/referrals/my-referrals`, `/points/my-points`; Phase 20).
  *
- * The old app collected a referral code on the sign-in form; the design has no
- * such field, and D-11's position was that this page is where a code
- * plausibly belongs instead. It shows the customer's own code and what it has
- * earned. Whether a *referred* customer can still enter one is the half of
- * D-11 that is still open, and Phase 20 must answer it — a referral programme
- * with no entry point is not a programme.
+ * D-11 answered: a referred customer enters a code only at sign-up
+ * (`/auth/login-customer` takes `referralCode`); `PATCH /customers/:id`
+ * refuses one afterwards (measured), so this page cannot offer an entry field.
  */
 export default async function ReferralsPage() {
-  const [t, locale] = await Promise.all([getTranslations("account"), getLocale()]);
-
+  const [t, locale, labels, copy] = await Promise.all([
+    getTranslations("account"),
+    getLocale(),
+    accountNavLabels(),
+    listCopy("referrals"),
+  ]);
   let referral: Referral | null = null;
-  let unavailable = false;
   try {
-    referral = await notWiredAccount.referral();
-  } catch (error) {
-    if (!(error instanceof AccountUnavailableError)) throw error;
-    unavailable = true;
+    referral = await readReferral();
+  } catch {
+    referral = null;
   }
-
-  const nav = accountNav(locale, {
-    profile: t("navProfile"),
-    orders: t("navOrders"),
-    addresses: t("navAddresses"),
-    payment: t("navPayment"),
-    vouchers: t("navVouchers"),
-    referrals: t("navReferrals"),
-    settings: t("navSettings"),
-  });
-
-  const copy: AccountListCopy = {
-    title: t("referralsTitle"),
-    subtitle: t("referralsSubtitle"),
-    navLabel: t("navLabel"),
-    remove: t("remove"),
-    default: t("defaultLabel"),
-    emptyTitle: t("referralsEmpty"),
-    emptyBody: t("referralsEmptyBody"),
-    unavailableTitle: t("unavailableTitle"),
-    unavailableBody: t("unavailableBody"),
-    notWired: t("notWired"),
-  };
 
   return (
     <AccountListView
       rows={[]}
-      nav={nav}
+      nav={accountNav(locale, labels)}
       activeId="referrals"
       icon="gift"
       copy={copy}
-      unavailable={unavailable}
+      unavailable={!referral}
     >
       {referral ? (
-        <section className="border-brand-soft bg-brand-tint rounded-16 flex flex-wrap items-center justify-between gap-6 border p-6">
-          <div className="flex flex-col gap-1">
-            <p className="text-12 text-ink-warm font-semibold tracking-wide uppercase">
-              {t("referralCode")}
-            </p>
-            <p className="text-32 text-brand-strong font-semibold tracking-wider">
-              {referral.code}
-            </p>
-          </div>
-          {/* Verbatim. What a referral has earned is the backend's sum. */}
-          {referral.earned ? (
+        <div className="flex flex-col gap-4">
+          <section className="border-brand-soft bg-brand-tint rounded-16 flex flex-wrap items-center justify-between gap-6 border p-6">
             <div className="flex flex-col gap-1">
               <p className="text-12 text-ink-warm font-semibold tracking-wide uppercase">
-                {t("referralEarned")}
+                {t("referralCode")}
               </p>
-              <p className="text-32 text-brand-strong font-semibold">
-                {referral.earned}
+              <p className="text-32 text-brand-strong font-semibold tracking-wider">
+                {referral.code}
               </p>
+              {referral.code ? (
+                <CopyButton
+                  text={referral.code}
+                  label={t("copyCode")}
+                  copiedLabel={t("copiedCode")}
+                  className="mt-2 self-start"
+                />
+              ) : null}
             </div>
-          ) : null}
-        </section>
+            {referral.points ? (
+              <p className="text-20 text-ink-strong font-semibold">{referral.points}</p>
+            ) : null}
+          </section>
+          <dl className="grid gap-4 sm:grid-cols-3">
+            {referral.stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="border-line rounded-16 bg-surface flex flex-col gap-1 border p-4"
+              >
+                <dt className="text-14 text-ink-muted">{stat.label}</dt>
+                <dd className="text-20 text-ink-strong font-semibold">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       ) : null}
     </AccountListView>
   );

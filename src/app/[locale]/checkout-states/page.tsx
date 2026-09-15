@@ -46,6 +46,8 @@ export default async function CheckoutStatesPage() {
           vouchers={VOUCHER_FIXTURE}
           cards={CARD_FIXTURE}
           addresses={ADDRESS_FIXTURE}
+          pickupHours={{ openingHours: "07:00", closingHours: "23:30" }}
+          pickupAvailable
           locale={locale}
           copy={checkoutCopy(t, lookup(cart), lookup(food))}
           offlineNotice={t("previewOnly")}

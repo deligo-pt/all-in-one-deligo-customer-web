@@ -30,14 +30,14 @@ const LANGUAGE_NAME_KEY = {
   pt: "languagePortuguese",
 } as const satisfies Record<Locale, string>;
 
-export function LocaleSwitcher() {
+export function LocaleSwitcher({ className }: { className?: string } = {}) {
   const { t, locale } = useTranslation("common");
   const pathname = usePathname();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   return (
-    <label className="inline-flex items-center gap-2 text-sm">
+    <label className={`inline-flex items-center gap-2 text-sm ${className ?? ""}`}>
       <span className="sr-only">{t("selectLanguage")}</span>
       <select
         className="rounded border border-black/15 bg-transparent px-2 py-1"

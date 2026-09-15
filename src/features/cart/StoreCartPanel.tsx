@@ -5,12 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { cn } from "@/lib/cn";
 import { cartApi } from "./api";
 import { CartLineRow, type LineCopy } from "./CartLineRow";
 import type { CartStore, ChargeKind } from "./types";
-
-export type FulfilmentMode = "instant" | "schedule";
 
 export type StoreCartCopy = {
   title: string;
@@ -21,9 +18,6 @@ export type StoreCartCopy = {
   checkout: string;
   selectForCheckout: string;
   actionFailed: string;
-  /** The grocery frame's Instant/Schedule control; absent on a restaurant. */
-  mode?: Record<FulfilmentMode, string>;
-  modeLabel?: string;
 };
 
 /**
@@ -36,6 +30,10 @@ export type StoreCartCopy = {
  * offers to become it, because the API orders one store at a time (D-4).
  *
  * Every press writes, then re-reads the page from the server — failed or not.
+ *
+ * The grocery frame's Instant/Schedule toggle is not drawn: it sent nothing,
+ * and the API has no delivery scheduling. Delivery or self-pickup is chosen at
+ * checkout, where the API takes it.
  */
 export function StoreCartPanel({
   store,
@@ -50,7 +48,6 @@ export function StoreCartPanel({
   offlineNotice?: string;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<FulfilmentMode>("instant");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -96,35 +93,6 @@ export function StoreCartPanel({
       className="border-line rounded-16 bg-surface flex flex-col gap-6 border p-6"
     >
       <h2 className="text-20 text-ink-strong font-semibold">{copy.title}</h2>
-
-      {copy.mode && copy.modeLabel ? (
-        <div
-          role="group"
-          aria-label={copy.modeLabel}
-          className="bg-surface-muted grid grid-cols-2 gap-1 rounded-full p-1"
-        >
-          {(["instant", "schedule"] as const).map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={mode === option}
-              onClick={() => setMode(option)}
-              className={cn(
-                "text-14 flex h-10 items-center justify-center gap-2 rounded-full font-semibold transition-colors",
-                mode === option
-                  ? "bg-surface text-ink-strong shadow-sm"
-                  : "text-ink-muted",
-              )}
-            >
-              <Icon
-                name={option === "instant" ? "clock" : "check-circle"}
-                className={cn("size-4", mode === option && "text-brand")}
-              />
-              {copy.mode![option]}
-            </button>
-          ))}
-        </div>
-      ) : null}
 
       <ul className="flex flex-col gap-4">
         {store.lines.map((line) => (

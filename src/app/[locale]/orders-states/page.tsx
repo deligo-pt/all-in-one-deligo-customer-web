@@ -8,11 +8,12 @@ import { ROUTES } from "@/lib/routes";
 import type { Messages } from "@/lib/i18n/translate";
 import {
   ACTIVE_STORE,
+  CANCELLED_ORDER,
   FINISHED_ORDER,
-  GROCERY_ORDER,
   LIVE_ORDER,
   NOTIFICATIONS_FIXTURE,
   ORDERS_FIXTURE,
+  PICKUP_ORDER,
 } from "./fixture";
 import { detailCopy, listCopy, notificationCopy } from "./copy";
 
@@ -21,9 +22,10 @@ import { detailCopy, listCopy, notificationCopy } from "./copy";
  * `/tokens`, `/primitives`, `/formats`, `/auth-states`, `/food-states`,
  * `/cart-states` and `/checkout-states`.
  *
- * Four instances: the list, a live order (tracker, rider, delivery code,
- * cancel), a finished one (reorder, review, invoice), and the notifications
- * page with its day groups and vertical filters.
+ * The list, four order details (a live delivery with its code, a pickup
+ * ready at the counter, a delivered order still to rate, a cancelled one with
+ * its refund), and the notifications page. **Offline**: every write refuses
+ * with `previewOnly`, since the views are the live ones.
  */
 export default async function OrdersStatesPage() {
   if (process.env.NODE_ENV === "production") notFound();
@@ -45,39 +47,39 @@ export default async function OrdersStatesPage() {
       );
   const t = lookup(orders);
   const c = lookup(cart);
-  const home = withLocale(ROUTES.food.path, locale);
+  const cartHref = withLocale(ROUTES.cart.path, locale);
+  const offline = t("previewOnly");
 
   return (
     <TranslationProvider locale={locale} messages={{ common, orders, cart, nav }}>
       <div className="flex flex-col gap-16 py-8">
-        <OrderList orders={ORDERS_FIXTURE} locale={locale} copy={listCopy(t)} />
-        <OrderDetail
-          order={LIVE_ORDER}
-          homeHref={home}
-          copy={detailCopy(t, c, LIVE_ORDER.rider?.name)}
+        <OrderList
+          orders={ORDERS_FIXTURE}
+          locale={locale}
+          copy={listCopy(t)}
+          offlineNotice={offline}
         />
-        <OrderDetail
-          order={GROCERY_ORDER}
-          homeHref={home}
-          copy={detailCopy(t, c, GROCERY_ORDER.rider?.name)}
-        />
-        <OrderDetail
-          order={FINISHED_ORDER}
-          homeHref={home}
-          copy={detailCopy(t, c, FINISHED_ORDER.rider?.name)}
-        />
+        {[LIVE_ORDER, PICKUP_ORDER, FINISHED_ORDER, CANCELLED_ORDER].map((order) => (
+          <OrderDetail
+            key={order.id}
+            order={order}
+            cartHref={cartHref}
+            supportHref="#"
+            ordersHref="#"
+            copy={detailCopy(t, c, order.rider?.name)}
+            offlineNotice={offline}
+          />
+        ))}
         <NotificationList
           groups={NOTIFICATIONS_FIXTURE}
-          verticals={[
-            { id: "all", label: t("notificationsAll") },
-            { id: "food", label: lookup(nav)("food") },
-            { id: "ride", label: lookup(nav)("ride") },
-            { id: "parcel", label: lookup(nav)("parcel") },
-            { id: "electronics", label: lookup(nav)("electronics") },
-          ]}
-          activeOrder={ACTIVE_STORE}
-          browseHref={home}
+          activeOrder={{
+            store: ACTIVE_STORE,
+            reference: "#ORD-DG20458",
+            status: "On the way",
+            href: "#",
+          }}
           copy={notificationCopy(t, c, 1)}
+          offlineNotice={offline}
         />
       </div>
     </TranslationProvider>

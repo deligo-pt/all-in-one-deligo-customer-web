@@ -20,7 +20,7 @@ import { notWiredTransport } from "./transport";
 import type { MessageKey } from "@/i18n/namespaces";
 import { BrandMark } from "./BrandMark";
 import { OtpInput, OTP_LENGTH } from "./OtpInput";
-import { DEFAULT_DIAL_CODE } from "./countries";
+import { DEFAULT_DIAL_CODE } from "@/lib/countries";
 import { useAuthFlow, type AuthCondition, type AuthFlowOptions } from "./useAuthFlow";
 
 /**

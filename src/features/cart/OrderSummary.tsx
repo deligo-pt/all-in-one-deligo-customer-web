@@ -52,9 +52,12 @@ export function OrderSummary({
   store: CartStore;
   copy: SummaryCopy;
   /** The store's own page — "Add more items" is a navigation, so it is a link. */
-  browseHref: string;
-  onApplyVoucher: () => void;
-  onPlaceOrder: () => void;
+  browseHref?: string;
+  /** Absent on a placed order (Phase 19): the order detail and the
+   *  notifications page show what was bought, and there is no voucher to
+   *  apply or order to place — a control there would do nothing. */
+  onApplyVoucher?: () => void;
+  onPlaceOrder?: () => void;
   busy?: boolean;
 }) {
   const label = (charge: CartCharge) =>
@@ -102,28 +105,32 @@ export function OrderSummary({
         ))}
       </ul>
 
-      <Link
-        href={browseHref}
-        className="text-16 text-brand hover:text-brand-strong inline-flex items-center gap-2 self-start py-2.5 font-normal transition-colors"
-      >
-        <Icon name="plus" className="size-4" />
-        {copy.addMoreItems}
-      </Link>
-
-      <div className="border-line border-t pt-6">
-        <button
-          type="button"
-          onClick={onApplyVoucher}
-          disabled={busy}
-          className="text-16 text-ink-strong flex w-full items-center justify-between gap-4 disabled:opacity-50"
+      {browseHref ? (
+        <Link
+          href={browseHref}
+          className="text-16 text-brand hover:text-brand-strong inline-flex items-center gap-2 self-start py-2.5 font-normal transition-colors"
         >
-          <span className="inline-flex items-center gap-2">
-            <Icon name="tag" className="text-brand size-4" />
-            {copy.applyVoucher}
-          </span>
-          <Icon name="chevron-right" className="text-brand size-6" />
-        </button>
-      </div>
+          <Icon name="plus" className="size-4" />
+          {copy.addMoreItems}
+        </Link>
+      ) : null}
+
+      {onApplyVoucher ? (
+        <div className="border-line border-t pt-6">
+          <button
+            type="button"
+            onClick={onApplyVoucher}
+            disabled={busy}
+            className="text-16 text-ink-strong flex w-full items-center justify-between gap-4 disabled:opacity-50"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Icon name="tag" className="text-brand size-4" />
+              {copy.applyVoucher}
+            </span>
+            <Icon name="chevron-right" className="text-brand size-6" />
+          </button>
+        </div>
+      ) : null}
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between gap-4">
@@ -177,14 +184,16 @@ export function OrderSummary({
         </dl>
       </div>
 
-      <Button
-        block
-        className="rounded-8 h-13 text-16 font-medium"
-        disabled={busy}
-        onClick={onPlaceOrder}
-      >
-        {copy.placeOrder}
-      </Button>
+      {onPlaceOrder ? (
+        <Button
+          block
+          className="rounded-8 h-13 text-16 font-medium"
+          disabled={busy}
+          onClick={onPlaceOrder}
+        >
+          {copy.placeOrder}
+        </Button>
+      ) : null}
     </section>
   );
 }

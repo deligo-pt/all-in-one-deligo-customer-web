@@ -67,9 +67,16 @@ export type Voucher = {
 
 /** The screen, as one read. */
 export type Checkout = {
-  /** The summary's id. A voucher or an address change produces a new one. */
+  /** The summary's id. A voucher, an address or a pickup change produces a new one. */
   id: string;
   store: CartStore;
+  /** `fulfillmentType` as the summary states it. */
+  fulfilment: "delivery" | "pickup";
+  /** The chosen slot's start (ISO), on a pickup — kept when a rebuild
+   *  (removing a voucher) makes a new summary. */
+  pickupTime?: string;
+  /** "Today · 14:00", resolved on the server from `pickupTime`. */
+  pickupLabel?: string;
   address?: DeliveryAddress;
   /** The applied offer, if any — shown so it can be removed. */
   voucherCode?: string;
@@ -101,8 +108,9 @@ export type PaymentChoice =
  * one.
  */
 export type CheckoutTransport = {
-  /** `POST /checkout { useCart: true }` → the new summary's id. */
-  start(): Promise<string>;
+  /** `POST /checkout { useCart: true }` → the new summary's id. With a
+   *  pickup time (ISO, a 30-minute slot) the summary is a self-pickup one. */
+  start(pickupTime?: string): Promise<string>;
   /** `POST /offers/validate-apply-offer` on this summary. */
   applyVoucher(checkoutId: string, identifier: string): Promise<void>;
   /** `PATCH /customers/toggle-delivery-address-status/:id`, then `start()`. */

@@ -35,6 +35,7 @@ import type checkoutEn from "./dictionaries/en/checkout";
 import type ordersEn from "./dictionaries/en/orders";
 import type accountEn from "./dictionaries/en/account";
 import type groceriesEn from "./dictionaries/en/groceries";
+import type contentEn from "./dictionaries/en/content";
 
 export const NAMESPACES = [
   "common",
@@ -49,6 +50,7 @@ export const NAMESPACES = [
   "orders",
   "account",
   "groceries",
+  "content",
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
@@ -75,6 +77,7 @@ export type Dictionary = {
   orders: typeof ordersEn;
   account: typeof accountEn;
   groceries: typeof groceriesEn;
+  content: typeof contentEn;
 };
 
 /** Every key a namespace defines — what `t()` will accept. */
@@ -108,6 +111,7 @@ const loaders: Record<Locale, Record<Namespace, () => Promise<Messages>>> = {
     orders: () => import("./dictionaries/en/orders").then((m) => m.default),
     account: () => import("./dictionaries/en/account").then((m) => m.default),
     groceries: () => import("./dictionaries/en/groceries").then((m) => m.default),
+    content: () => import("./dictionaries/en/content").then((m) => m.default),
   },
   pt: {
     common: () => import("./dictionaries/pt/common").then((m) => m.default),
@@ -122,6 +126,7 @@ const loaders: Record<Locale, Record<Namespace, () => Promise<Messages>>> = {
     orders: () => import("./dictionaries/pt/orders").then((m) => m.default),
     account: () => import("./dictionaries/pt/account").then((m) => m.default),
     groceries: () => import("./dictionaries/pt/groceries").then((m) => m.default),
+    content: () => import("./dictionaries/pt/content").then((m) => m.default),
   },
 };
 

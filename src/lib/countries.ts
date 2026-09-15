@@ -9,8 +9,9 @@
  *
  * When DeliGo serves a second country this becomes a real list and the field
  * grows a real picker. What must not happen in between is a dropdown that looks
- * like a choice and is not one. The available-countries endpoint that would
- * populate it is Phase 20's.
+ * like a choice and is not one. There is no available-countries endpoint
+ * (measured in Phase 20). Lives in `lib` so the account's phone change uses
+ * the same rule without importing the sign-in barrel.
  */
 export const DEFAULT_DIAL_CODE = "+351";
 
@@ -19,4 +20,10 @@ export const DEFAULT_DIAL_CODE = "+351";
  *  handles a single `contactNumber` and no request has to remember to prefix. */
 export function toContactNumber(nationalNumber: string): string {
   return `${DEFAULT_DIAL_CODE}${nationalNumber.replace(/\D/g, "")}`;
+}
+
+/** A national mobile number as the forms accept it: nine digits once spaces
+ *  and punctuation are gone (the old app's `normalizePortugueseNumber` rule). */
+export function isNationalNumber(value: string): boolean {
+  return /^\d{9}$/.test(value.replace(/[\s().\-]/g, ""));
 }

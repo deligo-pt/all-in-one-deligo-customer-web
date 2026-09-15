@@ -9,7 +9,13 @@ import type {
 } from "@/features/checkout";
 import { getLocale, getTranslations } from "@/i18n/server";
 import { PENDING_CHECKOUT_COOKIE, parsePendingCheckout } from "@/lib/checkout";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/i18n/format";
+import {
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  formatTime,
+} from "@/lib/i18n/format";
+import type { PickupHours } from "@/lib/pickup";
 import type { Locale } from "@/lib/i18n/locale";
 import { serverApi } from "@/services/api/server";
 import { toLine, type RawCartItem } from "@/services/cart/server";
@@ -38,18 +44,21 @@ type Address = {
   country?: string;
 };
 
-type RawSummary = {
+export type RawSummary = {
   _id: string;
   vendorId?:
     | {
         _id?: string;
+        userId?: string;
         businessDetails?: {
           businessName?: string;
-          businessType?: { name?: string } | string;
+          businessType?: { name?: string | { en?: string } } | string;
         };
+        documents?: { storePhoto?: string[] };
       }
     | string;
   fulfillmentType?: string;
+  pickupTime?: string | null;
   items?: RawCartItem[];
   orderCalculation?: {
     itemsSubtotal?: number;
@@ -95,22 +104,18 @@ export function addressLine(address: Address | undefined): string {
     .join(", ");
 }
 
-/** What `/checkout?id=` renders; `null` when the summary is already an order. */
-export async function readCheckout(
-  id: string,
-): Promise<{ checkout: Checkout } | { orderId: string }> {
-  const [api, locale, t] = await Promise.all([
-    serverApi(),
-    getLocale(),
-    getTranslations("checkout"),
-  ]);
-  const { data } = await api.get(`/checkout/summary/${id}`);
-  const raw = data?.data as RawSummary;
-  if (raw.isConvertedToOrder && raw.orderId) return { orderId: raw.orderId };
+type Translator = Awaited<ReturnType<typeof getTranslations<"checkout">>>;
 
+/**
+ * A priced document — a checkout summary or a placed order, which share the
+ * shape — as the cart's store panel: lines, the charge rows with the API's own
+ * VAT captions, and the grand total. Shared with `services/orders/server.ts`.
+ */
+export function pricedStore(raw: RawSummary, locale: Locale, t: Translator): CartStore {
   const vendor = typeof raw.vendorId === "object" ? raw.vendorId : undefined;
   const type = vendor?.businessDetails?.businessType;
-  const typeName = typeof type === "object" ? type?.name : type;
+  const name = typeof type === "object" ? type?.name : type;
+  const typeName = typeof name === "object" ? name?.en : name;
   const calc = raw.orderCalculation ?? {};
   const delivery = raw.delivery ?? {};
   const isDelivery = raw.fulfillmentType !== "PICKUP";
@@ -146,10 +151,9 @@ export async function readCheckout(
     });
 
   const minutes = delivery.estimatedTime ?? 0;
-  const distance = delivery.distance ?? 0;
-  const store: CartStore = {
+  return {
     id: vendor?._id ?? "",
-    vendorId: vendor?._id ?? "",
+    vendorId: vendor?.userId ?? vendor?._id ?? "",
     name: vendor?.businessDetails?.businessName ?? "",
     vertical: typeName === "STORE" ? "groceries" : "food",
     lines: (raw.items ?? []).map((item) => toLine(item, locale)),
@@ -164,12 +168,47 @@ export async function readCheckout(
           : "",
     },
   };
+}
 
+/** What `/checkout?id=` renders, or the order it already became. */
+export async function readCheckout(
+  id: string,
+): Promise<{ checkout: Checkout } | { orderId: string }> {
+  const [api, locale, t] = await Promise.all([
+    serverApi(),
+    getLocale(),
+    getTranslations("checkout"),
+  ]);
+  const { data } = await api.get(`/checkout/summary/${id}`);
+  const raw = data?.data as RawSummary;
+  if (raw.isConvertedToOrder && raw.orderId) return { orderId: raw.orderId };
+
+  const delivery = raw.delivery ?? {};
+  const minutes = delivery.estimatedTime ?? 0;
+  const distance = delivery.distance ?? 0;
+  const applied = raw.offer?.isApplied ? raw.offer.offerApplied : null;
   const line = addressLine(raw.deliveryAddress);
+  const pickup = raw.fulfillmentType === "PICKUP";
+  const pickupAt = pickup && raw.pickupTime ? new Date(raw.pickupTime) : null;
+  const pickupDay =
+    pickupAt && formatDate(pickupAt, locale) === formatDate(new Date(), locale)
+      ? t("pickupToday")
+      : pickupAt
+        ? formatDate(pickupAt, locale, {
+            weekday: "short",
+            day: "numeric",
+            month: "short",
+          })
+        : "";
   return {
     checkout: {
       id: raw._id,
-      store,
+      store: pricedStore(raw, locale, t),
+      fulfilment: pickup ? "pickup" : "delivery",
+      pickupTime: pickupAt ? raw.pickupTime! : undefined,
+      pickupLabel: pickupAt
+        ? `${pickupDay} · ${formatTime(pickupAt, locale)}`
+        : undefined,
       address: line
         ? {
             line,
@@ -187,7 +226,7 @@ export async function readCheckout(
   };
 }
 
-type RawOffer = {
+export type RawOffer = {
   _id: string;
   title?: string;
   description?: string;
@@ -217,42 +256,52 @@ export async function readVouchers(
   const { data } = await api.get(`/offers/available-offers/${id}`);
   const offers: RawOffer[] = Array.isArray(data?.data) ? data.data : [];
 
-  return offers.map((offer) => {
-    const terms: string[] = [];
-    if (offer.offerType === "PERCENT" && offer.discountValue)
-      terms.push(
-        t("voucherPercent", { value: formatNumber(offer.discountValue, locale) }),
-      );
-    if (offer.offerType === "FLAT" && offer.discountValue)
-      terms.push(t("voucherFlat", { amount: euros(offer.discountValue, locale) }));
-    if (offer.offerType === "BOGO" && offer.bogo?.buyQty && offer.bogo.getQty)
-      terms.push(t("voucherBogo", { buy: offer.bogo.buyQty, get: offer.bogo.getQty }));
-    if (offer.maxDiscountAmount)
-      terms.push(t("voucherCap", { amount: euros(offer.maxDiscountAmount, locale) }));
-    if (offer.minOrderAmount)
-      terms.push(t("voucherMin", { amount: euros(offer.minOrderAmount, locale) }));
-    if (offer.expiresAt)
-      terms.push(t("voucherUntil", { date: formatDate(offer.expiresAt, locale) }));
+  return offers.map((offer) => toVoucher(offer, locale, t, appliedCode));
+}
 
-    const identifier = offer.isAutoApply ? offer._id : (offer.code ?? "");
-    const applied =
-      appliedCode !== undefined &&
-      (appliedCode === offer._id || (!!offer.code && appliedCode === offer.code));
-    return {
-      id: offer._id,
-      identifier,
-      title: offer.title ?? offer.code ?? "",
-      code: offer.code || undefined,
-      description: offer.description || undefined,
-      terms: terms.join(" · ") || undefined,
-      state: applied
-        ? "applied"
-        : offer.isEligible && identifier
-          ? "available"
-          : "unavailable",
-      message: offer.isEligible ? undefined : offer.message || undefined,
-    };
-  });
+/** An offer as the voucher sheet and `/account/vouchers` show it. Terms are
+ *  the offer's own values, formatted; a type this build does not know shows
+ *  none rather than a wrong one. */
+export function toVoucher(
+  offer: RawOffer,
+  locale: Locale,
+  t: Translator,
+  appliedCode?: string,
+): Voucher {
+  const terms: string[] = [];
+  if (offer.offerType === "PERCENT" && offer.discountValue)
+    terms.push(
+      t("voucherPercent", { value: formatNumber(offer.discountValue, locale) }),
+    );
+  if (offer.offerType === "FLAT" && offer.discountValue)
+    terms.push(t("voucherFlat", { amount: euros(offer.discountValue, locale) }));
+  if (offer.offerType === "BOGO" && offer.bogo?.buyQty && offer.bogo.getQty)
+    terms.push(t("voucherBogo", { buy: offer.bogo.buyQty, get: offer.bogo.getQty }));
+  if (offer.maxDiscountAmount)
+    terms.push(t("voucherCap", { amount: euros(offer.maxDiscountAmount, locale) }));
+  if (offer.minOrderAmount)
+    terms.push(t("voucherMin", { amount: euros(offer.minOrderAmount, locale) }));
+  if (offer.expiresAt)
+    terms.push(t("voucherUntil", { date: formatDate(offer.expiresAt, locale) }));
+
+  const identifier = offer.isAutoApply ? offer._id : (offer.code ?? "");
+  const applied =
+    appliedCode !== undefined &&
+    (appliedCode === offer._id || (!!offer.code && appliedCode === offer.code));
+  return {
+    id: offer._id,
+    identifier,
+    title: offer.title ?? offer.code ?? "",
+    code: offer.code || undefined,
+    description: offer.description || undefined,
+    terms: terms.join(" · ") || undefined,
+    state: applied
+      ? "applied"
+      : offer.isEligible && identifier
+        ? "available"
+        : "unavailable",
+    message: offer.isEligible ? undefined : offer.message || undefined,
+  };
 }
 
 /** The customer's saved cards, default first (the API's order). */
@@ -336,4 +385,39 @@ export async function readPlacedOrder(orderId: string): Promise<PlacedOrder> {
 export async function hasPendingCheckout(): Promise<boolean> {
   const jar = await cookies();
   return parsePendingCheckout(jar.get(PENDING_CHECKOUT_COOKIE)?.value) !== null;
+}
+
+/**
+ * The active store's hours, for self-pickup slots. The cart's populated vendor
+ * carries `openingHours`, `closingHours` and `businessType` (measured); it has
+ * no `closingDays`, so no day is filtered — the API refuses a closed day and
+ * the dialog shows its sentence. `null` when there is no active store.
+ */
+export async function readPickupHours(): Promise<PickupHours | null> {
+  const api = await serverApi();
+  const { data } = await api.get("/carts/view-cart");
+  const items: {
+    isActive?: boolean;
+    vendorId?:
+      | {
+          businessDetails?: {
+            openingHours?: string;
+            closingHours?: string;
+            businessType?: string;
+          };
+        }
+      | string;
+  }[] = data?.data?.items ?? [];
+  const active = items.find(
+    (item) => item.isActive && typeof item.vendorId === "object",
+  );
+  const details =
+    typeof active?.vendorId === "object" ? active.vendorId.businessDetails : undefined;
+  return details
+    ? {
+        openingHours: details.openingHours,
+        closingHours: details.closingHours,
+        businessType: details.businessType,
+      }
+    : null;
 }

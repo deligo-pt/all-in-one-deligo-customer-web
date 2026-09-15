@@ -1,36 +1,46 @@
+import type { Metadata } from "next";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
-import {
-  OrderDetail,
-  OrdersUnavailableError,
-  notWiredOrders,
-  type Order,
-  type OrderDetailCopy,
-} from "@/features/orders";
+import { OrderDetail, type Order } from "@/features/orders";
 import { getLocale, getTranslations } from "@/i18n/server";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
+import { orderDetailCopy } from "@/services/orders/copy";
+import { readOrder } from "@/services/orders/server";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ orderId: string }>;
+}): Promise<Metadata> {
+  const [{ orderId }, t] = await Promise.all([params, getTranslations("orders")]);
+  return { title: `${t("title")} · ${decodeURIComponent(orderId)}` };
+}
 
 /**
- * `/account/orders/[orderId]` — one order.
+ * `/account/orders/[orderId]` — one order (Phase 19).
  *
- * `notFound()` is deliberately not called for the unavailable case. An order
- * id that does not exist is a 404; a transport that is not connected is not,
- * and answering the second with the first trains everyone to read "order not
- * found" as "not built yet" — right up until a real one goes missing.
+ * An order the API does not know is "not found"; an API that cannot be reached
+ * is "could not be loaded". Two sentences, because only the first means the
+ * customer has the wrong link.
  */
-export default async function OrderPage() {
-  const [t, cart, locale] = await Promise.all([
+export default async function OrderPage({
+  params,
+}: {
+  params: Promise<{ orderId: string }>;
+}) {
+  const [{ orderId }, t, locale] = await Promise.all([
+    params,
     getTranslations("orders"),
-    getTranslations("cart"),
     getLocale(),
   ]);
 
   let order: Order | null = null;
+  let unavailable = false;
   try {
-    order = await notWiredOrders.get("");
-  } catch (error) {
-    if (!(error instanceof OrdersUnavailableError)) throw error;
+    order = await readOrder(decodeURIComponent(orderId));
+  } catch {
+    unavailable = true;
   }
 
   if (!order) {
@@ -38,73 +48,20 @@ export default async function OrderPage() {
       <div className="max-w-shell mx-auto w-full px-8 py-16">
         <EmptyState
           icon={<Icon name="clock" className="size-8" />}
-          title={t("unavailableTitle")}
-          description={t("unavailableBody")}
+          title={unavailable ? t("unavailableTitle") : t("notFoundTitle")}
+          description={unavailable ? t("unavailableBody") : t("notFoundBody")}
         />
       </div>
     );
   }
 
-  const copy: OrderDetailCopy = {
-    tracker: {
-      label: t("trackerLabel"),
-      step: {
-        confirmed: t("stepConfirmed"),
-        kitchen: t("stepKitchen"),
-        packed: t("stepPacked"),
-        ready: t("stepReady"),
-        collected: t("stepCollected"),
-        picked: t("stepPicked"),
-        "rider-picked": t("stepRiderPicked"),
-        "on-way": t("stepOnWay"),
-      },
-    },
-    summary: {
-      deliveryIn: cart("deliveryIn"),
-      addMoreItems: cart("addMoreItems"),
-      applyVoucher: cart("applyVoucher"),
-      orderSummary: cart("orderSummary"),
-      charge: {
-        subtotal: cart("chargeSubtotal"),
-        delivery: cart("chargeDelivery"),
-        service: cart("chargeService"),
-        tip: cart("chargeTip"),
-        discount: cart("chargeDiscount"),
-      },
-      grandTotal: cart("grandTotal"),
-      placeOrder: cart("placeOrder"),
-    },
-    review: {
-      title: t("reviewTitle"),
-      close: t("reviewSkip"),
-      status: t("details"),
-      overall: t("reviewOverall"),
-      thanks: t("reviewThanks"),
-      placeholder: t("reviewPlaceholder"),
-      // Resolved here, with the values. A pattern handed to the browser
-      // renders `{name}` to anyone the substitution misses.
-      riderQuestion: t("reviewRider", { name: order.rider?.name ?? "" }),
-      starLabels: [1, 2, 3, 4, 5].map((count) => t("reviewStars", { count })),
-      submit: t("reviewSubmit"),
-      skip: t("reviewSkip"),
-      notWired: t("notWired"),
-    },
-    riderTitle: t("riderTitle"),
-    deliveryCode: t("deliveryCode"),
-    deliveryCodeBody: t("deliveryCodeBody"),
-    cancel: t("cancel"),
-    reorder: t("reorder"),
-    invoice: t("invoice"),
-    writeReview: t("writeReview"),
-    riderImage: t("riderImage"),
-    notWired: t("notWired"),
-  };
-
   return (
     <OrderDetail
       order={order}
-      homeHref={withLocale(ROUTES.food.path, locale)}
-      copy={copy}
+      cartHref={withLocale(ROUTES.cart.path, locale)}
+      supportHref={withLocale(ROUTES.support.path, locale)}
+      ordersHref={withLocale(ROUTES.orders.path, locale)}
+      copy={await orderDetailCopy(order.rider?.name)}
     />
   );
 }

@@ -3,43 +3,38 @@ import { SignOutButton } from "@/components/shared/SignOutButton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import {
-  AccountUnavailableError,
   ProfileView,
   accountNav,
-  notWiredAccount,
   type Preference,
   type Profile,
-  type ProfileCopy,
+  type ProfileStat,
 } from "@/features/account";
 import { getLocale, getTranslations } from "@/i18n/server";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
+import { accountNavLabels, profileCopy } from "@/services/account/copy";
+import { readProfile, readProfileStats } from "@/services/account/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("account");
   return { title: t("title") };
 }
 
-/** `/account` — the one account screen the design draws (1440×1798). */
+/** `/account` — the one account screen the design draws (1440×1798), from
+ *  `GET /profile` (Phase 20). */
 export default async function AccountPage() {
-  const [t, locale] = await Promise.all([getTranslations("account"), getLocale()]);
+  const [t, locale, labels] = await Promise.all([
+    getTranslations("account"),
+    getLocale(),
+    accountNavLabels(),
+  ]);
 
   let profile: Profile | null = null;
   try {
-    profile = await notWiredAccount.profile();
-  } catch (error) {
-    if (!(error instanceof AccountUnavailableError)) throw error;
+    profile = await readProfile();
+  } catch {
+    profile = null;
   }
-
-  const nav = accountNav(locale, {
-    profile: t("navProfile"),
-    orders: t("navOrders"),
-    addresses: t("navAddresses"),
-    payment: t("navPayment"),
-    vouchers: t("navVouchers"),
-    referrals: t("navReferrals"),
-    settings: t("navSettings"),
-  });
 
   if (!profile) {
     return (
@@ -48,8 +43,7 @@ export default async function AccountPage() {
           icon={<Icon name="user" className="size-8" />}
           title={t("unavailableTitle")}
           description={t("unavailableBody")}
-          // Signing out needs no profile. Without this the only way out of a
-          // session is to wait for its token to expire (Phase 15).
+          // Signing out needs no profile (Phase 15).
           action={
             <SignOutButton
               label={t("logout")}
@@ -63,64 +57,73 @@ export default async function AccountPage() {
   }
 
   // The design lists Language, Support, Safety, Refer & Earn, Privacy and
-  // Terms. Language reads the active locale rather than a stored preference —
-  // it is what the customer is looking at, which is the only honest answer
-  // until Phase 20 has one to store.
+  // Terms; the old profile added the Help Center. Language is the switch.
+  const at = (path: string) => withLocale(path, locale);
   const preferences: Preference[] = [
-    { id: "language", label: t("prefLanguage"), value: locale.toUpperCase() },
+    { id: "language", label: t("prefLanguage"), control: "language" },
+    { id: "support", label: t("prefSupport"), href: at(ROUTES.support.path) },
+    { id: "help", label: t("prefHelpCenter"), href: at(ROUTES.help.path) },
+    { id: "safety", label: t("prefSafety"), href: at(ROUTES.help.path) },
+    { id: "privacy", label: t("prefPrivacy"), href: at(ROUTES.privacy.path) },
+    { id: "terms", label: t("prefTerms"), href: at(ROUTES.terms.path) },
+  ];
+  // The old profile's "Orders & Payments" rows, with their descriptions.
+  const shortcuts: Preference[] = [
     {
-      id: "support",
-      label: t("prefSupport"),
-      href: withLocale(ROUTES.help.path, locale),
+      id: "orders",
+      label: t("navOrders"),
+      description: t("ordersDescription"),
+      href: at(ROUTES.orders.path),
     },
     {
-      id: "safety",
-      label: t("prefSafety"),
-      href: withLocale(ROUTES.help.path, locale),
+      id: "payment",
+      label: t("navPayment"),
+      description: t("paymentMethodsDescription"),
+      href: at(ROUTES.paymentMethods.path),
     },
     {
       id: "referrals",
       label: t("navReferrals"),
-      href: withLocale(ROUTES.referrals.path, locale),
+      description: t("referralsDescription"),
+      href: at(ROUTES.referrals.path),
     },
-    {
-      id: "privacy",
-      label: t("prefPrivacy"),
-      href: withLocale(ROUTES.privacy.path, locale),
-    },
-    { id: "terms", label: t("prefTerms"), href: withLocale(ROUTES.terms.path, locale) },
   ];
-
-  const copy: ProfileCopy = {
-    title: t("title"),
-    subtitle: t("subtitle"),
-    navLabel: t("navLabel"),
-    editProfile: t("editProfile"),
-    changeImage: t("changeImage"),
-    avatarAlt: t("avatarAlt"),
-    personalInformation: t("personalInformation"),
-    edit: t("edit"),
-    fullName: t("fullName"),
-    phone: t("phone"),
-    email: t("email"),
-    emergencyContact: t("emergencyContact"),
-    emergencyContactBody: t("emergencyContactBody"),
-    contactName: t("contactName"),
-    preferences: t("preferences"),
-    memberSince: t("memberSince"),
-    accountId: t("accountId"),
-    logout: t("logout"),
-    version: t("version"),
-  };
+  const counts = await readProfileStats().catch(() => ({
+    vouchers: undefined,
+    points: undefined,
+  }));
+  const stats: ProfileStat[] = [
+    ...(counts.vouchers !== undefined
+      ? [
+          {
+            id: "vouchers",
+            label: t("statVouchers"),
+            value: counts.vouchers,
+            href: at(ROUTES.vouchers.path),
+          },
+        ]
+      : []),
+    ...(counts.points !== undefined
+      ? [
+          {
+            id: "points",
+            label: t("statPoints"),
+            value: counts.points,
+            href: at(ROUTES.referrals.path),
+          },
+        ]
+      : []),
+  ];
 
   return (
     <ProfileView
       profile={profile}
       preferences={preferences}
-      nav={nav}
-      editHref={withLocale(ROUTES.settings.path, locale)}
-      homeHref={withLocale("/", locale)}
-      copy={copy}
+      shortcuts={shortcuts}
+      stats={stats}
+      nav={accountNav(locale, labels)}
+      homeHref={at("/")}
+      copy={await profileCopy()}
     />
   );
 }

@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { Icon } from "@/components/ui/Icon";
 import { getLocale, getTranslations } from "@/i18n/server";
 import { unbuiltVerticalsVisible } from "@/lib/flags";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES, type RouteName } from "@/lib/routes";
 import type { MessageKey } from "@/i18n/namespaces";
+import { HeaderCounts } from "./HeaderCounts";
 import { LocaleSwitcher } from "./LocaleSwitcher";
 import { SignInButton } from "./SignInButton";
 import { Logo } from "./Logo";
@@ -137,19 +137,18 @@ export async function SiteHeader({
               placeholder={t("searchPlaceholder")}
               className="hidden w-52 md:block"
             />
-            <Button variant="ghost" size="icon" aria-label={t("notifications")} asChild>
-              <Link href={withLocale(ROUTES.notifications.path, locale)}>
-                <Icon name="alert" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" aria-label={t("cart")} asChild>
-              <Link href={withLocale(ROUTES.cart.path, locale)}>
-                <Icon name="plus" />
-              </Link>
-            </Button>
+            <HeaderCounts
+              notificationsHref={withLocale(ROUTES.notifications.path, locale)}
+              cartHref={withLocale(ROUTES.cart.path, locale)}
+              notificationsLabel={t("notifications")}
+              cartLabel={t("cart")}
+            />
           </div>
 
           <div className="hidden items-center gap-2 md:flex">
+            {/* The language, where the old navbar had it — not only in the
+                footer. Switching is a navigation to the same page. */}
+            <LocaleSwitcher />
             {/* The design labels this "Login" on the marketing pages and
                 "Account" everywhere else — the same control, named for what the
                 visitor is there to do. Both open the sign-in drawer, because

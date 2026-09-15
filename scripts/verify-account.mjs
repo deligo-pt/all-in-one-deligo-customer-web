@@ -1,16 +1,14 @@
 #!/usr/bin/env node
 /**
- * Phase 12 guard — the account area.
+ * Phase 12 guard — the account area. Rewritten in Phase 20, when it went live.
  *
- * The design draws **one** account screen. Its menu points at five pages that
- * exist only as 412px mobile frames or not at all, and at twelve help, legal
- * and company pages that exist nowhere (D-16). So the danger in this phase is
- * not a wrong number — it is **invention**: a privacy policy, a set of terms,
- * or a settings screen full of toggles nobody specified.
+ * Three writes here cannot be taken back from the page: removing a card,
+ * removing an address, and a message to support. §2 is that each asks twice
+ * or is sent only by the customer's own press. The account's deletion has **no
+ * customer endpoint**, and the old app faked its success — §2 forbids that.
  *
- * §3 is that assertion. §2 is the ordinary one: `deleteAccount`,
- * `removeAddress` and `removeCard` must all reject, because each is
- * irreversible and a stub that resolved would report it done.
+ * §4 is the other risk this area always had: invention. The prose pages carry
+ * the owner's copy carried over from the old app, or say they are pending.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
@@ -108,116 +106,134 @@ const code = new Map(
 
 const featureFiles = filesUnder(FEATURE);
 const types = read(join(FEATURE, "types.ts"));
-const transport = read(join(FEATURE, "transport.ts"));
+const transport = read(join(FEATURE, "api.ts"));
 const listView = read(join(FEATURE, "AccountListView.tsx"));
+const addressesView = read(join(FEATURE, "AddressesView.tsx"));
+const addressForm = read(join(FEATURE, "AddressFormModal.tsx"));
+const supportView = read(join(FEATURE, "SupportView.tsx"));
 const profile = read(join(FEATURE, "ProfileView.tsx"));
-const nav = read(join(FEATURE, "nav.ts"));
-const barrel = read(join(FEATURE, "index.ts"));
-const contentPage = read(join(SRC, "components", "shared", "ContentPage.tsx"));
+const nav = read(join(SRC, "components", "layout", "accountNav.ts"));
+const serverRead = read(join(SRC, "services", "account", "server.ts"));
+const contentRead = read(join(SRC, "services", "content", "server.ts"));
+const settingsPage = read(join(APP, "(account)", "account", "settings", "page.tsx"));
+const statesPage = read(join(APP, "account-states", "page.tsx"));
 const fixturePath = join(APP, "account-states", "fixture.ts");
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§1  The account holds no secret it has no business holding");
+section("§1  The account holds nothing it has no business holding");
 
 check(
   "a saved card is a label and an expiry, never a number",
-  /label: string/.test(types) &&
-    !/(?:pan|cardNumber|cvv|cvc|securityCode)/i.test(types),
-  "A brand and four digits are all a customer needs to tell two cards apart, and all this application is entitled to hold. Card details belong to the payment provider (D-14).",
+  !/\bcardNumber\b|\bcvv\b|cc-number|autoComplete="cc-/i.test(
+    featureFiles.map((f) => code.get(f)).join("\n"),
+  ),
+  "D-14: card details belong to the payment provider.",
 );
 
 check(
-  "the account id is rendered, never generated",
-  /accountId: string/.test(types) && !/Math\.random|uuid/i.test(profile),
-  "It identifies the customer to support. A frontend that made one up would be inventing an identity.",
+  "the account id is the API's, rendered and never generated",
+  /accountId: raw\.userId/.test(serverRead) &&
+    /profile\.accountId/.test(profile) &&
+    !/Math\.random/.test(profile),
+  "It is what `PATCH /customers/:id` takes; a made-up one edits nobody, or somebody else.",
 );
 
 const CONVERSION = /\.toFixed\s*\(|\bparseFloat\s*\(|\bNumber\s*\(/;
-const MONEY_WORD = /\b(?:price|subtotal|amount|total|charge|discount|fee|earned)\b/i;
+const MONEY_WORD = /\b(?:price|amount|total|earned|balance|wallet)\b/i;
 const OPERATOR = /\s[-+*/]\s*[\w(.]/;
-const offending = (s) =>
-  s
+const calculators = [
+  ...featureFiles,
+  join(SRC, "services", "account", "server.ts"),
+].filter((f) =>
+  (code.get(f) ?? "")
     .split("\n")
-    .filter((l) => CONVERSION.test(l) || (MONEY_WORD.test(l) && OPERATOR.test(l)));
-const scope = [...featureFiles, fixturePath].filter(existsSync);
-const calculators = scope.filter((f) => offending(code.get(f) ?? read(f)).length > 0);
+    .some((l) => CONVERSION.test(l) || (MONEY_WORD.test(l) && OPERATOR.test(l))),
+);
 check(
-  `nothing computes or converts a money value (${scope.length} files)`,
+  "nothing computes or converts a money value",
   calculators.length === 0,
-  `What a referral has earned is the backend's sum.\n      ${calculators.map(rel).join("\n      ")}`,
+  `Referral earnings and the wallet are the API's.\n      ${calculators.map(rel).join("\n      ")}`,
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§2  🔴 Nothing can be deleted");
+section("§2  🔴 What cannot be taken back is asked twice, or never faked");
 
-const rejects = (transport.match(/Promise\.reject\(/g) ?? []).length;
+const WRITES = [
+  "updateProfile",
+  "upload",
+  "sendContactCode",
+  "confirmContact",
+  "addAddress",
+  "updateAddress",
+  "removeAddress",
+  "activateAddress",
+  "removeCard",
+  "sendSupport",
+  "markSupportRead",
+];
+const missing = WRITES.filter(
+  (m) =>
+    !new RegExp(`\\b${m}\\(`).test(types) ||
+    !new RegExp(`async ${m}\\(`).test(transport),
+);
 check(
-  `every method of the shipped transport fails (${rejects}/9 reject)`,
-  rejects >= 9,
-  "`deleteAccount` is irreversible and `removeAddress` and `removeCard` are the same in miniature. A stub that resolved would tell a customer their account was gone when it was not.",
+  `the contract names every write and the client implements each (${WRITES.length})`,
+  missing.length === 0 &&
+    /import\("@\/services\/session\/browser"\)/.test(transport) &&
+    !/from\s+"axios"|from\s+"@\/services\/session\/browser"/.test(transport),
+  `One implementation, the session client loaded on use (Phase 15).\n      ${missing.join(", ")}`,
 );
 
-const NETWORK = /\bfetch\s*\(|\baxios\b|XMLHttpRequest/;
-const callers = featureFiles.filter((f) => NETWORK.test(code.get(f) ?? ""));
+const updateBody = transport.slice(
+  transport.indexOf("async updateProfile"),
+  transport.indexOf("async upload"),
+);
 check(
-  "no file in the feature makes a network call",
-  callers.length === 0,
-  `Phase 20 connects these.\n      ${callers.map(rel).join("\n      ")}`,
+  "the profile update sends only what `PATCH /customers/:id` accepts; email and phone change by code",
+  /name:/.test(updateBody) &&
+    /NIF:/.test(updateBody) &&
+    /profilePhoto:/.test(updateBody) &&
+    !/email|contactNumber/.test(updateBody) &&
+    /"\/profile\/send-otp"/.test(transport) &&
+    /"\/profile\/update-email-or-contact-number"/.test(transport),
+  "Measured: the schema refuses `email` and `contactNumber` by name. A change of either is only real once the code sent to the new one comes back.",
 );
 
 check(
-  "a removal goes through the transport, never a local splice",
-  /await onRemove\(/.test(listView) && !/\.filter\(\(r\) => r\.id !== /.test(listView),
-  "Removing a card or an address cannot be undone. A local splice that *looked* like it worked would be the worst possible version.",
+  "🔴 removing a card or an address asks twice",
+  [listView, addressesView].every(
+    (s) =>
+      /confirming === (row|address)\.id \?/.test(s) &&
+      /setConfirming\((row|address)\.id\)/.test(s),
+  ),
+  "Neither can be restored from here. The first press arms, the second sends.",
+);
+
+check(
+  "an address is placed on the map before it is saved, or not saved",
+  /geocodeAddress\(/.test(addressForm) &&
+    /if \(!place\) \{[\s\S]{0,120}?return;/.test(addressForm) &&
+    addressForm.indexOf("if (!place)") < addressForm.indexOf("accountApi.addAddress"),
+  "The API needs coordinates, and the active address is where orders are delivered and restaurants are searched from. Latitude 0 is the Gulf of Guinea.",
+);
+
+check(
+  "🔴 account deletion is never faked: it is a support request the customer sends",
+  /ROUTES\.support\.path/.test(settingsPage) &&
+    /deleteRequestMessage/.test(settingsPage) &&
+    ![...code.values()].some((s) =>
+      /delete-account|customers\/delete(?![-\w])|deleteAccount\(/.test(s),
+    ) &&
+    /initialMessage/.test(supportView) &&
+    !/useEffect\([^)]*sendSupport/.test(supportView) &&
+    /onClick=\{send\}/.test(supportView),
+  "The API has no customer deletion endpoint, and the old app showed success after calling nothing. The request is written for the customer and sent only by their own press.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§3  🔴 Nothing is invented where the design is silent");
-
-check(
-  "the twelve prose pages share one shell and none carries a document",
-  /pendingTitle/.test(contentPage) &&
-    !/Privacy Policy|We collect|hereby|Last updated/i.test(contentPage),
-  "Terms and a privacy policy are legal documents; an 'About DeliGo' is a claim about a company. The shell is real and says the content is pending — which is a different sentence from 'not built', and the true one.",
-);
-
-// Rendered, not merely mentioned. Matching the *word* `ContentPage` also
-// matches an import that has been replaced by a local stub, and a comment
-// naming the component — neither of which puts the shell on the page.
-const prose = filesUnder(join(APP, "(marketing)")).filter((f) =>
-  /<ContentPage\b/.test(code.get(f) ?? ""),
-);
-check(
-  `every prose page uses that shell (${prose.length} pages)`,
-  prose.length >= 12,
-  "Twelve pages with twelve invented layouts is twelve places for a legal document to be styled differently.",
-);
-
-check(
-  "the settings page ships the destructive action rather than invented toggles",
-  /deleteAccount/.test(read(join(APP, "(account)", "account", "settings", "page.tsx"))),
-  "The design has no settings screen. What it does have is the one thing this page must not get wrong; a list of switches nobody specified is the alternative.",
-);
-
-check(
-  "the account menu is built from the route map, not typed out",
-  /ROUTES\./.test(nav) && !/href: "\//.test(nav),
-  "A hand-written path loses its locale prefix, and one that is right today is the one missed when a route moves.",
-);
-
-check(
-  "one list view serves addresses, cards and vouchers",
-  existsSync(join(FEATURE, "AccountListView.tsx")) &&
-    !existsSync(join(FEATURE, "AddressList.tsx")) &&
-    !existsSync(join(FEATURE, "CardList.tsx")),
-  "All three are the same shape in the design's mobile frames. Three near-identical components is three places for the empty state and the refusal to drift apart — how seven pinks started.",
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
-section("§4  The sample account cannot reach a customer");
+section("§3  The design's sample account cannot reach a customer, or the API");
 
 check("the fixture exists", existsSync(fixturePath), `Expected ${rel(fixturePath)}.`);
-
 const importedPaths = (file, s) =>
   [...s.matchAll(/\bfrom\s*["'](\.[^"']*)["']/g)]
     .map((m) => resolve(dirname(file), m[1]))
@@ -226,52 +242,87 @@ const importers = [...code]
   .filter(([f]) => f !== fixturePath)
   .filter(([f, s]) => importedPaths(f, s).includes(fixturePath))
   .map(([f]) => rel(f));
-const stray = importers.filter((f) => !f.includes(`account-states${sep}page.tsx`));
 check(
   `only the development states page imports the fixture (${importers.length})`,
-  stray.length === 0,
-  `"Jane Cooper" and "DG-20458931" are a picture of the design.\n      ${stray.join("\n      ")}`,
+  importers.every((f) => f.includes(`account-states${sep}page.tsx`)),
+  `"Jane Cooper" is a picture of the design.\n      ${importers.join("\n      ")}`,
 );
 
 check(
-  "the states page is on the development-only list",
-  DEV_ONLY_ROUTES.includes("account-states"),
-  "`verify:shell` asserts it 404s in production.",
+  "the states page is development-only and sends nothing",
+  DEV_ONLY_ROUTES.includes("account-states") &&
+    (statesPage.match(/offlineNotice=\{offline\}/g) ?? []).length >= 4 &&
+    [listView, addressesView, supportView, profile].every((s) =>
+      /if \(offlineNotice\)/.test(s),
+    ),
+  "The views are live: without the offline notice the states page would edit, remove and message with a fixture's ids.",
 );
 
-const appCode = filesUnder(join(SRC, "app"))
-  .map((f) => code.get(f) ?? "")
-  .join("\n");
-const exported = [...barrel.matchAll(/export \{([^}]+)\} from/g)]
-  .flatMap((m) => m[1].split(","))
-  .map((n) =>
-    n
-      .trim()
-      .split(/\s+as\s+/)
-      .pop()
-      .trim(),
-  )
-  .filter((n) => n && !n.startsWith("type"));
-const unused = exported.filter((n) => !new RegExp(`\\b${n}\\b`).test(appCode));
 check(
-  `every value the barrel exports is rendered by a route (${exported.length} exports)`,
-  unused.length === 0,
-  `An export nobody renders is bytes on somebody's route — 27 KB, 9.3 KB and 11 KB in Phases 6 and 8.\n      ${unused.join(", ")}`,
+  "the dialogs load on use",
+  (profile.match(/dynamic\(/g) ?? []).length >= 2 && /dynamic\(/.test(addressesView),
+  "Most visits to the profile edit nothing.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§5  The screens say which nothing they are showing");
+section("§4  The prose pages carry the owner's copy, or say they are pending");
 
+const withDocument = ["privacy", "terms", "faqs", "about", "help", "contact"];
+const pending = [
+  "careers",
+  "blog",
+  "press",
+  "our-story",
+  join("help", "delivery"),
+  join("help", "returns"),
+];
+const marketing = (page) => read(join(APP, "(marketing)", page, "page.tsx"));
 check(
-  "the list tells 'nothing saved' apart from 'not connected'",
-  /copy\.unavailableTitle/.test(listView) && /copy\.emptyTitle/.test(listView),
-  "Different sentences, different fixes, and only one of them is the customer's.",
+  `six pages render the carried-over copy and six say they are pending (${withDocument.length}+${pending.length})`,
+  withDocument.every((p) => new RegExp(`readContent\\("${p}"\\)`).test(marketing(p))) &&
+    pending.every(
+      (p) =>
+        /<ContentPage\b/.test(marketing(p)) &&
+        !/readContent|document=/.test(marketing(p)),
+    ),
+  "D-16: a privacy policy, terms or a company description is the owner's. The old app's published copy is that; for the rest nothing exists, and inventing it is not ours to do.",
 );
 
 check(
-  "a refused control explains itself instead of being disabled",
-  /copy\.notWired/.test(listView) && /\srole="status"/.test(listView),
-  "Phase 8 settled this.",
+  "the carried-over copy is in its own namespace, in both languages, and names where it came from",
+  /getTranslations\("content"\)/.test(contentRead) &&
+    ["en", "pt"].every((l) =>
+      existsSync(join(SRC, "i18n", "dictionaries", l, "content.ts")),
+    ) &&
+    /old app/.test(
+      readFileSync(join(SRC, "i18n", "dictionaries", "en", "content.ts"), "utf8"),
+    ),
+  "Whoever changes a sentence in the terms needs to know it is published copy, not a placeholder.",
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+section("§5  The structural decisions, asserted");
+
+check(
+  "the account menu is built from the route map, and includes support",
+  /ROUTES\./.test(nav) && !/href: "\//.test(nav) && /ROUTES\.support\.path/.test(nav),
+  "A hand-written path loses its locale prefix or rots when a route moves.",
+);
+
+check(
+  "the support thread re-reads itself while open, and the page never scrolls for it",
+  /setInterval\(\(\) => router\.refresh\(\), THREAD_REFRESH_MS\)/.test(supportView) &&
+    !/scrollIntoView/.test(supportView),
+  "Replies arrive from an agent while the customer waits; scrolling the whole page to them throws the reader off the thread.",
+);
+
+check(
+  "a list tells 'nothing saved' apart from 'could not load'",
+  /copy\.unavailableTitle/.test(listView) &&
+    /copy\.emptyTitle/.test(listView) &&
+    /copy\.unavailableTitle/.test(addressesView) &&
+    /copy\.emptyTitle/.test(addressesView),
+  "Different sentences, different fixes.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -284,7 +335,6 @@ check(
   "A guard nothing calls passes forever.",
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
 console.log("");
 if (failures.length) {
   console.error(`\x1b[31m✗ ${failures.length} failed, ${passed} passed\x1b[0m\n`);

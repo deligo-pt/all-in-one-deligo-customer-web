@@ -196,7 +196,7 @@ check(
 
 check(
   "each write goes to the endpoint measured for it",
-  /post\("\/checkout", \{ useCart: true \}\)/.test(transport) &&
+  /post\("\/checkout", \{\s*useCart: true,/.test(transport) &&
     /"\/offers\/validate-apply-offer"/.test(transport) &&
     /\/customers\/toggle-delivery-address-status\//.test(transport) &&
     /"\/payment\/reduniq\/create-payment-intent"/.test(transport) &&
@@ -371,6 +371,49 @@ check(
   !/google\.maps|googleapis|@react-google-maps|GoogleMap|useLoadScript/.test(map) &&
     /ImageSlot/.test(map),
   "Plan.md §6 lists Maps among the things that must never be in a first paint.",
+);
+
+const pickup = await load("lib/pickup.ts");
+const at0731 = new Date("2026-09-15T06:31:00Z"); // 07:31 in Lisbon, summer time
+const restaurant = pickup.pickupDays(
+  { openingHours: "07:00", closingHours: "22:30", businessType: "RESTAURANT" },
+  at0731,
+);
+const store = pickup.pickupDays(
+  {
+    openingHours: "7:00 AM",
+    closingHours: "10:30 PM",
+    businessType: "STORE",
+    closingDays: ["Wednesday"],
+  },
+  at0731,
+);
+check(
+  "self-pickup offers only the slots the API accepts, executed",
+  restaurant.length === 1 &&
+    pickup.formatTimeOfDay(restaurant[0].slots[0]) === "08:00" &&
+    restaurant[0].slots.every((t) => t.minutes % 30 === 0) &&
+    pickup.formatTimeOfDay(restaurant[0].slots.at(-1)) === "22:30" &&
+    pickup.slotToIso(
+      { date: restaurant[0].date, time: restaurant[0].slots[0] },
+      at0731,
+    ) === "2026-09-15T07:00:00.000Z" &&
+    pickup.slotToIso(
+      { date: { year: 2026, month: 1, day: 10 }, time: { hours: 9, minutes: 0 } },
+      at0731,
+    ) === "2026-01-10T09:00:00.000Z" &&
+    store.map((d) => d.slots.length > 0).join() === "true,false,true" &&
+    /fulfillmentType: "PICKUP", pickupTime/.test(transport),
+  "Measured: a restaurant is today only (`PICKUP_TIME_MUST_BE_TODAY`), a time must start a 30-minute slot (`PICKUP_TIME_NOT_HALF_HOUR_SLOT`), and hours are Lisbon wall-clock. A slot computed in the browser's own time zone would be an hour off for half the year.",
+);
+
+check(
+  "a pickup survives a rebuild, and delivery sends exactly `{ useCart: true }`",
+  /checkoutApi\.start\(checkout\.pickupTime\)/.test(view) &&
+    /\.\.\.\(pickupTime \? \{ fulfillmentType: "PICKUP", pickupTime \} : \{\}\)/.test(
+      transport,
+    ),
+  "Removing a voucher rebuilds the summary; without the time it would silently turn a pickup into a delivery with a delivery fee.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

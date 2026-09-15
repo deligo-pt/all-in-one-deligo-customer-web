@@ -1,100 +1,73 @@
 import type { CartStore } from "@/features/cart";
+import type { Fulfilment, OrderBucket, OrderStep, RefundState } from "@/lib/orders";
 
 /**
- * What the order screens need from the backend.
- *
- * Phase 11 builds them; **Phase 19** connects them. Money is a string, for the
- * fifth phase running: a total the customer was charged is the backend's, and
- * a type that cannot hold a float cannot re-derive one.
+ * What the order screens need from the backend (Phase 19), read from
+ * `GET /orders` and `GET /orders/:orderId` in `services/orders/server.ts`.
+ * Money is text, formatted once there.
  */
 
-/** Where an order is, in the customer's language. `step` drives the tracker;
- *  `label` is the backend's own word for it and is what gets rendered. */
-export type OrderStep =
-  | "confirmed"
-  | "kitchen"
-  | "picked"
-  | "packed"
-  | "ready"
-  | "rider-picked"
-  | "on-way"
-  | "collected";
-
-/** The verticals whose orders the design tracks. */
-export type TrackedVertical = "food" | "groceries";
-
-/**
- * Each vertical's own journey. The two `add pizza` tracking frames (Food
- * `2970:43519`, Groceries `3003:47094`) are one screen with a different list:
- * a kitchen cooks, a store picks — and a grocery order goes out with a rider
- * rather than waiting to be collected (Phase 13).
- */
-export const ORDER_STEPS: Record<TrackedVertical, readonly OrderStep[]> = {
-  food: ["confirmed", "kitchen", "packed", "ready", "collected"],
-  groceries: ["confirmed", "picked", "packed", "rider-picked", "on-way"],
-};
-
-/** Which bucket the list tab puts it in. Total over every status the API can
- *  send — the old project shipped two independent allowlists and every status
- *  in neither was fetched, held in memory and rendered nowhere. */
-export type OrderBucket = "ongoing" | "complete" | "cancelled";
+export type { Fulfilment, OrderBucket, OrderStep, RefundState };
+export { ORDER_STEPS } from "@/lib/orders";
 
 export type OrderRider = {
   name: string;
-  /** "4.9 • 2,134 Trips" — verbatim, never recomputed. */
-  stats?: string;
-  vehicle?: string;
-  plate?: string;
   photo?: string;
 };
 
 export type Order = {
+  /** `ORD-…` — what the order routes and the cancel endpoint take. */
   id: string;
-  /** "#DG-20458". */
+  /** The Mongo `_id` — what a rating takes. */
+  recordId: string;
   reference: string;
   vendorName: string;
-  /** "1x Truffle Mushroom Burger, 1x Fries" — joined by the API. */
+  /** "1× Morog Polao, 2× Chocolate Salami". */
   itemsLabel: string;
-  /** "28 Oct 2026". */
+  /** Reference, store and items, for the list's search. */
+  searchText: string;
   placedOn: string;
-  /** Verbatim: "15.60€". */
+  /** Verbatim: `payoutSummary.grandTotal`, formatted once. */
   total: string;
   bucket: OrderBucket;
-  /** "Preparing", "Delivered" — the backend's word, already localised. */
+  /** "Preparing", "Not collected" — ours for known statuses, the API's word
+   *  otherwise. */
   statusLabel: string;
-  /** How far along, for the tracker. Absent on a finished or cancelled order. */
+  fulfilment: Fulfilment;
+  /** The step reached. Absent on an order that ended without completing. */
   step?: OrderStep;
-  /** Which journey `step` is a position on. Absent is food, the only vertical
-   *  the old app ever placed an order in. */
-  vertical?: TrackedVertical;
-  /** "ETA: 12 mins". */
+  /** "12 min" — the backend's `delivery.estimatedTime`, on a live delivery. */
   eta?: string;
   image?: string;
   rider?: OrderRider;
-  /** Given to the courier on arrival. Never derived, never guessed. */
+  /** The code the rider asks for, until it is verified. Never generated. */
   deliveryCode?: string;
-  /** The same panel the cart and checkout draw, so the detail page can show
-   *  what was bought without a second order type. */
+  /** The code shown at the counter on a pickup order, until it is verified. */
+  pickupCode?: string;
+  /** The cancellation's or rejection's recorded reason. */
+  endedReason?: string;
+  refund?: RefundState;
+  /** The same panel the cart and checkout draw. */
   store?: CartStore;
-  canCancel?: boolean;
-  canReorder?: boolean;
-  canReview?: boolean;
-  /** Where the invoice PDF lives. Absent means there is not one yet. */
-  invoiceUrl?: string;
+  canCancel: boolean;
+  canReorder: boolean;
+  /** Products still to rate (their ids), when any are. */
+  productsToRate: readonly string[];
+  /** The rider can still be rated. */
+  rateRider: boolean;
+  /** The certified invoice is ready (`invoiceSync.isSynced`). */
+  invoiceReady: boolean;
 };
 
-/** One row on the notifications page. `action` is what the card offers, and
- *  the backend decides it — a "Track Order" link on a delivered order is how
- *  the old app sent people to a page with nothing on it. */
+/** One row on the notifications page. The action is the notification's own
+ *  order, when it names one. */
 export type AppNotification = {
   id: string;
   title: string;
   body: string;
-  /** "10 mins ago", "Yesterday, 14:30" — composed by the API, not by us. */
+  /** "14:30" — within its day group. */
   when: string;
-  unread?: boolean;
-  image?: string;
-  vertical?: string;
+  unread: boolean;
   action?: { label: string; href: string };
 };
 
@@ -106,24 +79,23 @@ export type NotificationGroup = {
 };
 
 export type ReviewInput = {
-  orderId: string;
+  recordId: string;
+  productIds: readonly string[];
   rating: number;
   review?: string;
   riderRating?: number;
 };
 
+/** The orders feature's writes (Phase 19). Each resolves or throws `ApiError`. */
 export type OrdersTransport = {
-  list(): Promise<readonly Order[]>;
-  get(orderId: string): Promise<Order>;
-  cancel(orderId: string): Promise<void>;
+  /** `PATCH /orders/:orderId/cancel { reason }`. */
+  cancel(orderId: string, reason: string): Promise<void>;
+  /** `POST /orders/reorder/:orderId` — puts the order's items back in the cart. */
   reorder(orderId: string): Promise<void>;
+  /** `POST /ratings/create-rating`. Immutable once sent. */
   review(input: ReviewInput): Promise<void>;
-  notifications(): Promise<readonly NotificationGroup[]>;
+  /** `PATCH /notifications/:id/read`. */
+  markRead(id: string): Promise<void>;
+  /** `PATCH /notifications/mark-all-as-read`. */
+  markAllRead(): Promise<void>;
 };
-
-export class OrdersUnavailableError extends Error {
-  constructor() {
-    super("orders-not-wired");
-    this.name = "OrdersUnavailableError";
-  }
-}

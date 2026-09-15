@@ -13,6 +13,26 @@ export function checkoutCopy(
 ): CheckoutCopy {
   return {
     title: t("title"),
+    fulfilment: {
+      title: t("fulfilmentTitle"),
+      delivery: t("fulfilmentDelivery"),
+      deliveryBody: t("fulfilmentDeliveryBody"),
+      pickup: t("fulfilmentPickup"),
+      pickupBody: t("fulfilmentPickupBody"),
+      pickupUnavailable: t("pickupUnavailable"),
+      pickupFrom: t("pickupFrom"),
+      pickupTime: t("pickupTimeLabel"),
+      pickupChange: t("pickupChange"),
+    },
+    pickup: {
+      title: t("pickupTitle"),
+      body: t("pickupBody"),
+      close: t("confirmedClose"),
+      today: t("pickupToday"),
+      tomorrow: t("pickupTomorrow"),
+      noSlots: t("pickupNoSlots"),
+      confirm: t("pickupConfirm"),
+    },
     delivery: {
       title: t("deliveryTitle"),
       edit: t("deliveryEdit"),

@@ -102,6 +102,7 @@ export const ROUTES = {
   paymentMethods: { path: "/account/payment-methods", group: "account", phase: 12 },
   vouchers: { path: "/account/vouchers", group: "account", phase: 12 },
   referrals: { path: "/account/referrals", group: "account", phase: 12 },
+  support: { path: "/account/support", group: "account", phase: 20 },
   settings: { path: "/account/settings", group: "account", phase: 12 },
   notifications: { path: "/notifications", group: "account", phase: 11 },
 } as const satisfies Record<string, Route>;

@@ -3,20 +3,17 @@ import type { OrderStep } from "./types";
 export type TrackerCopy = { label: string; step: Record<OrderStep, string> };
 
 /**
- * `Confirmed · Kitchen · Packed · Ready for pickup · Collected`.
+ * The progress tracker — the `Section - Progress Tracker` component set: steps
+ * at 10/700, the reached ones in brand and the rest in `ink`.
  *
- * Measured from the `Section - Progress Tracker` component set: five steps at
- * 10/700, the reached ones in brand and the rest in `ink`.
- *
- * `step` is a position on a known list, not a percentage. A number would put
- * the frontend in charge of deciding what 60% of an order looks like.
+ * `steps` is the order's journey (`ORDER_STEPS[order.fulfilment]`) and `step`
+ * a position on it, never a percentage.
  */
 export function OrderTracker({
   steps,
   step,
   copy,
 }: {
-  /** The vertical's journey, from `ORDER_STEPS`. */
   steps: readonly OrderStep[];
   step: OrderStep;
   copy: TrackerCopy;
@@ -28,7 +25,7 @@ export function OrderTracker({
       {steps.map((name, index) => {
         const done = index <= reached;
         return (
-          <li key={name} className="flex flex-1 items-center gap-2">
+          <li key={name} className="flex min-w-16 flex-1 items-center gap-2">
             <span className="flex min-w-0 flex-1 flex-col gap-2">
               <span
                 aria-hidden

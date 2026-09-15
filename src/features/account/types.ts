@@ -1,85 +1,114 @@
-import type { PaymentMethodId, Voucher } from "@/features/checkout";
+import type { SavedCard, Voucher } from "@/features/checkout";
 
 /**
- * What the account area needs from the backend.
+ * What the account area needs from the backend (Phase 20), read in
+ * `services/account/server.ts` and measured on the owner's account.
  *
- * Phase 12 builds the screens; **Phase 20** connects them. Vouchers and
- * payment-method identities are imported from `features/checkout` rather than
- * restated — the customer's saved cards are the same list checkout offers, and
- * a voucher on `/account/vouchers` is the same object the checkout sheet
- * applies.
+ * Saved cards and vouchers are the checkout's types: the same list checkout
+ * offers, and the same offer object.
  */
-export type { Voucher, PaymentMethodId };
-
-export type EmergencyContact = { name: string; phone: string };
+export type { SavedCard, Voucher };
 
 export type Profile = {
-  /** "DG-20458931" — shown, never generated. */
+  /** "C-EP25QIN7" — the API's `userId`; also what `PATCH /customers/:id` takes. */
   accountId: string;
+  firstName: string;
+  lastName: string;
   fullName: string;
   phone: string;
   email: string;
-  /** "January 2025" — the sentence, already localised. */
+  /** Portuguese tax number (NIF), when saved. */
+  nif?: string;
+  /** "July 2026", from `createdAt`. */
   memberSince?: string;
   photo?: string;
-  emergencyContact?: EmergencyContact;
 };
 
-export type Address = {
+export type AddressType = "HOME" | "OFFICE" | "OTHER" | "CURRENT_LOCATION";
+
+/** A saved delivery address, with every field the edit form needs. */
+export type AccountAddress = {
   id: string;
-  /** "Home", "Work" — the customer's own name for it. */
+  /** "Home", "Office", or the customer's own name for it. */
   label: string;
-  /** One line, formatted by whoever knows the country's conventions. */
   line: string;
-  isDefault?: boolean;
+  active: boolean;
+  type: AddressType;
+  customType: string;
+  street: string;
+  detailedAddress: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  notes: string;
+  latitude: number;
+  longitude: number;
 };
 
-/** A saved card, as the payment provider describes it. **Never a PAN.** The
- *  brand and the last four are all a customer needs to tell two cards apart,
- *  and all this application is entitled to hold (D-14). */
-export type SavedCard = {
-  id: string;
-  method: PaymentMethodId;
-  /** "Visa •••• 4242". */
-  label: string;
-  expiry?: string;
-  isDefault?: boolean;
+/** What the address form sends; coordinates come from the geocoder. */
+export type AddressInput = {
+  type: AddressType;
+  customType: string;
+  street: string;
+  detailedAddress: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  notes: string;
+  latitude: number;
+  longitude: number;
 };
 
 export type Referral = {
-  /** "JANE20" — the customer's own code. */
   code: string;
-  /** "You have invited 3 friends" — the sentence, not a number to format. */
-  summary?: string;
-  /** Verbatim: "15.00€". */
-  earned?: string;
-  shareUrl?: string;
+  /** Resolved rows: "Invitations sent · 0", "Earned · 0,00 €". */
+  stats: readonly { label: string; value: string }[];
+  /** "478 points", when the points balance could be read. */
+  points?: string;
 };
 
-/** One row in Settings & Preferences. `value` is what the row currently reads
- *  — "English • Portugal" — and the backend or the locale decides it. */
-export type Preference = {
+export type SupportMessage = {
   id: string;
-  label: string;
-  value?: string;
-  href?: string;
+  mine: boolean;
+  text: string;
+  /** "14:30". */
+  time: string;
+  /** "Today", "15 September 2026" — the day group. */
+  day: string;
+  attachments: readonly string[];
 };
 
+export type SupportThread = {
+  ticketId?: string;
+  /** "In progress", resolved on the server. */
+  status?: string;
+  messages: readonly SupportMessage[];
+  /** Messages the customer has not read. */
+  unread: number;
+};
+
+/** The account's writes (Phase 20). Each resolves or throws `ApiError`. */
 export type AccountTransport = {
-  profile(): Promise<Profile>;
-  updateProfile(input: Partial<Profile>): Promise<Profile>;
-  addresses(): Promise<readonly Address[]>;
+  updateProfile(
+    accountId: string,
+    input: { firstName?: string; lastName?: string; nif?: string; photo?: string },
+  ): Promise<void>;
+  /** `POST /uploads` (field `files`) → the stored file's URL. */
+  upload(file: File): Promise<string>;
+  /** `PATCH /profile/send-otp` — a code to the new email or phone. */
+  sendContactCode(input: { email: string } | { contactNumber: string }): Promise<void>;
+  /** `PATCH /profile/update-email-or-contact-number`. */
+  confirmContact(otp: string, type: "email" | "mobile"): Promise<void>;
+  addAddress(input: AddressInput): Promise<void>;
+  updateAddress(addressId: string, input: AddressInput): Promise<void>;
   removeAddress(addressId: string): Promise<void>;
-  cards(): Promise<readonly SavedCard[]>;
+  activateAddress(addressId: string): Promise<void>;
   removeCard(cardId: string): Promise<void>;
-  vouchers(): Promise<readonly Voucher[]>;
-  referral(): Promise<Referral>;
-  deleteAccount(): Promise<void>;
+  /** `POST /support/send-message` — joins the open ticket, or opens one. With
+   *  an order (its Mongo `_id`) it is filed as `ORDER_ISSUE` against it, as
+   *  the old app's "Report an issue" did. */
+  sendSupport(message: string, orderRecordId?: string): Promise<void>;
+  markSupportRead(ticketId: string): Promise<void>;
 };
-
-export class AccountUnavailableError extends Error {
-  constructor() {
-    super("account-not-wired");
-    this.name = "AccountUnavailableError";
-  }
-}

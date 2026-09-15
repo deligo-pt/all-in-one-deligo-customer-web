@@ -4,7 +4,9 @@ import { ROUTES } from "@/lib/routes";
 import type { AccountNavItem } from "./AccountShell";
 
 /**
- * The account menu, built from the route map rather than typed out.
+ * The account menu, built from the route map rather than typed out. It lives
+ * in `components/layout` (Phase 20 follow-up) so the order and notification
+ * routes can sit in the same frame without importing the account barrel.
  *
  * Six destinations and one of them is `/account/orders`, which Phase 11 owns —
  * the menu is where a customer looks for it, and a second hand-written path
@@ -15,10 +17,12 @@ import type { AccountNavItem } from "./AccountShell";
 export type AccountNavLabels = {
   profile: string;
   orders: string;
+  notifications: string;
   addresses: string;
   payment: string;
   vouchers: string;
   referrals: string;
+  support: string;
   settings: string;
 };
 
@@ -30,10 +34,16 @@ export function accountNav(
   return [
     { id: "account", label: labels.profile, href: at(ROUTES.account.path) },
     { id: "orders", label: labels.orders, href: at(ROUTES.orders.path) },
+    {
+      id: "notifications",
+      label: labels.notifications,
+      href: at(ROUTES.notifications.path),
+    },
     { id: "addresses", label: labels.addresses, href: at(ROUTES.addresses.path) },
     { id: "payment", label: labels.payment, href: at(ROUTES.paymentMethods.path) },
     { id: "vouchers", label: labels.vouchers, href: at(ROUTES.vouchers.path) },
     { id: "referrals", label: labels.referrals, href: at(ROUTES.referrals.path) },
+    { id: "support", label: labels.support, href: at(ROUTES.support.path) },
     { id: "settings", label: labels.settings, href: at(ROUTES.settings.path) },
   ];
 }

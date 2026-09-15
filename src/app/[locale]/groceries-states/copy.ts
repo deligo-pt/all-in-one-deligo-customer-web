@@ -39,8 +39,6 @@ export function storeCopy(t: T, food: T, cart: T): StoreViewCopy {
     cart: {
       title: food("yourCart"),
       empty: food("cartEmpty"),
-      modeLabel: t("fulfilment"),
-      mode: { instant: t("modeInstant"), schedule: t("modeSchedule") },
       line: {
         remove: cart("remove"),
         quantity: cart("quantity"),

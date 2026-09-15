@@ -16,9 +16,13 @@ import type { CheckoutTransport } from "./types";
 const session = () => import("@/services/session/browser");
 
 export const checkoutApi: CheckoutTransport = {
-  async start() {
+  async start(pickupTime) {
     const { browserApi } = await session();
-    const { data } = await browserApi().post("/checkout", { useCart: true });
+    const { data } = await browserApi().post("/checkout", {
+      useCart: true,
+      // Delivery sends exactly `{ useCart: true }`; pickup adds both keys.
+      ...(pickupTime ? { fulfillmentType: "PICKUP", pickupTime } : {}),
+    });
     const id: unknown = data?.data?._id;
     if (typeof id !== "string") throw new Error();
     return id;

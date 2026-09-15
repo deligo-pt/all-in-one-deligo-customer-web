@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 /**
- * Phase 11 guard — orders and notifications.
+ * Phase 11 guard — orders and notifications. Rewritten in Phase 19, when they
+ * went live.
  *
  * Two writes here cannot be taken back: `cancel` ends an order and `review`
- * publishes an opinion under the customer's name. A stub that resolved would
- * tell them both happened when neither did — §2.
+ * publishes an opinion under the customer's name that cannot be edited. §2 is
+ * that they send exactly what the API was measured to accept.
  *
  * Two more rules exist because the previous project got them wrong in
  * production. Its order list was built from two independent status allowlists,
@@ -15,7 +16,7 @@
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { DEV_ONLY_ROUTES } from "./dev-only-routes.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -106,25 +107,41 @@ const read = (f) => (existsSync(f) ? stripComments(readFileSync(f, "utf8")) : ""
 const code = new Map(
   filesUnder(SRC).map((f) => [f, stripComments(readFileSync(f, "utf8"))]),
 );
+const load = (f) => import(pathToFileURL(join(SRC, f)).href);
 
 const featureFiles = filesUnder(FEATURE);
 const types = read(join(FEATURE, "types.ts"));
-const transport = read(join(FEATURE, "transport.ts"));
+const transport = read(join(FEATURE, "api.ts"));
 const list = read(join(FEATURE, "OrderList.tsx"));
 const detail = read(join(FEATURE, "OrderDetail.tsx"));
 const notifications = read(join(FEATURE, "NotificationList.tsx"));
 const tracker = read(join(FEATURE, "OrderTracker.tsx"));
+const cancelModal = read(join(FEATURE, "CancelModal.tsx"));
 const barrel = read(join(FEATURE, "index.ts"));
+const serverRead = read(join(SRC, "services", "orders", "server.ts"));
+const pushService = read(join(SRC, "services", "push", "browser.ts"));
 const listRoute = join(APP, "(account)", "account", "orders", "page.tsx");
+const detailRoute = join(
+  APP,
+  "(account)",
+  "account",
+  "orders",
+  "[orderId]",
+  "page.tsx",
+);
+const statesPage = join(APP, "orders-states", "page.tsx");
 const fixturePath = join(APP, "orders-states", "fixture.ts");
+const lib = await load("lib/orders.ts");
 
 // ─────────────────────────────────────────────────────────────────────────────
 section("§1  The totals are the backend's");
 
 check(
-  "money on the contract is text",
-  /total: string/.test(types) && !/total: number/.test(types),
-  "A total the customer was charged is not a number this screen gets to round.",
+  "money on the contract is text, and the total is `payoutSummary.grandTotal`",
+  /total: string/.test(types) &&
+    !/total: number/.test(types) &&
+    /payoutSummary\?\.grandTotal/.test(serverRead),
+  "A total the customer was charged is not a number this screen gets to round, and `orderCalculation` has no grand total (measured).",
 );
 
 const CONVERSION = /\.toFixed\s*\(|\bparseFloat\s*\(|\bNumber\s*\(/;
@@ -134,7 +151,13 @@ const offending = (s) =>
   s
     .split("\n")
     .filter((l) => CONVERSION.test(l) || (MONEY_WORD.test(l) && OPERATOR.test(l)));
-const scope = [...featureFiles, listRoute, fixturePath].filter(existsSync);
+const scope = [
+  ...featureFiles,
+  listRoute,
+  detailRoute,
+  fixturePath,
+  join(SRC, "services", "orders", "server.ts"),
+].filter(existsSync);
 const calculators = scope.filter((f) => offending(code.get(f) ?? read(f)).length > 0);
 check(
   `nothing computes or converts a money value (${scope.length} files)`,
@@ -143,83 +166,150 @@ check(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§2  🔴 Nothing can be cancelled, reordered or reviewed");
+section("§2  🔴 The writes send exactly what the API accepts");
 
-const rejects = (transport.match(/Promise\.reject\(/g) ?? []).length;
-check(
-  `every method of the shipped transport fails (${rejects}/6 reject)`,
-  rejects >= 6,
-  "`cancel` ends an order and `review` publishes an opinion under the customer's name. Neither can be undone, and a stub that resolved would report both as done.",
+const WRITES = ["cancel", "reorder", "review", "markRead", "markAllRead"];
+const missingWrites = WRITES.filter(
+  (m) =>
+    !new RegExp(`\\b${m}\\(`).test(types) ||
+    !new RegExp(`async ${m}\\(`).test(transport),
 );
-
-const NETWORK = /\bfetch\s*\(|\baxios\b|XMLHttpRequest/;
-const callers = featureFiles.filter((f) => NETWORK.test(code.get(f) ?? ""));
 check(
-  "no file in the feature makes a network call",
-  callers.length === 0,
-  `Phase 19 connects these. A request placed here now bypasses the API layer entirely.\n      ${callers.map(rel).join("\n      ")}`,
-);
-
-const METHODS = ["list", "get", "cancel", "reorder", "review", "notifications"];
-const missing = METHODS.filter((m) => !new RegExp(`\\b${m}\\b`).test(types));
-check(
-  `the contract names every call the screens make (${METHODS.join(", ")})`,
-  missing.length === 0,
-  `Missing: ${missing.join(", ")}`,
+  `the contract names every write and the client implements each (${WRITES.join(", ")})`,
+  missingWrites.length === 0,
+  `\`features/orders/api.ts\` is the only implementation.\n      ${missingWrites.join(", ")}`,
 );
 
 check(
-  "the review sends a score and never a rider id",
-  /riderRating\?: number/.test(types) && !/riderId/.test(types),
-  "The backend takes the rider from the order. Sending one is an unknown field that fails the whole request — the contract the other project was rebuilt to this week.",
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
-section("§3  🔴 Two rules the previous project learned in production");
-
-check(
-  "the list filters on one field the API decides, not on a status allowlist",
-  /\.bucket === tab/.test(list) && !/orderStatus/.test(list),
-  "Two independent allowlists is what the other project shipped: an order whose status was in neither was fetched, held in memory and rendered nowhere, and the customer searching their own order id got 'no results'.",
-);
-
-check(
-  "a notification's action comes from the notification, not from its type",
-  /item\.action/.test(notifications) && !/\.type ===/.test(notifications),
-  "Deciding the action from the notification's type is how 'Track Order' ended up on delivered orders, sending people to a page with nothing on it.",
+  "each write goes to the endpoint measured for it, through the lazily loaded client",
+  /patch\(`\/orders\/\$\{encodeURIComponent\(orderId\)\}\/cancel`, \{\s*reason,?\s*\}/.test(
+    transport,
+  ) &&
+    /post\(`\/orders\/reorder\//.test(transport) &&
+    /post\("\/ratings\/create-rating", body\)/.test(transport) &&
+    /\/notifications\/\$\{encodeURIComponent\(id\)\}\/read/.test(transport) &&
+    /"\/notifications\/mark-all-as-read"/.test(transport) &&
+    /import\("@\/services\/session\/browser"\)/.test(transport) &&
+    !/from\s+"@\/services\/session\/browser"|from\s+"axios"/.test(transport),
+  "Measured: a cancel needs `{ reason }` (empty is refused); the session client stays off first load (Phase 15).",
 );
 
 check(
-  "the notification filters are derived from what arrived",
-  // The derivation itself, not a variable name. The first version grepped for
-  // `present`, which a rename walks straight past — and a name is not a rule.
-  /groups\.flatMap\(/.test(read(join(APP, "(account)", "notifications", "page.tsx"))) &&
-    /n\.vertical/.test(read(join(APP, "(account)", "notifications", "page.tsx"))),
-  "A `Ride (0)` chip on an account that has never booked one is a control that can only disappoint. Same rule the cart's tabs follow.",
+  "🔴 a cancel cannot be sent without a reason",
+  /disabled=\{busy \|\| !reason\}/.test(cancelModal) &&
+    /onConfirm\(reason\)/.test(cancelModal),
+  "The API refuses an empty reason, and the reason is stored on the order and shown to the store.",
 );
 
+const body = lib.ratingBody({
+  recordId: "6a82acd5e1064a4bdf977060",
+  productIds: ["p1", "p2", "p1"],
+  rating: 4,
+  review: "  Good  ",
+  riderRating: 5,
+});
+const keys = (o) =>
+  Object.keys(o ?? {})
+    .sort()
+    .join(",");
 check(
-  "the tracker is a position on a known list, not a percentage",
-  /\bsteps\.indexOf\(/.test(tracker) && !/percent/.test(tracker),
-  "A number would put the frontend in charge of deciding what 60% of an order looks like.",
-);
-
-check(
-  "the tracker's list is chosen by the order's vertical",
-  // Phase 13: a grocery store picks where a kitchen cooks. One hard-coded list
-  // draws "Kitchen" on a grocery order.
-  /ORDER_STEPS\[order\.vertical/.test(detail) && /groceries:\s*\[/.test(types),
-  "The food journey and the grocery journey are different lists of the same length. A tracker that ignores the vertical is right for one of them.",
-);
-
-check(
-  "the delivery code is rendered, never generated",
-  /order\.deliveryCode/.test(detail) && !/Math\.random|generateCode/.test(detail),
-  "It is what proves the courier is handing the order to the right person. A frontend that made one up would be inventing an authentication token.",
+  "🔴 the rating body is exactly the measured schema, executed",
+  keys(body) === "deliveryRating,orderId,productRatings" &&
+    body.productRatings.length === 2 &&
+    body.productRatings.every(
+      (r) =>
+        keys(r) === "productId,rating,review" && r.rating === 4 && r.review === "Good",
+    ) &&
+    keys(body.deliveryRating) === "rating" &&
+    lib.ratingBody({ recordId: "x", productIds: [], rating: 0 }) === null &&
+    lib.ratingBody({ recordId: "x", productIds: ["p"], rating: 9 }) === null &&
+    keys(
+      lib.ratingBody({ recordId: "x", productIds: [], rating: 0, riderRating: 3 }),
+    ) === "deliveryRating,orderId" &&
+    /ratingBody\(input\)/.test(transport),
+  "The schema is strict (`vendorRating` was refused by name) and a rating cannot be edited or deleted. One overall score is every product's score (D-20); duplicates, blanks and out-of-range scores never leave.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§4  The design's sample orders cannot reach a customer");
+section("§3  🔴 The rules the previous project learned in production");
+
+const buckets = [
+  "PENDING",
+  "ON_THE_WAY",
+  "SOMETHING_NEW",
+  "DELIVERED",
+  "PICKED_UP_BY_CUSTOMER",
+  "CANCELED",
+  "REJECTED",
+  "NO_SHOW",
+].map(lib.orderBucket);
+check(
+  "every status lands in exactly one tab, executed — an unknown one is ongoing",
+  buckets.join() ===
+    "ongoing,ongoing,ongoing,complete,complete,cancelled,cancelled,cancelled" &&
+    /\.bucket === tab/.test(list) &&
+    !/orderStatus/.test(list),
+  "Two independent allowlists is what the other project shipped: `NO_SHOW` and collected pickups were fetched and rendered nowhere.",
+);
+
+check(
+  "the refund is read from `refundStatus` first, executed",
+  lib.refundState({
+    orderStatus: "CANCELED",
+    refundStatus: "PENDING",
+    paymentStatus: "PAID",
+  }) === "pending" &&
+    lib.refundState({
+      orderStatus: "CANCELED",
+      refundStatus: "NOT_APPLICABLE",
+      paymentStatus: "PAID",
+    }) === "none" &&
+    lib.refundState({ orderStatus: "REJECTED", paymentStatus: "REFUNDED" }) ===
+      "refunded" &&
+    lib.refundState({ orderStatus: "DELIVERED", refundStatus: "PENDING" }) ===
+      undefined,
+  "Measured: a cancelled order keeps `paymentStatus: PAID` while the refund is pending, so the payment fields alone promise a refund that may not be coming.",
+);
+
+check(
+  "cancel is offered only on a live, paid order, executed",
+  lib.canCancel("PENDING", true) &&
+    lib.canCancel("PREPARING", undefined) &&
+    !lib.canCancel("PICKED_UP_BY_CUSTOMER", true) &&
+    !lib.canCancel("NO_SHOW", true) &&
+    !lib.canCancel("PENDING", false),
+  "`PICKED_UP_BY_CUSTOMER` once offered Cancel on food the customer was holding.",
+);
+
+check(
+  "a code is shown only until it is verified, and never generated",
+  /!raw\.deliveryOtp\.verifiedAt/.test(serverRead) &&
+    /!raw\.pickup\.verifiedAt/.test(serverRead) &&
+    /order\.deliveryCode/.test(detail) &&
+    !/Math\.random|generateCode/.test(detail + serverRead),
+  "It is what proves the order reaches the right person. A spent code must not linger for somebody to read out, and a made-up one is an invented authentication token.",
+);
+
+check(
+  "the tracker is a position on the order's own journey, chosen by fulfilment",
+  /\bsteps\.indexOf\(/.test(tracker) &&
+    !/percent/.test(tracker) &&
+    /ORDER_STEPS\[order\.fulfilment\]/.test(detail) &&
+    lib.ORDER_STEPS.pickup.at(-1) === "collected" &&
+    lib.ORDER_STEPS.delivery.at(-1) === "delivered",
+  "A pickup order has no rider and ends at the counter. Phase 13's grocery journey (Picked · Packed) had no API status behind it and was removed.",
+);
+
+check(
+  "a notification's action comes from the notification's own order",
+  /item\.action/.test(notifications) &&
+    !/\.type ===/.test(notifications + serverRead) &&
+    /item\.data\?\.orderId/.test(serverRead),
+  "Deciding the action from the notification's type is how 'Track Order' ended up on delivered orders.",
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+section("§4  The design's sample orders cannot reach a customer, or the API");
 
 check("the fixture exists", existsSync(fixturePath), `Expected ${rel(fixturePath)}.`);
 
@@ -235,51 +325,86 @@ const stray = importers.filter((f) => !f.includes(`orders-states${sep}page.tsx`)
 check(
   `only the development states page imports the fixture (${importers.length})`,
   stray.length === 0,
-  `"Burger Forge Porto" and "15.60€" are a picture of the design.\n      ${stray.join("\n      ")}`,
+  `"Burger Forge Porto" is a picture of the design.\n      ${stray.join("\n      ")}`,
+);
+
+const offlineViews = [list, detail, notifications].every((s) =>
+  /if \(offlineNotice\)/.test(s),
+);
+check(
+  "the states page is development-only and sends nothing",
+  DEV_ONLY_ROUTES.includes("orders-states") &&
+    offlineViews &&
+    (read(statesPage).match(/offlineNotice=\{/g) ?? []).length >= 3,
+  "The views are live now: a states page without the offline notice would cancel and rate with a fixture's ids.",
 );
 
 check(
-  "the states page is on the development-only list",
-  DEV_ONLY_ROUTES.includes("orders-states"),
-  "`verify:shell` asserts it 404s in production and `verify:bundle` excludes it on the strength of that.",
-);
-
-check(
-  "the review dialog is not a value export of the barrel",
-  !/export \{[^}]*\b(?:ReviewModal|OrderCard|OrderTracker|StarInput)\b/.test(barrel),
+  "the dialogs arrive through dynamic() and are not on the barrel",
+  (detail.match(/dynamic\(/g) ?? []).length >= 2 &&
+    !/export \{[^}]*\b(?:ReviewModal|CancelModal|OrderCard|OrderTracker|StarInput)\b/.test(
+      barrel,
+    ),
   "A static import of a barrel hands the importer every export — 27 KB, 9.3 KB and 11 KB in Phases 6 and 8.",
 );
 
 check(
-  "the review dialog arrives through dynamic()",
-  /dynamic\(/.test(detail),
-  "Two star groups and a textarea, and most visits to an order never open it.",
+  "foreground push never asks for permission and never rides a feature barrel",
+  /Notification\.permission !== "granted"/.test(pushService) &&
+    !/requestPermission/.test(pushService) &&
+    /import\("firebase\/messaging"\)/.test(pushService) &&
+    !/PushListener/.test(barrel) &&
+    /<PushListener\b/.test(read(join(APP, "(account)", "layout.tsx"))),
+  "Sign-in asks once (Phase 15). A listener on every account route that pulled the orders barrel would ship three screens to the profile page.",
+);
+
+check(
+  "the invoice is the API's certified PDF, offered only when it is synced",
+  /order\.invoiceReady \?/.test(detail) &&
+    /download-invoice-pdf/.test(read(join(SRC, "services", "orders", "browser.ts"))) &&
+    !/jspdf/i.test([...code.values()].join("\n")),
+  "Measured: an unsynced invoice answers 500. The old app drew its own PDF with jsPDF, which is a document the store did not issue (D-20).",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
 section("§5  The screens say which nothing they are showing");
 
-for (const [name, source] of [
-  ["the list", list],
-  ["the notifications page", notifications],
-]) {
-  check(
-    `${name} tells 'nothing yet' apart from 'not connected'`,
-    /copy\.unavailableTitle/.test(source) && /copy\.emptyTitle/.test(source),
-    "Different sentences, different fixes, and only one of them is the customer's.",
-  );
-}
-
 check(
-  "a refused control explains itself instead of being disabled",
-  /copy\.notWired/.test(detail) && /\srole="status"/.test(detail),
-  "Phase 8 settled this: a button that cannot be pressed cannot say why.",
+  "the list tells 'no orders', 'no match' and 'could not load' apart",
+  /copy\.unavailableTitle/.test(list) &&
+    /copy\.emptyTitle/.test(list) &&
+    /copy\.noMatchTitle/.test(list),
+  "Three sentences with three different fixes.",
 );
 
 check(
-  "the summary panel is the cart's, imported rather than restated",
-  /from "@\/features\/cart"/.test(detail) && /OrderSummary/.test(detail),
-  "The design draws the same 415px panel on the order detail and the notifications page. A third copy is how the previous project ended up with seven pinks.",
+  "the notifications page tells 'nothing new' apart from 'could not load'",
+  /copy\.unavailableTitle/.test(notifications) &&
+    /copy\.emptyTitle/.test(notifications),
+  "Only one of them is the customer's to act on.",
+);
+
+check(
+  "an unknown order is 'not found', an unreachable API is 'could not be loaded'",
+  /notFoundTitle/.test(read(detailRoute)) &&
+    /unavailableTitle/.test(read(detailRoute)) &&
+    /status === 404/.test(serverRead),
+  "Answering an outage with 'order not found' tells a customer their order is gone.",
+);
+
+check(
+  "the summary panel is the cart's, without cart controls on a placed order",
+  /from "@\/features\/cart"/.test(detail) &&
+    /<OrderSummary store=\{order\.store\} copy=\{copy\.summary\} \/>/.test(detail) &&
+    !/onPlaceOrder|onApplyVoucher/.test(detail + notifications),
+  "A Place Order button on an order that was placed is a control that can only refuse.",
+);
+
+check(
+  "a live order re-reads itself; a finished one does not",
+  /if \(!live \|\| offlineNotice\) return;/.test(detail) &&
+    /setInterval\(\(\) => router\.refresh\(\)/.test(detail),
+  "A status that moves while the customer watches must move on screen; polling a delivered order is requests for nothing.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -292,7 +417,6 @@ check(
   "A guard nothing calls passes forever.",
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
 console.log("");
 if (failures.length) {
   console.error(`\x1b[31m✗ ${failures.length} failed, ${passed} passed\x1b[0m\n`);

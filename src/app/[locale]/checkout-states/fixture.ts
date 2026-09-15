@@ -56,6 +56,7 @@ const STORE: CartStore = {
 export const CHECKOUT_FIXTURE: Checkout = {
   id: "fixture-checkout",
   store: STORE,
+  fulfilment: "delivery",
   address: { line: "Avenida da Liberdade 125, Lisbon", detail: "2.88 km · 12 min" },
   voucherCode: "DELIGO20",
 };

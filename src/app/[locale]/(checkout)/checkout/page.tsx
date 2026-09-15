@@ -16,11 +16,13 @@ import {
 import { getLocale, getTranslations } from "@/i18n/server";
 import { isCheckoutId } from "@/lib/checkout";
 import { withLocale } from "@/lib/i18n/path";
+import { hasSlots, pickupDays } from "@/lib/pickup";
 import { ROUTES } from "@/lib/routes";
 import { readCart } from "@/services/cart/server";
 import {
   readAddresses,
   readCheckout,
+  readPickupHours,
   readSavedCards,
   readVouchers,
 } from "@/services/checkout/server";
@@ -105,11 +107,13 @@ export default async function CheckoutPage({
     );
   const checkout: Checkout = read.checkout;
 
-  const [voucherRead, cardRead, addressRead] = await Promise.allSettled([
+  const [voucherRead, cardRead, addressRead, hoursRead] = await Promise.allSettled([
     readVouchers(id, checkout.voucherCode),
     readSavedCards(),
     readAddresses(),
+    readPickupHours(),
   ]);
+  const pickupHours = hoursRead.status === "fulfilled" ? hoursRead.value : null;
   const vouchers: Voucher[] =
     voucherRead.status === "fulfilled" ? voucherRead.value : [];
   const cards: SavedCard[] = cardRead.status === "fulfilled" ? cardRead.value : [];
@@ -118,6 +122,26 @@ export default async function CheckoutPage({
 
   const copy: CheckoutCopy = {
     title: t("title"),
+    fulfilment: {
+      title: t("fulfilmentTitle"),
+      delivery: t("fulfilmentDelivery"),
+      deliveryBody: t("fulfilmentDeliveryBody"),
+      pickup: t("fulfilmentPickup"),
+      pickupBody: t("fulfilmentPickupBody"),
+      pickupUnavailable: t("pickupUnavailable"),
+      pickupFrom: t("pickupFrom"),
+      pickupTime: t("pickupTimeLabel"),
+      pickupChange: t("pickupChange"),
+    },
+    pickup: {
+      title: t("pickupTitle"),
+      body: t("pickupBody"),
+      close: t("confirmedClose"),
+      today: t("pickupToday"),
+      tomorrow: t("pickupTomorrow"),
+      noSlots: t("pickupNoSlots"),
+      confirm: t("pickupConfirm"),
+    },
     delivery: {
       title: t("deliveryTitle"),
       edit: t("deliveryEdit"),
@@ -203,6 +227,8 @@ export default async function CheckoutPage({
       vouchersUnavailable={voucherRead.status === "rejected"}
       cards={cards}
       addresses={addresses}
+      pickupHours={pickupHours ?? undefined}
+      pickupAvailable={pickupHours ? hasSlots(pickupDays(pickupHours)) : false}
       locale={locale}
       copy={copy}
     />

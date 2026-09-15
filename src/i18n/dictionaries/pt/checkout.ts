@@ -3,6 +3,23 @@
 const checkout = {
   title: "Finalizar compra",
 
+  fulfilmentTitle: "Como quer receber?",
+  fulfilmentDelivery: "Entrega",
+  fulfilmentDeliveryBody: "Um estafeta leva à sua morada",
+  fulfilmentPickup: "Recolha na loja",
+  fulfilmentPickupBody: "Levante na loja, sem taxa de entrega",
+  pickupUnavailable: "Esta loja já não tem horários de recolha hoje",
+  pickupFrom: "Levantar em",
+  pickupTimeLabel: "Hora de recolha",
+  pickupChange: "Alterar hora",
+  pickupTitle: "Escolha a hora de recolha",
+  pickupBody:
+    "Escolha um intervalo de 30 minutos. O pedido fica pronto a levantar a partir do início.",
+  pickupToday: "Hoje",
+  pickupTomorrow: "Amanhã",
+  pickupNoSlots: "Sem horários de recolha neste dia",
+  pickupConfirm: "Confirmar hora de recolha",
+
   deliveryTitle: "Detalhes da entrega",
   deliveryEdit: "Alterar",
   deliveryNoAddress: "Ainda sem morada de entrega",

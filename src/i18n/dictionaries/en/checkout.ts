@@ -16,6 +16,23 @@
 const checkout = {
   title: "Checkout",
 
+  // ── Delivery or self-pickup ──────────────────────────────────────────────
+  fulfilmentTitle: "How do you want to get it?",
+  fulfilmentDelivery: "Delivery",
+  fulfilmentDeliveryBody: "A rider brings it to your address",
+  fulfilmentPickup: "Self pickup",
+  fulfilmentPickupBody: "Collect it from the store, no delivery fee",
+  pickupUnavailable: "This store has no pickup times left today",
+  pickupFrom: "Collect from",
+  pickupTimeLabel: "Pickup time",
+  pickupChange: "Change time",
+  pickupTitle: "Choose a pickup time",
+  pickupBody: "Pick a 30-minute slot. Your order is ready to collect from its start.",
+  pickupToday: "Today",
+  pickupTomorrow: "Tomorrow",
+  pickupNoSlots: "No pickup times left on this day",
+  pickupConfirm: "Confirm pickup time",
+
   // ── Delivery details ─────────────────────────────────────────────────────
   deliveryTitle: "Delivery details",
   deliveryEdit: "Change",

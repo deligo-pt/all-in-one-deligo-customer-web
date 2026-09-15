@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { OrderSummary, type SummaryCopy } from "@/features/cart";
 import type { Locale } from "@/lib/i18n/locale";
+import type { PickupHours } from "@/lib/pickup";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
 import { checkoutApi } from "./api";
 import { DeliveryCard, type DeliveryCopy } from "./DeliveryCard";
+import { FulfilmentCard, type FulfilmentCopy } from "./FulfilmentCard";
 import {
   NEW_CARD,
   PaymentCard,
@@ -17,6 +19,7 @@ import {
 } from "./PaymentCard";
 // Types only, so they are erased — the dialogs arrive through `dynamic()`.
 import type { AddressCopy } from "./AddressModal";
+import type { PickupCopy } from "./PickupModal";
 import type { VoucherCopy } from "./VoucherModal";
 import type { PaymentMethodId } from "./paymentMethods";
 import type { Checkout, SavedAddress, SavedCard, Voucher } from "./types";
@@ -30,9 +33,14 @@ const VoucherModal = dynamic(
   () => import("./VoucherModal").then((m) => m.VoucherModal),
   { ssr: false },
 );
+const PickupModal = dynamic(() => import("./PickupModal").then((m) => m.PickupModal), {
+  ssr: false,
+});
 
 export type CheckoutCopy = {
   title: string;
+  fulfilment: FulfilmentCopy;
+  pickup: PickupCopy;
   delivery: DeliveryCopy;
   payment: PaymentCopy;
   summary: SummaryCopy;
@@ -66,6 +74,8 @@ export function CheckoutView({
   vouchersUnavailable = false,
   cards,
   addresses,
+  pickupHours,
+  pickupAvailable = false,
   locale,
   copy,
   offlineNotice,
@@ -75,6 +85,10 @@ export function CheckoutView({
   vouchersUnavailable?: boolean;
   cards: readonly SavedCard[];
   addresses: readonly SavedAddress[];
+  /** The active store's hours, for self-pickup slots; absent when unknown. */
+  pickupHours?: PickupHours;
+  /** Whether the store has a pickup slot left, decided on the server. */
+  pickupAvailable?: boolean;
   locale: Locale;
   copy: CheckoutCopy;
   /** Set on the states page: every write refuses with this sentence. */
@@ -85,7 +99,9 @@ export function CheckoutView({
   const [method, setMethod] = useState<PaymentMethodId | null>(null);
   const [card, setCard] = useState<CardChoice>(NEW_CARD);
   const [saveCard, setSaveCard] = useState(false);
-  const [openModal, setOpenModal] = useState<"address" | "voucher" | null>(null);
+  const [openModal, setOpenModal] = useState<"address" | "voucher" | "pickup" | null>(
+    null,
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -124,8 +140,22 @@ export function CheckoutView({
   // No endpoint removes an offer: a summary rebuilt from the cart has none.
   const removeVoucher = () =>
     run(async () => {
-      router.replace(checkoutUrl(await checkoutApi.start()));
+      router.replace(checkoutUrl(await checkoutApi.start(checkout.pickupTime)));
     });
+
+  // Pickup and delivery are different summaries (a pickup has no delivery fee),
+  // so each choice builds one and replaces the URL.
+  const choosePickup = (pickupTime: string) =>
+    run(async () => {
+      router.replace(checkoutUrl(await checkoutApi.start(pickupTime)));
+    });
+
+  const chooseDelivery = () =>
+    checkout.fulfilment === "delivery"
+      ? undefined
+      : run(async () => {
+          router.replace(checkoutUrl(await checkoutApi.start()));
+        });
 
   const chooseAddress = (address: SavedAddress) =>
     address.active
@@ -162,16 +192,33 @@ export function CheckoutView({
 
       <div className="flex flex-col gap-8 lg:flex-row">
         <div className="flex min-w-0 flex-1 flex-col gap-8">
-          <DeliveryCard
-            address={checkout.address}
-            instruction={instruction}
-            onInstructionChange={setInstruction}
-            onEditAddress={() => {
+          <FulfilmentCard
+            fulfilment={checkout.fulfilment}
+            storeName={checkout.store.name}
+            pickupLabel={checkout.pickupLabel}
+            pickupAvailable={Boolean(pickupHours) && pickupAvailable}
+            busy={busy}
+            onDelivery={() => void chooseDelivery()}
+            onPickup={() => {
               setNotice(null);
-              setOpenModal("address");
+              setOpenModal("pickup");
             }}
-            copy={copy.delivery}
+            copy={copy.fulfilment}
           />
+          {/* A collected order has no address, no courier and nothing to tell
+              one — the old app hid the instruction on pickup too. */}
+          {checkout.fulfilment === "delivery" ? (
+            <DeliveryCard
+              address={checkout.address}
+              instruction={instruction}
+              onInstructionChange={setInstruction}
+              onEditAddress={() => {
+                setNotice(null);
+                setOpenModal("address");
+              }}
+              copy={copy.delivery}
+            />
+          ) : null}
           <PaymentCard
             value={method}
             onChange={(next) => {
@@ -221,6 +268,19 @@ export function CheckoutView({
           notice={notice}
           onChoose={chooseAddress}
           copy={copy.address}
+        />
+      ) : null}
+
+      {openModal === "pickup" && pickupHours ? (
+        <PickupModal
+          open
+          onOpenChange={(next) => !next && !busy && setOpenModal(null)}
+          hours={pickupHours}
+          locale={locale}
+          busy={busy}
+          notice={notice}
+          onConfirm={choosePickup}
+          copy={copy.pickup}
         />
       ) : null}
 

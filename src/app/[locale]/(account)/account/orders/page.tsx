@@ -1,53 +1,50 @@
 import type { Metadata } from "next";
-import {
-  OrderList,
-  OrdersUnavailableError,
-  notWiredOrders,
-  type Order,
-  type OrderListCopy,
-} from "@/features/orders";
+import { AccountShell } from "@/components/layout/AccountShell";
+import { accountNav } from "@/components/layout/accountNav";
+import { OrderList, type Order } from "@/features/orders";
 import { getLocale, getTranslations } from "@/i18n/server";
+import { accountNavLabels } from "@/services/account/copy";
+import { orderListCopy } from "@/services/orders/copy";
+import { readOrders } from "@/services/orders/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("orders");
   return { title: t("title") };
 }
 
-/** `/account/orders` — every order in four tabs. The transport rejects in
- *  Track B, so the page says so; the populated design is `/orders-states`. */
+/** `/account/orders` — every order on the account, in four tabs (Phase 19),
+ *  inside the account frame so the menu stays where the customer left it. */
 export default async function OrdersPage() {
-  const [t, locale] = await Promise.all([getTranslations("orders"), getLocale()]);
+  const [copy, locale, labels, account] = await Promise.all([
+    orderListCopy(),
+    getLocale(),
+    accountNavLabels(),
+    getTranslations("account"),
+  ]);
 
-  let orders: readonly Order[] = [];
+  let orders: Order[] = [];
   let unavailable = false;
   try {
-    orders = await notWiredOrders.list();
-  } catch (error) {
-    if (!(error instanceof OrdersUnavailableError)) throw error;
+    orders = await readOrders();
+  } catch {
     unavailable = true;
   }
 
-  const copy: OrderListCopy = {
-    title: t("title"),
-    subtitle: t("subtitle"),
-    tab: {
-      all: t("tabAll"),
-      ongoing: t("tabOngoing"),
-      complete: t("tabComplete"),
-      cancelled: t("tabCancelled"),
-    },
-    track: t("track"),
-    details: t("details"),
-    reorder: t("reorder"),
-    orderImage: t("orderImage"),
-    emptyTitle: t("emptyTitle"),
-    emptyBody: t("emptyBody"),
-    unavailableTitle: t("unavailableTitle"),
-    unavailableBody: t("unavailableBody"),
-    notWired: t("notWired"),
-  };
-
   return (
-    <OrderList orders={orders} locale={locale} copy={copy} unavailable={unavailable} />
+    <AccountShell
+      title={copy.title}
+      subtitle={copy.subtitle}
+      nav={accountNav(locale, labels)}
+      activeId="orders"
+      navLabel={account("navLabel")}
+    >
+      <OrderList
+        orders={orders}
+        locale={locale}
+        copy={copy}
+        unavailable={unavailable}
+        framed
+      />
+    </AccountShell>
   );
 }
