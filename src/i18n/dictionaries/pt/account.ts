@@ -134,6 +134,9 @@ const account = {
     "Esta é uma pré-visualização do design. Nada é enviado a partir desta página.",
   copyCode: "Copiar código",
   copiedCode: "Copiado",
+  addressMapLabel: "Marque o local exato",
+  addressMapHelp:
+    "Mova o mapa até o pino ficar sobre a sua porta. É para o pino que enviamos o estafeta.",
   addressLocate: "Usar a minha localização atual",
   addressLocateFailed:
     "Não foi possível ler a sua localização. Verifique se o acesso à localização está autorizado para este site.",

@@ -15,8 +15,32 @@ type Geocoder = {
     language?: string;
   }) => Promise<{ results: GeocodeResult[] }>;
 };
+type MapHandle = {
+  getCenter: () => LatLng | undefined;
+  addListener: (event: string, handler: () => void) => { remove: () => void };
+};
+type MapOptions = {
+  center: { lat: number; lng: number };
+  zoom: number;
+  disableDefaultUI?: boolean;
+  zoomControl?: boolean;
+  clickableIcons?: boolean;
+  gestureHandling?: string;
+};
+type MarkerOptions = {
+  position: { lat: number; lng: number };
+  map: MapHandle;
+  title?: string;
+};
+type MarkerHandle = { setMap: (map: MapHandle | null) => void };
 type MapsApi = {
-  importLibrary: (name: "geocoding") => Promise<{ Geocoder: new () => Geocoder }>;
+  importLibrary: ((name: "geocoding") => Promise<{ Geocoder: new () => Geocoder }>) &
+    ((name: "maps") => Promise<{
+      Map: new (element: HTMLElement, options: MapOptions) => MapHandle;
+    }>) &
+    ((
+      name: "marker",
+    ) => Promise<{ Marker: new (options: MarkerOptions) => MarkerHandle }>);
 };
 
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -82,4 +106,76 @@ export async function reverseGeocode(
   } catch {
     return null;
   }
+}
+
+/** A mounted pin picker; `dispose` releases the map's listener. */
+export type PinPicker = { dispose: () => void };
+
+/**
+ * The map pin picker (Phase 20b), the old app's `locationPicker`.
+ *
+ * The pin does not move — the map does, under a pin the caller draws in the
+ * centre of the frame. That is one fewer library (no marker, and so no map id
+ * to provision), it works the same under a finger and a mouse, and the thing
+ * the customer is aiming at is always on screen.
+ *
+ * `onMove` fires when the map settles, not on every frame of a drag.
+ */
+export async function mountPinPicker(
+  element: HTMLElement,
+  start: { latitude: number; longitude: number },
+  locale: string,
+  onMove: (position: { latitude: number; longitude: number }) => void,
+): Promise<PinPicker> {
+  const { Map } = await (await loadMaps(locale)).importLibrary("maps");
+  const map = new Map(element, {
+    center: { lat: start.latitude, lng: start.longitude },
+    zoom: 16,
+    disableDefaultUI: true,
+    zoomControl: true,
+    clickableIcons: false,
+    gestureHandling: "greedy",
+  });
+  const listener = map.addListener("idle", () => {
+    const center = map.getCenter();
+    if (center) onMove({ latitude: center.lat(), longitude: center.lng() });
+  });
+  return { dispose: () => listener.remove() };
+}
+
+/**
+ * The store on a map, with a pin on it (Phase 20d, second pass — the old app's
+ * vendor details dialog).
+ *
+ * A real marker rather than the address form's centre-pin trick: there the
+ * customer is choosing a point, here they are being shown one, and a pin that
+ * slid around when they panned would be saying something false. The map itself
+ * stays draggable and zoomable, because "where is this exactly" is usually
+ * answered by looking at the street next to it.
+ *
+ * `Marker` is the classic one. `AdvancedMarkerElement` needs a cloud-configured
+ * map id that this account does not have, and a map with no pin is worse than
+ * a deprecation warning.
+ */
+export async function mountStoreMap(
+  element: HTMLElement,
+  place: { latitude: number; longitude: number; title?: string },
+  locale: string,
+): Promise<PinPicker> {
+  const maps = await loadMaps(locale);
+  const [{ Map }, { Marker }] = await Promise.all([
+    maps.importLibrary("maps"),
+    maps.importLibrary("marker"),
+  ]);
+  const position = { lat: place.latitude, lng: place.longitude };
+  const map = new Map(element, {
+    center: position,
+    zoom: 15,
+    disableDefaultUI: true,
+    zoomControl: true,
+    clickableIcons: false,
+    gestureHandling: "cooperative",
+  });
+  const marker = new Marker({ position, map, title: place.title });
+  return { dispose: () => marker.setMap(null) };
 }

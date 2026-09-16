@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
@@ -20,6 +20,7 @@ import type { ProductChoice, ProductCopy } from "./ProductModal";
 import type { MenuItem, ProductDetail, VendorDetail } from "./types";
 import { useSession } from "@/hooks/useSession";
 import type { Locale } from "@/lib/i18n/locale";
+import { StoreDetailsPanel, type StoreDetailsCopy } from "./StoreDetailsPanel";
 import { VendorIntro } from "./VendorIntro";
 
 /**
@@ -49,6 +50,7 @@ export type MenuCopy = {
   noMenu: string;
   noMenuBody: string;
   cart: StoreCartCopy;
+  storeDetails: StoreDetailsCopy;
   signInToAdd: string;
   signIn: string;
   /** The states page's answer to an add: it never writes a real cart. */
@@ -159,6 +161,18 @@ export function VendorMenu({
     }
   };
 
+  /**
+   * Which category the reader is actually looking at (Phase 20d).
+   *
+   * The rail used to mark the first category for ever, so it said "Starters"
+   * at the bottom of the desserts. An observer against the sticky bar's own
+   * offset — the rail is 176px down the viewport — marks the section that owns
+   * the top of what is visible, and clicking a link still scrolls with the
+   * anchor rather than being hijacked by script.
+   */
+  const [active, setActive] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   const categories = useMemo(() => {
     const needle = query.trim().toLowerCase();
     if (!needle) return vendor.menu;
@@ -174,17 +188,51 @@ export function VendorMenu({
       .filter((category) => category.items.length > 0);
   }, [query, vendor.menu]);
 
+  useEffect(() => {
+    const root = menuRef.current;
+    if (!root) return;
+    const sections = Array.from(root.querySelectorAll<HTMLElement>("[data-category]"));
+    if (sections.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // The topmost section still intersecting wins, so scrolling up marks
+        // the section being scrolled into and not the one being left.
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        const id = visible?.target.getAttribute("data-category");
+        if (id) setActive(id);
+      },
+      // The sticky search-and-rail bar covers the top 176px; without this the
+      // section behind it would count as visible.
+      { rootMargin: "-176px 0px -60% 0px", threshold: 0 },
+    );
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [categories]);
+
   return (
     <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
       <VendorIntro
         vendor={vendor}
         dealsTitle={copy.dealsTitle}
         dealsSubtitle={copy.dealsSubtitle}
+        storeDetails={
+          <StoreDetailsPanel
+            details={vendor.details}
+            closing={vendor.closing}
+            open={vendor.status === "open"}
+            name={vendor.name}
+            locale={locale}
+            copy={copy.storeDetails}
+          />
+        }
       />
 
       <MenuNav
         categories={vendor.menu}
-        activeId={categories[0]?.id}
+        activeId={active ?? categories[0]?.id}
         query={query}
         onQueryChange={setQuery}
         searchLabel={copy.searchLabel}
@@ -193,7 +241,7 @@ export function VendorMenu({
       />
 
       <div className="flex flex-col gap-8 lg:flex-row">
-        <div className="flex min-w-0 flex-1 flex-col gap-8">
+        <div ref={menuRef} className="flex min-w-0 flex-1 flex-col gap-8">
           {notice ? (
             <div
               role="status"
@@ -226,6 +274,7 @@ export function VendorMenu({
               <section
                 key={category.id}
                 id={`menu-${category.id}`}
+                data-category={category.id}
                 className="flex scroll-mt-44 flex-col gap-6"
               >
                 <h2 className="text-20 text-ink font-semibold">{category.name}</h2>

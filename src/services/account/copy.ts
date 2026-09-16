@@ -155,6 +155,8 @@ export async function addressesCopy(): Promise<AddressesCopy> {
       country: t("addressCountry"),
       notes: t("addressNotes"),
       save: t("save"),
+      mapLabel: t("addressMapLabel"),
+      mapHelp: t("addressMapHelp"),
       locate: t("addressLocate"),
       locateFailed: t("addressLocateFailed"),
       notFound: t("addressNotFound"),

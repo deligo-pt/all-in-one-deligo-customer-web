@@ -12,8 +12,12 @@ import { Icon } from "@/components/ui/Icon";
  * **The count is a string, and the address is optional.** The address is the
  * profile's active one or the guest's chosen location (Phase 16). Without one
  * this renders the prompt to set one, which is the state a first-time visitor
- * is actually in and the one the design does not draw. "Change" goes to the
- * vertical's front door, where the address bar is.
+ * is actually in and the one the design does not draw.
+ *
+ * **"Change" opens the picker where there is one** (Phase 20b) — the saved
+ * addresses and the address bar, on the card the customer is already reading.
+ * Without `onChange` it falls back to the vertical's front door, so the bar
+ * still works in a server-rendered context that mounts no dialog.
  */
 export function DeliveryBar({
   address,
@@ -23,6 +27,7 @@ export function DeliveryBar({
   setAddressLabel,
   availabilityLabel,
   changeHref,
+  onChange,
 }: {
   address?: string;
   /** "120+" — exactly as the API phrases it. */
@@ -32,6 +37,8 @@ export function DeliveryBar({
   setAddressLabel: string;
   availabilityLabel: string;
   changeHref: string;
+  /** Opens the location picker instead of navigating. */
+  onChange?: () => void;
 }) {
   return (
     <div className="border-brand-soft bg-surface-subtle rounded-16 flex flex-wrap items-center gap-6 border px-6 py-4">
@@ -44,12 +51,22 @@ export function DeliveryBar({
         <span className="text-16 text-ink truncate">{address ?? setAddressLabel}</span>
       </div>
 
-      <Link
-        href={changeHref}
-        className="text-16 text-brand font-medium underline-offset-4 hover:underline"
-      >
-        {changeLabel}
-      </Link>
+      {onChange ? (
+        <button
+          type="button"
+          onClick={onChange}
+          className="text-16 text-brand font-medium underline-offset-4 hover:underline"
+        >
+          {changeLabel}
+        </button>
+      ) : (
+        <Link
+          href={changeHref}
+          className="text-16 text-brand font-medium underline-offset-4 hover:underline"
+        >
+          {changeLabel}
+        </Link>
+      )}
 
       {countLabel ? (
         <>

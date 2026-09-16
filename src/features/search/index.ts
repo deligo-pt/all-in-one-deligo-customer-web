@@ -1,3 +1,10 @@
-/** Dish search (Phase 16): one server-rendered view and its types. */
+/** Search (Phase 16; places, sort and filters in Phase 20c): server-rendered
+ *  views and their types. */
 export { SearchResults, type SearchCopy } from "./SearchResults";
-export type { SearchPage, SearchResult } from "./types";
+export {
+  SearchFilterBar,
+  type SearchCuisine,
+  type SearchFilterCopy,
+  type SearchFilterValues,
+} from "./SearchFilterBar";
+export type { SearchPage, SearchPlaces, SearchResult } from "./types";

@@ -26,6 +26,21 @@ const food = {
   seeRestaurants: "Ver restaurantes",
   trustedBy: "Escolhido por milhões em todo o mundo",
 
+  // ── The location picker on the delivery card (Phase 20b) ─────────────────
+
+  locationTitle: "Onde devemos entregar?",
+  locationBody:
+    "Escolha uma das suas moradas guardadas ou indique um novo local. Ao escolher uma morada guardada, é para lá que segue o seu próximo pedido.",
+  locationSaved: "As suas moradas",
+  locationActive: "Entregamos aqui",
+  locationElsewhere: "Noutro sítio",
+  locationAddNew: "Adicionar uma nova morada",
+  locationFailed: "Não foi possível mudar a sua morada. Tente novamente.",
+  locationAskTitle: "De onde está a pedir?",
+  locationAskBody:
+    "Mostramos os restaurantes e as lojas que entregam onde está. Diga-nos uma vez e nós guardamos.",
+  locationAskLater: "Agora não",
+
   deliveringTo: "A entregar em",
   changeAddress: "Alterar",
   setAddress: "Defina uma morada de entrega",
@@ -96,6 +111,56 @@ const food = {
   vendorUnavailable: "Este restaurante está indisponível de momento",
   vendorUnavailableBody:
     "Não conseguimos carregar este restaurante agora. Tente novamente dentro de momentos.",
+
+  // ── Search filters and groups (Phase 20c) ────────────────────────────────
+
+  filterLegend: "Refinar estes resultados",
+  sortLabel: "Ordenar por",
+  sortRelevance: "Mais relevante",
+  sortPriceAsc: "Preço: do mais baixo ao mais alto",
+  sortPriceDesc: "Preço: do mais alto ao mais baixo",
+  sortRating: "Avaliação: da mais alta à mais baixa",
+  cuisineLabel: "Cozinha",
+  cuisineAny: "Qualquer cozinha",
+  minPrice: "Preço mín.",
+  maxPrice: "Preço máx.",
+  halalOnly: "Apenas halal",
+  applyFilters: "Aplicar",
+  clearFilters: "Limpar",
+  searchRestaurants: "Restaurantes",
+  searchStores: "Lojas",
+  searchDishes: "Pratos",
+
+  // ── Store details and the closing countdown (Phase 20d) ──────────────────
+
+  close: "Fechar",
+  storeDetailsTrigger: "Detalhes da loja",
+  storeDetailsSubtitle: "Por favor contacte o vendedor",
+  storeNif: "Número NIF",
+  contactInformation: "Informações de contacto",
+  otherDetails: "Outros detalhes",
+  legalEntityName: "Nome da entidade legal",
+  euCompliance:
+    "O parceiro compromete-se a oferecer apenas produtos que cumpram as regras aplicáveis da legislação da União Europeia.",
+  mapUnavailable: "Não foi possível carregar o mapa.",
+  openNow: "Aberto agora",
+  closedNow: "Fechado",
+  storeHours: "Horário",
+  storeClosingDays: "Encerra à",
+  storePreparation: "Tempo de preparação",
+  storeAddress: "Morada",
+  storePhone: "Telefone",
+  storeEmail: "E-mail",
+  closingSoon: "A fechar em breve",
+  orderWithin: "Peça dentro de",
+  preparationMinutes: "{count} min",
+  dayMonday: "segunda-feira",
+  dayTuesday: "terça-feira",
+  dayWednesday: "quarta-feira",
+  dayThursday: "quinta-feira",
+  dayFriday: "sexta-feira",
+  daySaturday: "sábado",
+  daySunday: "domingo",
 } satisfies Record<string, string>;
 
 export default food;

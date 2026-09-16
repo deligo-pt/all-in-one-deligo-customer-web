@@ -158,6 +158,9 @@ const account = {
   previewOnly: "This is a design preview. Nothing is sent from this page.",
   copyCode: "Copy code",
   copiedCode: "Copied",
+  addressMapLabel: "Pin the exact spot",
+  addressMapHelp:
+    "Move the map so the pin sits on your door. We send the rider to the pin.",
   addressLocate: "Use my current location",
   addressLocateFailed:
     "Your location could not be read. Check that location access is allowed for this site.",

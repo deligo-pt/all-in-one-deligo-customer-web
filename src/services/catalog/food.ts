@@ -5,6 +5,7 @@ import type {
   MenuItem,
   OptionGroup,
   Vendor,
+  StoreDetails,
   VendorDetail,
 } from "@/features/food";
 import { getLocale, getTranslations } from "@/i18n/server";
@@ -143,12 +144,70 @@ export async function vendorProducts(vendorMongoId: string): Promise<RawProduct[
   return (data?.data ?? []) as RawProduct[];
 }
 
+/**
+ * The store's own facts for the details dialog (Phase 20d).
+ *
+ * Joined and phrased here, once, because the dialog is a client component and
+ * the server is where the translator lives. Anything the API did not send is
+ * left out — a missing telephone is a store without one on file, not an error
+ * to report to the customer.
+ *
+ * The day names are the API's English ones (`"Friday"`, measured); they are
+ * translated through the `day…` keys, and a day we do not recognise is shown
+ * as it came rather than dropped.
+ */
+const dayNames = ({ t }: Context): Record<string, string> => ({
+  monday: t("dayMonday"),
+  tuesday: t("dayTuesday"),
+  wednesday: t("dayWednesday"),
+  thursday: t("dayThursday"),
+  friday: t("dayFriday"),
+  saturday: t("daySaturday"),
+  sunday: t("daySunday"),
+});
+
+function storeDetails(raw: RawVendor, context: Context): StoreDetails {
+  const business = raw.businessDetails ?? {};
+  const place = raw.businessLocation ?? {};
+  const minutes = business.preparationTimeMinutes;
+  return {
+    hours:
+      business.openingHours && business.closingHours
+        ? `${business.openingHours} – ${business.closingHours}`
+        : undefined,
+    closingDays: (business.closingDays ?? []).map(
+      // Spelled-out keys, above: a key nobody writes is a key `verify:i18n`
+      // calls unused and deletes. A day we cannot place is shown as it came.
+      (day) => dayNames(context)[day.trim().toLowerCase()] ?? day,
+    ),
+    preparation:
+      typeof minutes === "number" && minutes > 0
+        ? context.t("preparationMinutes", {
+            count: formatNumber(minutes, context.locale),
+          })
+        : undefined,
+    address:
+      [place.street, place.city, place.postalCode, place.country]
+        .map((part) => part?.trim())
+        .filter(Boolean)
+        .join(", ") || undefined,
+    phone: raw.contactNumber || undefined,
+    email: raw.email || undefined,
+    nif: business.NIF || undefined,
+    legalName: business.companyLegalName || undefined,
+    position:
+      typeof place.latitude === "number" && typeof place.longitude === "number"
+        ? { latitude: place.latitude, longitude: place.longitude }
+        : undefined,
+  };
+}
+
 /** The food catalogue for this request — its language, its session. */
 export async function foodCatalog(): Promise<FoodCatalog> {
   const [t, locale] = await Promise.all([getTranslations("food"), getLocale()]);
   const context: Context = { t, locale };
   return {
-    async listVendors({ cuisine, location }) {
+    async listVendors({ cuisine, term, location }) {
       const api = await serverApi();
       const { data } = await api.get("/vendors/nearby/open", {
         params: {
@@ -158,6 +217,9 @@ export async function foodCatalog(): Promise<FoodCatalog> {
           limit: PAGE_LIMIT,
           // One cuisine: the API matches a single slug, and ignores a list.
           ...(cuisine ? { restaurantCuisineType: cuisine } : {}),
+          // The business name, matched by the API (Phase 20c): measured, a
+          // term that matches nothing returns none rather than everything.
+          ...(term ? { searchTerm: term } : {}),
         },
       });
       const raw = (data?.data ?? []) as RawVendor[];
@@ -212,6 +274,11 @@ export async function foodCatalog(): Promise<FoodCatalog> {
             })
           : undefined,
         heroImage: storePhoto(raw),
+        details: storeDetails(raw, context),
+        closing: {
+          closingHours: raw.businessDetails?.closingHours,
+          closingDays: raw.businessDetails?.closingDays ?? [],
+        },
         // `/offers` needs a session and is not scoped to one vendor; the
         // vendor's deals arrive with the checkout work (Phase 18).
         deals: [],

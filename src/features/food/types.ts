@@ -127,6 +127,33 @@ export type MenuCategory = {
   items: readonly MenuItem[];
 };
 
+/**
+ * What the store tells a customer about itself (Phase 20d) — the old app's
+ * `VendorDetailsModal`, from `businessDetails` and `businessLocation`.
+ *
+ * Every field is optional because every one of them is optional on the API: a
+ * store with no closing days, no preparation time or no telephone is a real
+ * store, and the dialog leaves out what it was not told rather than printing
+ * "not provided" six times.
+ */
+export type StoreDetails = {
+  /** "07:00 – 22:30", joined once on the server. */
+  hours?: string;
+  /** "Friday" — the API's own English day names, translated for display. */
+  closingDays: readonly string[];
+  /** "15 min", already a sentence. */
+  preparation?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  /** The Portuguese tax number the vendor trades under. */
+  nif?: string;
+  /** The company behind the shopfront, when it is named differently. */
+  legalName?: string;
+  /** Where the pin goes. Absent for a store with no coordinates on file. */
+  position?: { latitude: number; longitude: number };
+};
+
 export type VendorDetail = Vendor & {
   /** The Mongo `_id` — what products and cart lines reference the vendor by. */
   recordId?: string;
@@ -136,6 +163,11 @@ export type VendorDetail = Vendor & {
   heroImage?: string;
   deals: readonly Deal[];
   menu: readonly MenuCategory[];
+  details?: StoreDetails;
+  /** The raw closing time and days, for the countdown's own clock. The
+   *  countdown is the one thing that cannot take a pre-formatted string: it
+   *  has to know when closing *is*. */
+  closing?: { closingHours?: string; closingDays: readonly string[] };
 };
 
 /** One page of the listing. `countLabel` is the API's total, formatted. */
@@ -156,6 +188,9 @@ export type FoodCatalog = {
   /** `/vendors/nearby/open` — restaurants near a location, filtered by the API. */
   listVendors(input: {
     cuisine?: string;
+    /** A name to match — the API's `searchTerm`, measured to filter vendors by
+     *  business name (Phase 20c). */
+    term?: string;
     location: ListingLocation;
   }): Promise<VendorPage>;
   /** `/categories/cuisine/open`. */

@@ -23,9 +23,13 @@
     "verify:checkout": "node --no-warnings scripts/verify-checkout.mjs",
     "verify:orders": "node --no-warnings scripts/verify-orders.mjs",
     "verify:account": "node --no-warnings scripts/verify-account.mjs",
+    "verify:loading": "node --no-warnings scripts/verify-loading.mjs",
+    "verify:vendor": "node --no-warnings scripts/verify-vendor.mjs",
+    "verify:search": "node --no-warnings scripts/verify-search.mjs",
+    "verify:location": "node --no-warnings scripts/verify-location.mjs",
     "verify:groceries": "node --no-warnings scripts/verify-groceries.mjs",
     "verify:session": "node --no-warnings scripts/verify-session.mjs",
-    "verify": "pnpm verify:structure && pnpm verify:design && pnpm verify:i18n && pnpm verify:shell && pnpm verify:auth && pnpm verify:food && pnpm verify:cart && pnpm verify:checkout && pnpm verify:orders && pnpm verify:account && pnpm verify:groceries && pnpm verify:session && pnpm verify:bundle",
+    "verify": "pnpm verify:structure && pnpm verify:design && pnpm verify:i18n && pnpm verify:shell && pnpm verify:auth && pnpm verify:food && pnpm verify:cart && pnpm verify:checkout && pnpm verify:orders && pnpm verify:account && pnpm verify:groceries && pnpm verify:location && pnpm verify:search && pnpm verify:vendor && pnpm verify:loading && pnpm verify:session && pnpm verify:bundle",
     "gate": "pnpm typecheck && pnpm lint && pnpm build:check && pnpm verify"
   },
   "dependencies": {

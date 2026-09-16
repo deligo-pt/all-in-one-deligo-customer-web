@@ -24,15 +24,23 @@ type Problem = "notFound" | "denied" | "position" | "unavailable";
  * "Locate me". Either becomes coordinates, is stored by `/api/location`, and
  * the listing opens for that place. Maps and the geocoder load on first use,
  * never with the page.
+ *
+ * It is also the bottom half of the location card's dialog (Phase 20b). There
+ * the customer is already on the listing they wanted, so there is nowhere to
+ * open: `onSaved` closes the dialog and the page re-renders in place.
  */
 export function LocationForm({
   locale,
   href,
+  onSaved,
   copy,
 }: {
   locale: string;
-  /** The listing to open once a location is set. */
-  href: string;
+  /** The listing to open once a location is set. Omitted in the dialog, which
+   *  is already on one. */
+  href?: string;
+  /** Called after the location is stored, instead of navigating. */
+  onSaved?: () => void;
   copy: LocationFormCopy;
 }) {
   const router = useRouter();
@@ -45,13 +53,10 @@ export function LocationForm({
     longitude: number;
     label: string;
   }) {
-    const response = await fetch("/api/location", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(location),
-    });
-    if (!response.ok) throw new Error("location-not-saved");
-    router.push(href);
+    const { saveGuestLocation } = await import("@/services/location/browser");
+    await saveGuestLocation(location);
+    onSaved?.();
+    if (href) router.push(href);
     router.refresh();
   }
 

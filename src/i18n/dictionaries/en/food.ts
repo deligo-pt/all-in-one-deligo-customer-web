@@ -34,6 +34,21 @@ const food = {
 
   // ── The listing ──────────────────────────────────────────────────────────
 
+  // ── The location picker on the delivery card (Phase 20b) ─────────────────
+
+  locationTitle: "Where should we deliver?",
+  locationBody:
+    "Pick one of your saved addresses, or tell us a new place. Choosing a saved address makes it the one your next order goes to.",
+  locationSaved: "Your addresses",
+  locationActive: "Delivering here",
+  locationElsewhere: "Somewhere else",
+  locationAddNew: "Add a new address",
+  locationFailed: "We couldn’t switch your address. Try again.",
+  locationAskTitle: "Where are you ordering from?",
+  locationAskBody:
+    "We show the restaurants and stores that deliver to you. Tell us once and we’ll remember it.",
+  locationAskLater: "Not now",
+
   deliveringTo: "Delivering to",
   changeAddress: "Change",
   setAddress: "Set a delivery address",
@@ -109,6 +124,56 @@ const food = {
   vendorUnavailable: "This restaurant is unavailable right now",
   vendorUnavailableBody:
     "We couldn’t load this restaurant just now. Try again in a moment.",
+
+  // ── Search filters and groups (Phase 20c) ────────────────────────────────
+
+  filterLegend: "Narrow these results",
+  sortLabel: "Sort by",
+  sortRelevance: "Best match",
+  sortPriceAsc: "Price: low to high",
+  sortPriceDesc: "Price: high to low",
+  sortRating: "Rating: high to low",
+  cuisineLabel: "Cuisine",
+  cuisineAny: "Any cuisine",
+  minPrice: "Min price",
+  maxPrice: "Max price",
+  halalOnly: "Halal only",
+  applyFilters: "Apply",
+  clearFilters: "Clear",
+  searchRestaurants: "Restaurants",
+  searchStores: "Stores",
+  searchDishes: "Dishes",
+
+  // ── Store details and the closing countdown (Phase 20d) ──────────────────
+
+  close: "Close",
+  storeDetailsTrigger: "Store details",
+  storeDetailsSubtitle: "Please contact the vendor",
+  storeNif: "NIF number",
+  contactInformation: "Contact information",
+  otherDetails: "Other details",
+  legalEntityName: "Legal entity name",
+  euCompliance:
+    "The partner commits to only offer products that comply with the applicable rules of European Union law.",
+  mapUnavailable: "The map could not be loaded.",
+  openNow: "Open now",
+  closedNow: "Closed",
+  storeHours: "Opening hours",
+  storeClosingDays: "Closed on",
+  storePreparation: "Preparation time",
+  storeAddress: "Address",
+  storePhone: "Phone",
+  storeEmail: "Email",
+  closingSoon: "Closing soon",
+  orderWithin: "Order within",
+  preparationMinutes: "{count} min",
+  dayMonday: "Monday",
+  dayTuesday: "Tuesday",
+  dayWednesday: "Wednesday",
+  dayThursday: "Thursday",
+  dayFriday: "Friday",
+  daySaturday: "Saturday",
+  daySunday: "Sunday",
 } satisfies Record<string, string>;
 
 export default food;

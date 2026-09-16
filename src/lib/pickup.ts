@@ -188,3 +188,36 @@ export function slotRange(time: TimeOfDay, closingHours?: string): string {
     ? formatTimeOfDay(time)
     : `${formatTimeOfDay(time)} → ${formatTimeOfDay(fromMinutes(end))}`;
 }
+
+/**
+ * Milliseconds until the store closes, or `null` when the question does not
+ * apply (Phase 20d — the old app's `ClosingCountdown`).
+ *
+ * "Does not apply" is four different things, and none of them is zero: the
+ * store is shut, today is one of its closing days, the hours are unreadable,
+ * or closing has already passed. A countdown that shows 00:00 in any of those
+ * states would be telling the customer to hurry into a closed shop.
+ *
+ * Closing is read on the **store's** wall clock (Europe/Lisbon), not the
+ * reader's: a customer in London must see the same "order within 12 minutes"
+ * the kitchen does.
+ */
+export function msUntilClosing(
+  hours: PickupHours,
+  open: boolean,
+  now: Date = new Date(),
+): number | null {
+  if (!open) return null;
+  const closing = parseStoreHour(hours.closingHours);
+  if (!closing) return null;
+
+  const today = storeToday(now);
+  const closed = new Set(
+    (hours.closingDays ?? []).map((day) => day.trim().toLowerCase()),
+  );
+  if (closed.has(weekday(today))) return null;
+
+  const { hours: h, minutes: m, seconds: s } = zoned(now);
+  const remaining = (toMinutes(closing) - (h * 60 + m)) * 60_000 - s * 1000;
+  return remaining > 0 ? remaining : null;
+}

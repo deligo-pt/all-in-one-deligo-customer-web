@@ -1,6 +1,9 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useState } from "react";
+import dynamic from "next/dynamic";
+import type { LocationModalCopy } from "@/components/shared/LocationModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -9,7 +12,14 @@ import type { Locale } from "@/lib/i18n/locale";
 import { CuisineRow } from "./CuisineRow";
 import { VendorCard } from "./VendorCard";
 import { DeliveryBar } from "./DeliveryBar";
+import type { LocationChoice } from "@/services/location/server";
 import type { Cuisine, Vendor } from "./types";
+
+// The picker is a dialog nobody has opened yet: Radix, the address bar and
+// the geocoder stay out of the listing's first load and arrive on the press.
+const LocationModal = dynamic(() =>
+  import("@/components/shared/LocationModal").then((m) => m.LocationModal),
+);
 
 export type ListingCopy = {
   deliveringTo: string;
@@ -58,6 +68,9 @@ export function VendorListing({
   address,
   countLabel,
   changeHref,
+  choices = [],
+  addAddressHref,
+  locationCopy,
   unavailable = false,
 }: {
   locale: Locale;
@@ -67,14 +80,22 @@ export function VendorListing({
   /** Absent: nobody has said where to deliver. */
   address?: string;
   countLabel?: string;
-  /** Where the address is changed — the vertical's front door. */
+  /** Where the address is changed when no picker is mounted — the vertical's
+   *  front door. */
   changeHref: string;
+  /** The saved addresses the customer can switch to; empty for a guest. */
+  choices?: readonly LocationChoice[];
+  /** The account's addresses screen, for "Add a new address". */
+  addAddressHref?: string;
+  /** Without it the card's "Change" stays a link to the front door. */
+  locationCopy?: LocationModalCopy;
   unavailable?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const selected = params.get("cuisine");
+  const [picking, setPicking] = useState(false);
 
   const choose = (id: string) => {
     const next = new URLSearchParams(params);
@@ -94,7 +115,21 @@ export function VendorListing({
         setAddressLabel={copy.setAddress}
         availabilityLabel={copy.availability}
         changeHref={changeHref}
+        onChange={locationCopy ? () => setPicking(true) : undefined}
       />
+
+      {locationCopy ? (
+        <LocationModal
+          open={picking}
+          onOpenChange={setPicking}
+          locale={locale}
+          choices={choices}
+          addHref={addAddressHref}
+          unset={!address}
+          askOnce
+          copy={locationCopy}
+        />
+      ) : null}
 
       {address && cuisines.length ? (
         <section className="flex flex-col gap-6">

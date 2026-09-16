@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
+import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import type { Locale } from "@/lib/i18n/locale";
@@ -24,6 +25,8 @@ export type AddressFormCopy = {
   country: string;
   notes: string;
   save: string;
+  mapLabel: string;
+  mapHelp: string;
   locate: string;
   locateFailed: string;
   notFound: string;
@@ -39,7 +42,15 @@ const TYPES: readonly AddressType[] = ["HOME", "OFFICE", "OTHER"];
  * is not saved, and the dialog says so. `CURRENT_LOCATION` is kept on an
  * address that already has it and never offered for a new one — it is what
  * the app sets from the device.
+ *
+ * **The pin is the precise part** (Phase 20b, the old app's `locationPicker`).
+ * A geocoded street is a building's centroid at best; a customer who lives
+ * behind one, or at an entrance the geocoder does not know, moves the map and
+ * the pin's coordinates are what the rider is sent to. Moving it wins over the
+ * geocoder for this save; "Use my current location" takes the lead back,
+ * because that is a newer statement of where they are.
  */
+const LISBON = { latitude: 38.7223, longitude: -9.1393 };
 export function AddressFormModal({
   open,
   onOpenChange,
@@ -78,6 +89,45 @@ export function AddressFormModal({
   } | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  // Where the customer put the pin, if they moved it at all.
+  const [pinned, setPinned] = useState<{ latitude: number; longitude: number } | null>(
+    null,
+  );
+  const mapRef = useRef<HTMLDivElement | null>(null);
+
+  const start =
+    address?.latitude && address?.longitude
+      ? { latitude: address.latitude, longitude: address.longitude }
+      : LISBON;
+
+  useEffect(() => {
+    if (!open) return;
+    const element = mapRef.current;
+    if (!element) return;
+    let picker: { dispose: () => void } | null = null;
+    let live = true;
+    void (async () => {
+      try {
+        const { mountPinPicker } = await import("@/services/maps/browser");
+        const mounted = await mountPinPicker(element, start, locale, (position) =>
+          setPinned(position),
+        );
+        if (live) picker = mounted;
+        else mounted.dispose();
+      } catch (error) {
+        // No key, a blocked script, an offline device: the form still saves,
+        // on the geocoded address. The frame stays empty rather than claiming
+        // a map that is not there.
+        console.error("[address] the map could not be loaded", error);
+      }
+    })();
+    return () => {
+      live = false;
+      picker?.dispose();
+    };
+    // The map is mounted once per opening; `start` is read at that moment.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, locale]);
   const set = (key: keyof AddressInput) => (event: { target: { value: string } }) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -95,9 +145,10 @@ export function AddressFormModal({
         .join(", ");
       const { geocodeAddress } = await import("@/services/maps/browser");
       const place =
-        located && located.street === form.street
+        pinned ??
+        (located && located.street === form.street
           ? located
-          : await geocodeAddress(query, locale).catch(() => null);
+          : await geocodeAddress(query, locale).catch(() => null));
       if (!place) {
         setNotice(copy.notFound);
         setBusy(false);
@@ -149,6 +200,7 @@ export function AddressFormModal({
         const street = label.split(",")[0]?.trim() || label;
         setForm((current) => ({ ...current, street }));
         setLocated({ latitude: coords.latitude, longitude: coords.longitude, street });
+        setPinned(null);
         setBusy(false);
       },
       () => {
@@ -172,6 +224,24 @@ export function AddressFormModal({
       closeLabel={copy.close}
       className="w-[min(40rem,calc(100vw-2rem))]"
     >
+      <section className="flex flex-col gap-2">
+        <h3 className="text-14 text-ink-muted font-semibold uppercase">
+          {copy.mapLabel}
+        </h3>
+        <div className="rounded-16 border-line relative h-56 overflow-hidden border">
+          <div ref={mapRef} className="bg-surface-muted size-full" />
+          {/* The pin is the frame's centre, drawn over the map rather than on
+              it: what moves is the map beneath it. */}
+          <span
+            aria-hidden
+            className="text-brand pointer-events-none absolute inset-0 flex items-center justify-center pb-6"
+          >
+            <Icon name="location" className="size-8 drop-shadow" />
+          </span>
+        </div>
+        <p className="text-14 text-ink-muted">{copy.mapHelp}</p>
+      </section>
+
       <div role="radiogroup" aria-label={copy.type} className="flex flex-wrap gap-2">
         {types.map((type) => (
           <label

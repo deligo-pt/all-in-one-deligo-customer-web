@@ -6,10 +6,43 @@ import {
   type VendorPage,
 } from "@/features/food";
 import { getLocale, getTranslations } from "@/i18n/server";
+import type { Translator } from "@/i18n/translator";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
+import type { LocationModalCopy } from "@/components/shared/LocationModal";
 import { foodCatalog } from "@/services/catalog/food";
-import { getDeliveryLocation } from "@/services/location/server";
+import { getDeliveryContext } from "@/services/location/server";
+
+/** The picker's copy: the dialog's own strings plus the hero address bar's,
+ *  which is its bottom half. */
+function locationCopy(
+  t: Translator<"food">,
+  common: Translator<"common">,
+): LocationModalCopy {
+  return {
+    title: t("locationTitle"),
+    body: t("locationBody"),
+    askTitle: t("locationAskTitle"),
+    askBody: t("locationAskBody"),
+    askLater: t("locationAskLater"),
+    close: common("close"),
+    savedTitle: t("locationSaved"),
+    active: t("locationActive"),
+    elsewhereTitle: t("locationElsewhere"),
+    addNew: t("locationAddNew"),
+    failed: t("locationFailed"),
+    form: {
+      addressLabel: t("addressLabel"),
+      addressPlaceholder: t("addressPlaceholder"),
+      locateMe: t("locateMe"),
+      notFound: t("locationNotFound"),
+      denied: t("locationDenied"),
+      unavailable: t("locationUnavailable"),
+      position: t("locationPosition"),
+      currentLocation: t("currentLocation"),
+    },
+  };
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("food");
@@ -29,10 +62,11 @@ export default async function RestaurantsPage({
 }: {
   searchParams: Promise<{ cuisine?: string | string[] }>;
 }) {
-  const [t, locale, location, query] = await Promise.all([
+  const [t, common, locale, { location, choices }, query] = await Promise.all([
     getTranslations("food"),
+    getTranslations("common"),
     getLocale(),
-    getDeliveryLocation(),
+    getDeliveryContext(),
     searchParams,
   ]);
   const cuisine = typeof query.cuisine === "string" ? query.cuisine : undefined;
@@ -82,6 +116,9 @@ export default async function RestaurantsPage({
       address={location?.label || (location ? t("currentLocation") : undefined)}
       countLabel={page.countLabel}
       changeHref={withLocale(ROUTES.food.path, locale)}
+      choices={choices}
+      addAddressHref={withLocale(ROUTES.addresses.path, locale)}
+      locationCopy={locationCopy(t, common)}
       unavailable={unavailable}
     />
   );

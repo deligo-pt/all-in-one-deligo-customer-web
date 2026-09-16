@@ -21,14 +21,24 @@ export type RawVendor = {
     restaurantCuisineType?: string[];
     openingHours?: string;
     closingHours?: string;
+    /** English day names — "Friday" (measured). */
+    closingDays?: string[];
+    preparationTimeMinutes?: number;
+    NIF?: string;
+    companyLegalName?: string;
     isStoreOpen?: boolean;
   };
   businessLocation?: {
     street?: string;
     city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
     latitude?: number;
     longitude?: number;
   };
+  email?: string;
+  contactNumber?: string;
   storePhoto?: string[];
   documents?: { storePhoto?: string[] };
   rating?: { average?: number; totalReviews?: number };
