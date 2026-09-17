@@ -45,6 +45,7 @@ export function storeCopy(t: T, food: T, cart: T): StoreViewCopy {
         increase: cart("increaseQuantity"),
         decrease: cart("decreaseQuantity"),
         itemImage: cart("itemImage"),
+        addons: cart("addons"),
       },
       charge: {
         subtotal: cart("chargeSubtotal"),

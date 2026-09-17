@@ -60,6 +60,7 @@ export default async function OrderPage({
       order={order}
       cartHref={withLocale(ROUTES.cart.path, locale)}
       supportHref={withLocale(ROUTES.support.path, locale)}
+      locale={locale}
       ordersHref={withLocale(ROUTES.orders.path, locale)}
       copy={await orderDetailCopy(order.rider?.name)}
     />

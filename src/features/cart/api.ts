@@ -23,6 +23,22 @@ export const cartApi: CartTransport = {
       items: [{ ...target(line), quantity }],
     });
   },
+  async setAddonQuantity(line, optionSku, quantity) {
+    const { browserApi } = await session();
+    await browserApi().post("/carts/add-to-cart", {
+      items: [
+        {
+          ...target(line),
+          // Required, and it is a **set**: leaving it out resets the line to
+          // one. The old app learned this the expensive way.
+          quantity: line.quantity,
+          // Merged by `optionSku`, so the add-ons not named here survive.
+          // Zero removes this one.
+          addons: [{ optionSku, quantity }],
+        },
+      ],
+    });
+  },
   async remove(lines) {
     if (!lines.length) return;
     const { browserApi } = await session();

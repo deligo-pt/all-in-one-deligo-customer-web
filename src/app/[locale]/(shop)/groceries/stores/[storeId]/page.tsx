@@ -81,6 +81,7 @@ export default async function GroceryStorePage({
         increase: cart("increaseQuantity"),
         decrease: cart("decreaseQuantity"),
         itemImage: cart("itemImage"),
+        addons: cart("addons"),
       },
       charge: {
         subtotal: cart("chargeSubtotal"),

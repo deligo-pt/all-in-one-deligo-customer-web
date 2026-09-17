@@ -18,7 +18,18 @@ type Geocoder = {
 type MapHandle = {
   getCenter: () => LatLng | undefined;
   addListener: (event: string, handler: () => void) => { remove: () => void };
+  fitBounds: (bounds: BoundsHandle, padding?: number) => void;
+  setCenter: (position: { lat: number; lng: number }) => void;
 };
+type BoundsHandle = { extend: (position: { lat: number; lng: number }) => void };
+type PolylineOptions = {
+  path: { lat: number; lng: number }[];
+  map: MapHandle;
+  strokeColor?: string;
+  strokeOpacity?: number;
+  strokeWeight?: number;
+};
+type PolylineHandle = { setMap: (map: MapHandle | null) => void };
 type MapOptions = {
   center: { lat: number; lng: number };
   zoom: number;
@@ -37,10 +48,12 @@ type MapsApi = {
   importLibrary: ((name: "geocoding") => Promise<{ Geocoder: new () => Geocoder }>) &
     ((name: "maps") => Promise<{
       Map: new (element: HTMLElement, options: MapOptions) => MapHandle;
+      Polyline: new (options: PolylineOptions) => PolylineHandle;
     }>) &
     ((
       name: "marker",
-    ) => Promise<{ Marker: new (options: MarkerOptions) => MarkerHandle }>);
+    ) => Promise<{ Marker: new (options: MarkerOptions) => MarkerHandle }>) &
+    ((name: "core") => Promise<{ LatLngBounds: new () => BoundsHandle }>);
 };
 
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -65,6 +78,32 @@ function loadMaps(locale: string): Promise<MapsApi> {
     document.head.appendChild(script);
   });
   return loader;
+}
+
+/**
+ * Waits for the map to actually paint.
+ *
+ * A key whose referrer allowlist does not include this origin answers
+ * `RefererNotAllowedMapError` — which Google logs to the console and reports
+ * nowhere our code can catch. The constructor resolves, no exception is
+ * thrown, and the frame stays grey for ever. Measured twice: on a production
+ * preview in Phase 20d, and again here on a second dev port.
+ *
+ * `tilesloaded` is the proof that a map exists. Nothing within ten seconds is
+ * treated as a failure, so the caller can say so instead of showing a box.
+ */
+function painted(map: MapHandle): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const listener = map.addListener("tilesloaded", () => {
+      clearTimeout(timer);
+      listener.remove();
+      resolve();
+    });
+    const timer = setTimeout(() => {
+      listener.remove();
+      reject(new Error("maps-blank"));
+    }, 10_000);
+  });
 }
 
 export type Geocoded = { latitude: number; longitude: number; label: string };
@@ -177,5 +216,97 @@ export async function mountStoreMap(
     gestureHandling: "cooperative",
   });
   const marker = new Marker({ position, map, title: place.title });
+  await painted(map);
   return { dispose: () => marker.setMap(null) };
+}
+
+/** One labelled point on the tracking map. */
+export type TrackedPoint = {
+  latitude: number;
+  longitude: number;
+  label?: string;
+  /** The pin's colour — the brand pink for the rider, ink for the ends. */
+  colour?: string;
+};
+
+/**
+ * The order tracking map (Phase 20f) — the design's `live track` frame: the
+ * route drawn between the two ends, a pin on each, and the rider's own pin
+ * moving along it.
+ *
+ * The straight line is honest about what it is. A driving route would need the
+ * Directions API — a second product, a second quota, and a road path the rider
+ * may not be taking anyway. What the customer needs from this screen is where
+ * their food is and roughly how far, and a line between the two answers that
+ * without inventing a journey.
+ *
+ * The camera fits every point it was given, so an order with no rider yet
+ * still frames the store and the door.
+ */
+export async function mountTrackingMap(
+  element: HTMLElement,
+  points: readonly TrackedPoint[],
+  locale: string,
+): Promise<PinPicker> {
+  if (points.length === 0) throw new Error("tracking-no-points");
+  const maps = await loadMaps(locale);
+  const [{ Map }, { Marker }, { LatLngBounds }] = await Promise.all([
+    maps.importLibrary("maps"),
+    maps.importLibrary("marker"),
+    maps.importLibrary("core"),
+  ]);
+
+  const positions = points.map((p) => ({ lat: p.latitude, lng: p.longitude }));
+  const map = new Map(element, {
+    center: positions[0]!,
+    zoom: 14,
+    disableDefaultUI: true,
+    zoomControl: true,
+    clickableIcons: false,
+    gestureHandling: "cooperative",
+  });
+
+  const markers = points.map(
+    (point, index) =>
+      new Marker({ position: positions[index]!, map, title: point.label }),
+  );
+
+  let line: PolylineHandle | null = null;
+  if (positions.length > 1) {
+    const { Polyline } = await maps.importLibrary("maps");
+    // The route is drawn in the brand role, read from the stylesheet rather
+    // than written here: a hex in this file is a colour that no longer has a
+    // name and will not follow the token when it changes (`verify:design`).
+    const brand = getComputedStyle(document.documentElement)
+      .getPropertyValue("--dg-brand")
+      .trim();
+    line = new Polyline({
+      path: positions,
+      map,
+      ...(brand ? { strokeColor: brand } : {}),
+      strokeOpacity: 0.9,
+      strokeWeight: 4,
+    });
+  }
+
+  if (positions.length > 1) {
+    const bounds = new LatLngBounds();
+    positions.forEach((position) => bounds.extend(position));
+    // 48px of padding, so a pin at the edge is not half under the frame.
+    map.fitBounds(bounds, 48);
+  }
+
+  const handle = {
+    dispose: () => {
+      markers.forEach((marker) => marker.setMap(null));
+      line?.setMap(null);
+    },
+  };
+  try {
+    await painted(map);
+  } catch (error) {
+    handle.dispose();
+    throw error;
+  }
+  return handle;
 }

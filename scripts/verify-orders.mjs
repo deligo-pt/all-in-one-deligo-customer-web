@@ -408,6 +408,64 @@ check(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+section("\u00a77  The tracking map (Phase 20f)");
+
+const orderMap = read(join(FEATURE, "OrderMap.tsx"));
+const mapDetail = detail;
+const server = read(join(SRC, "services", "orders", "server.ts"));
+const maps = read(join(SRC, "services", "maps", "browser.ts"));
+
+check(
+  "the rider's GeoJSON pair is swapped exactly once, where it is read",
+  /point\(rider\?\.\[1\], rider\?\.\[0\]\)/.test(server),
+  "`currentSessionLocation.coordinates` is [longitude, latitude] — the reverse of every other pair in this codebase, and the difference between a rider in Lisbon and a rider in the Atlantic.",
+);
+
+check(
+  "a point the API did not place is absent, and 0,0 is not a place",
+  /latitude !== 0 \|\| longitude !== 0/.test(server),
+  "An unset coordinate arrives as zero, and zero/zero is in the Gulf of Guinea.",
+);
+
+check(
+  "a pickup order and a finished one have no route",
+  /pickup \|\| ended \? undefined : route\(/.test(server),
+  "Nobody is carrying a pickup order, and a delivered one is not moving. A map there is a map of nothing.",
+);
+
+check(
+  "the map is loaded on demand, not with the order page",
+  /dynamic\(\(\) => import\("\.\/OrderMap"\)/.test(mapDetail),
+  "Google Maps is ~90 KB; an order with no route must not pay for it. The same rule as the location picker and the store dialog.",
+);
+
+check(
+  "the map mounts from a callback ref",
+  /useState<HTMLDivElement \| null>\(null\)/.test(orderMap) &&
+    /ref=\{setFrame\}/.test(orderMap),
+  "Phase 20d: inside a panel that mounts in one commit, an effect over a `useRef` runs before the node is attached and the map silently never loads.",
+);
+
+check(
+  "a moved rider redraws the map, and nothing else does",
+  /const signature = \[store, destination, rider\]/.test(orderMap) &&
+    !/setInterval/.test(orderMap),
+  "The detail already polls every 30s; a second clock here would only disagree with it, and a render of the page around it must not rebuild the map.",
+);
+
+check(
+  "a map that never paints counts as a failure",
+  /tilesloaded/.test(maps) && /maps-blank/.test(maps),
+  "`RefererNotAllowedMapError` is logged by Google and thrown nowhere: the constructor resolves and the frame stays grey for ever. Measured twice.",
+);
+
+check(
+  "the pill says which of the two states the map is in",
+  /rider \? copy\.live : copy\.waiting/.test(orderMap),
+  '"Live tracking" over a map with no rider on it is a claim the screen cannot support.',
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 section("§6  The guard is wired in");
 
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));

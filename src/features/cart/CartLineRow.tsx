@@ -9,6 +9,8 @@ export type LineCopy = {
   increase: string;
   decrease: string;
   itemImage: string;
+  /** "Extras" — the heading over the add-on rows (Phase 20e). */
+  addons: string;
 };
 
 /**
@@ -28,6 +30,18 @@ export type LineCopy = {
  * already joins for the order screens, and it is rendered here beneath the
  * description.
  *
+ * ## The add-ons are rows, because they are editable (Phase 20e)
+ *
+ * `optionsLabel` still exists for the compact contexts — the vendor page's
+ * cart panel shows a line in a single row and has nowhere to put a control per
+ * add-on. Here each one gets its own stepper, because the old app let a
+ * customer drop one of two extra cheeses without rebuilding the line, and this
+ * one made them remove the dish and start again.
+ *
+ * The floor is **zero**, unlike the line's own stepper: removing an add-on is
+ * not removing the dish, so there is no separate control for it and no risk of
+ * one gesture meaning two things.
+ *
  * ## Neither control is disabled while the cart is not connected
  *
  * They press, the transport refuses, and the view says so. Phase 8 settled
@@ -37,12 +51,15 @@ export function CartLineRow({
   line,
   copy,
   onQuantityChange,
+  onAddonQuantityChange,
   onRemove,
   busy,
 }: {
   line: CartLine;
   copy: LineCopy;
   onQuantityChange: (lineId: string, quantity: number) => void;
+  /** Absent where add-ons are not editable; the rows then do not render. */
+  onAddonQuantityChange?: (lineId: string, optionSku: string, quantity: number) => void;
   onRemove: (lineId: string) => void;
   busy?: boolean;
 }) {
@@ -65,7 +82,36 @@ export function CartLineRow({
         {line.description ? (
           <p className="text-14 text-ink-warm mt-1 line-clamp-2">{line.description}</p>
         ) : null}
-        {line.optionsLabel ? (
+        {/* One or the other: the joined label where the row cannot be edited,
+            the editable list where it can. Both at once would print every
+            add-on twice. */}
+        {onAddonQuantityChange && line.addons.length > 0 ? (
+          <div className="mt-3 flex flex-col gap-2">
+            <p className="text-12 text-ink-muted font-semibold uppercase">
+              {copy.addons}
+            </p>
+            {line.addons.map((addon) => (
+              <div key={addon.sku} className="flex items-center justify-between gap-3">
+                <span className="text-12 text-ink-warm min-w-0 truncate">
+                  {addon.name}
+                  {addon.price ? (
+                    <span className="text-ink-muted"> · {addon.price}</span>
+                  ) : null}
+                </span>
+                <QuantityStepper
+                  value={addon.quantity}
+                  // Zero, and it removes the add-on: the dish stays.
+                  min={0}
+                  disabled={busy}
+                  onChange={(next) => onAddonQuantityChange(line.id, addon.sku, next)}
+                  quantityLabel={`${copy.quantity} — ${addon.name}`}
+                  increaseLabel={`${copy.increase} — ${addon.name}`}
+                  decreaseLabel={`${copy.decrease} — ${addon.name}`}
+                />
+              </div>
+            ))}
+          </div>
+        ) : line.optionsLabel ? (
           <p className="text-12 text-ink-muted mt-1">{line.optionsLabel}</p>
         ) : null}
 

@@ -151,6 +151,7 @@ export const CART_FIXTURE: CartStore = {
       description: UNIT,
       price: "18.50€",
       quantity: 1,
+      addons: [],
     },
   ],
   totals: {

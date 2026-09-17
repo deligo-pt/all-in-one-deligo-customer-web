@@ -65,6 +65,7 @@ export default async function OrdersStatesPage() {
             order={order}
             cartHref={cartHref}
             supportHref="#"
+            locale={locale}
             ordersHref="#"
             copy={detailCopy(t, c, order.rider?.name)}
             offlineNotice={offline}

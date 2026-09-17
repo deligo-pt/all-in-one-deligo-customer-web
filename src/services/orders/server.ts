@@ -1,4 +1,10 @@
-import type { AppNotification, NotificationGroup, Order } from "@/features/orders";
+import type {
+  AppNotification,
+  NotificationGroup,
+  Order,
+  OrderPoint,
+  OrderRoute,
+} from "@/features/orders";
 import { getLocale, getTranslations } from "@/i18n/server";
 import {
   formatCurrency,
@@ -43,6 +49,17 @@ type RawOrder = RawSummary & {
   deliveryPartnerId?: {
     name?: { firstName?: string; lastName?: string };
     profilePhoto?: string;
+    /** GeoJSON: `[longitude, latitude]`, and in that order. Present only
+     *  while the rider's session is live (the old app's tracking screen read
+     *  the same field). */
+    currentSessionLocation?: { coordinates?: number[] } | null;
+  } | null;
+  pickupAddress?: { latitude?: number; longitude?: number } | null;
+  deliveryAddress?: {
+    latitude?: number;
+    longitude?: number;
+    street?: string;
+    city?: string;
   } | null;
   deliveryOtp?: { code?: string; verifiedAt?: string | null } | null;
   pickup?: { code?: string; verifiedAt?: string | null } | null;
@@ -139,6 +156,8 @@ function toOrder(
         : undefined,
     image:
       items.find((item) => item.image)?.image || vendor?.documents?.storePhoto?.[0],
+    route:
+      pickup || ended ? undefined : route(raw, vendor?.businessDetails?.businessName),
     rider: riderName
       ? { name: riderName, photo: rider?.profilePhoto || undefined }
       : undefined,
@@ -179,6 +198,47 @@ const PAGE = 100;
 const MAX_PAGES = 10;
 
 /** Every order, newest first (the API's order), page by page. */
+/**
+ * The map's three points (Phase 20f).
+ *
+ * The rider's position is GeoJSON — `[longitude, latitude]`, in that order,
+ * which is the reverse of every other coordinate pair in this codebase and
+ * exactly the kind of thing that puts a rider in the Atlantic. It is read
+ * through `point()` so the swap happens in one place.
+ *
+ * A point the API did not send is simply absent: the map draws what it was
+ * given and says so when that is nothing.
+ */
+const point = (
+  latitude: unknown,
+  longitude: unknown,
+  label?: string,
+): OrderPoint | undefined =>
+  typeof latitude === "number" &&
+  typeof longitude === "number" &&
+  Number.isFinite(latitude) &&
+  Number.isFinite(longitude) &&
+  (latitude !== 0 || longitude !== 0)
+    ? { latitude, longitude, ...(label ? { label } : {}) }
+    : undefined;
+
+function route(raw: RawOrder, storeName?: string): OrderRoute | undefined {
+  const rider = raw.deliveryPartnerId?.currentSessionLocation?.coordinates;
+  const built: OrderRoute = {
+    store: point(raw.pickupAddress?.latitude, raw.pickupAddress?.longitude, storeName),
+    destination: point(
+      raw.deliveryAddress?.latitude,
+      raw.deliveryAddress?.longitude,
+      [raw.deliveryAddress?.street, raw.deliveryAddress?.city]
+        .filter(Boolean)
+        .join(", "),
+    ),
+    // GeoJSON order: longitude first.
+    rider: point(rider?.[1], rider?.[0]),
+  };
+  return built.store || built.destination || built.rider ? built : undefined;
+}
+
 export async function readOrders(): Promise<Order[]> {
   const [api, locale, t, checkout] = await Promise.all([
     serverApi(),

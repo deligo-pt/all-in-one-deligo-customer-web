@@ -40,6 +40,10 @@ export type Order = {
   eta?: string;
   image?: string;
   rider?: OrderRider;
+  /** Where the order is coming from, going to, and — while a rider carries it
+   *  — where the rider is (Phase 20f). Absent on anything the API has not
+   *  placed: a pickup order, an order with no coordinates, a finished one. */
+  route?: OrderRoute;
   /** The code the rider asks for, until it is verified. Never generated. */
   deliveryCode?: string;
   /** The code shown at the counter on a pickup order, until it is verified. */
@@ -98,4 +102,25 @@ export type OrdersTransport = {
   markRead(id: string): Promise<void>;
   /** `PATCH /notifications/mark-all-as-read`. */
   markAllRead(): Promise<void>;
+};
+
+/**
+ * The three points a delivery draws (Phase 20f).
+ *
+ * The rider is the only one that moves, and it is absent far more often than
+ * it is present: before assignment there is no rider, and the API only carries
+ * a position while a rider's session is live. A map with two points and no
+ * rider is still worth drawing — it is the answer to "where is this going".
+ */
+export type OrderRoute = {
+  store?: OrderPoint;
+  destination?: OrderPoint;
+  rider?: OrderPoint;
+};
+
+export type OrderPoint = {
+  latitude: number;
+  longitude: number;
+  /** "Tasca do Bairro", "Rua Augusta 145" — the marker's title. */
+  label?: string;
 };

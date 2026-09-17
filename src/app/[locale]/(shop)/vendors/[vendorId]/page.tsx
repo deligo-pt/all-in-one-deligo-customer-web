@@ -99,6 +99,7 @@ export default async function VendorPage({
         increase: cartT("increaseQuantity"),
         decrease: cartT("decreaseQuantity"),
         itemImage: cartT("itemImage"),
+        addons: cartT("addons"),
       },
       charge: {
         subtotal: cartT("chargeSubtotal"),

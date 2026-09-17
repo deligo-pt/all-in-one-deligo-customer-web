@@ -23,8 +23,16 @@ const STORE: CartStore = {
       name: "Truffle Mushroom Burger",
       price: "11.60€",
       quantity: 1,
+      addons: [],
     },
-    { id: "l2", productId: "fries", name: "Fries", price: "4.00€", quantity: 1 },
+    {
+      id: "l2",
+      productId: "fries",
+      name: "Fries",
+      price: "4.00€",
+      quantity: 1,
+      addons: [],
+    },
   ],
   totals: {
     total: "18.83€",
@@ -59,6 +67,13 @@ export const LIVE_ORDER: Order = {
   bucket: "ongoing",
   statusLabel: "On the way",
   fulfilment: "delivery",
+  // Lisbon: the restaurant, the door, and a rider between them — so the
+  // states page can show the Phase 20f map with no session and no order.
+  route: {
+    store: { latitude: 38.7139, longitude: -9.1394, label: "Tasca do Bairro" },
+    destination: { latitude: 38.7223, longitude: -9.1449, label: "Rua Augusta 145" },
+    rider: { latitude: 38.7178, longitude: -9.1421 },
+  },
   step: "on-way",
   eta: "ETA: 12 min",
   deliveryCode: "482193",

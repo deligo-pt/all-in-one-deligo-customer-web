@@ -77,6 +77,7 @@ export function menuCopy(
         increase: cart("increaseQuantity"),
         decrease: cart("decreaseQuantity"),
         itemImage: cart("itemImage"),
+        addons: cart("addons"),
       },
       charge: {
         subtotal: cart("chargeSubtotal"),

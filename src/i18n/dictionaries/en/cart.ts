@@ -38,6 +38,7 @@ const cart = {
   quantity: "Quantity",
   increaseQuantity: "Increase quantity",
   decreaseQuantity: "Decrease quantity",
+  addons: "Extras",
   itemImage: "Item photograph",
 
   // ── The order summary ────────────────────────────────────────────────────

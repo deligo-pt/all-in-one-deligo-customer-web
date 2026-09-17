@@ -12,6 +12,10 @@ import { downloadInvoice } from "@/services/orders/browser";
 import { ordersApi } from "./api";
 import type { CancelCopy } from "./CancelModal";
 import { OrderTracker, type TrackerCopy } from "./OrderTracker";
+import type { OrderMapCopy } from "./OrderMap";
+
+// Google Maps is ~90 KB and only a delivery in flight has anywhere to put it.
+const OrderMap = dynamic(() => import("./OrderMap").then((m) => m.OrderMap));
 import type { ReviewCopy } from "./ReviewModal";
 import { ORDER_STEPS, type Order, type RefundState } from "./types";
 
@@ -34,6 +38,7 @@ export type OrderDetailCopy = {
   summary: SummaryCopy;
   review: ReviewCopy;
   cancelDialog: CancelCopy;
+  map: OrderMapCopy;
   riderTitle: string;
   riderImage: string;
   deliveryCode: string;
@@ -68,11 +73,14 @@ export function OrderDetail({
   cartHref,
   supportHref,
   ordersHref,
+  locale,
   copy,
   offlineNotice,
 }: {
   order: Order;
   cartHref: string;
+  /** The map's language — Google labels its own tiles. */
+  locale: string;
   /** Support, for "Report an issue"; the order is added here. */
   supportHref: string;
   /** The list this order belongs to — the way back. */
@@ -160,6 +168,12 @@ export function OrderDetail({
                 <p className="text-14 text-ink-muted">{copy.refund[order.refund]}</p>
               ) : null}
             </section>
+          ) : null}
+
+          {/* The map sits above the tracker, as the design's `live track`
+              frame does: where the food is, then how far along it is. */}
+          {order.route ? (
+            <OrderMap route={order.route} locale={locale} copy={copy.map} />
           ) : null}
 
           {order.step ? (

@@ -58,8 +58,31 @@ export type CartLine = {
   price: string;
   quantity: number;
   /** "Large · Extra cheese" — the chosen options, joined by the API. Without
-   *  it two lines of the same dish are indistinguishable on screen. */
+   *  it two lines of the same dish are indistinguishable on screen. Kept for
+   *  the compact contexts (the vendor page's cart panel) that show a line in
+   *  one row and cannot afford a control per add-on. */
   optionsLabel?: string;
+  /** The add-ons as rows, each with its own quantity (Phase 20e). */
+  addons: readonly CartAddon[];
+};
+
+/**
+ * One add-on on a cart line — "Extra cheese ×2" (Phase 20e).
+ *
+ * The old app let a customer change this from the cart; the new one made them
+ * remove the line and build it again. The `sku` is the **option's** sku, which
+ * is what `/carts/add-to-cart` merges on.
+ *
+ * `price` is the API's own line total for this add-on, formatted once on the
+ * server. Nothing here multiplies a unit price by a quantity: that is the
+ * backend's arithmetic, and `verify:cart` fails on any of it in this feature.
+ */
+export type CartAddon = {
+  sku: string;
+  name: string;
+  quantity: number;
+  /** "1,50 €" — the add-on's own total, when the API sends one. */
+  price?: string;
 };
 
 /**
@@ -167,6 +190,15 @@ export type CartTransport = {
   /** `POST /carts/add-to-cart` — **sets** the quantity; it never adds to it.
    *  Omitting `addons` keeps a line's add-ons. Zero is rejected. */
   setQuantity(line: CartLine, quantity: number): Promise<void>;
+  /**
+   * One add-on's quantity on one line; zero removes that add-on (Phase 20e).
+   *
+   * The same endpoint, and two of its properties decide the call's shape: it
+   * **merges** add-ons by `optionSku`, so the ones left out survive, and the
+   * line's own `quantity` is required — sending the add-on alone would reset
+   * the line to one. So the line's current quantity travels with it.
+   */
+  setAddonQuantity(line: CartLine, optionSku: string, quantity: number): Promise<void>;
   /** `DELETE /carts/delete-item` — one request for any number of lines. */
   remove(lines: readonly CartLine[]): Promise<void>;
   /** `PATCH /carts/toggle-item-status` with `VENDOR_BULK` — only when the

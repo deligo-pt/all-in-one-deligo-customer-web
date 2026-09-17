@@ -32,6 +32,7 @@ const STORE: CartStore = {
       description: "Double beef patty, cheddar, house sauce.",
       price: "9.90€",
       quantity: 1,
+      addons: [],
     },
     {
       id: "line-2",
@@ -40,6 +41,7 @@ const STORE: CartStore = {
       description: "Double beef patty, cheddar, house sauce.",
       price: "9.90€",
       quantity: 1,
+      addons: [],
     },
   ],
   totals: {

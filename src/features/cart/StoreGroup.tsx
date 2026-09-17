@@ -57,6 +57,7 @@ export function StoreGroup({
   onSelect,
   groupName,
   onQuantityChange,
+  onAddonQuantityChange,
   onRemove,
   busy,
 }: {
@@ -69,6 +70,7 @@ export function StoreGroup({
   /** Shared by every radio in the list — that is what makes them one group. */
   groupName: string;
   onQuantityChange: (lineId: string, quantity: number) => void;
+  onAddonQuantityChange?: (lineId: string, optionSku: string, quantity: number) => void;
   onRemove: (lineId: string) => void;
   busy?: boolean;
 }) {
@@ -104,8 +106,11 @@ export function StoreGroup({
             />
             {selected ? copy.selectedStore : copy.selectStore}
           </label>
+          {/* "1 item · 8.00€" — the count and this store's own total, the
+              line the old app's store card carried. The total is the API's
+              per-store number; nothing here adds up a column. */}
           <Badge tone="neutral" className="text-14">
-            {itemsLabel}
+            {store.subtotal ? `${itemsLabel} · ${store.subtotal}` : itemsLabel}
           </Badge>
         </div>
       </header>
@@ -118,28 +123,20 @@ export function StoreGroup({
             copy={copy}
             busy={busy}
             onQuantityChange={onQuantityChange}
+            onAddonQuantityChange={onAddonQuantityChange}
             onRemove={onRemove}
           />
         ))}
       </div>
 
-      <footer className="border-line flex flex-wrap items-center justify-between gap-4 border-t pt-4">
-        {store.deliveryEstimate ? (
+      {store.deliveryEstimate ? (
+        <footer className="border-line border-t pt-4">
           <p className="text-14 text-ink-warm flex items-center gap-2 font-medium">
             <Icon name="clock" className="text-brand-strong size-4" />
             {`${copy.deliveryEstimate} ${store.deliveryEstimate}`}
           </p>
-        ) : (
-          <span />
-        )}
-        {/* The store's own number, printed. Nothing on this screen adds up a
-            column of prices — see `types.ts`. */}
-        {store.subtotal ? (
-          <p className="text-24 text-ink-strong font-semibold">
-            {`${copy.subtotal}: ${store.subtotal}`}
-          </p>
-        ) : null}
-      </footer>
+        </footer>
+      ) : null}
     </section>
   );
 }

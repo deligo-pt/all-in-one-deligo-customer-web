@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -32,7 +36,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   // Generated route types come from ONE directory, and it is the one
@@ -50,7 +56,9 @@
     ".next-build/types/**/*.ts",
     ".next-build/dev/types/**/*.ts",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    ".next-dev-check/types/**/*.ts",
+    ".next-dev-check/dev/types/**/*.ts"
   ],
   // `.next/` is excluded, and `exclude` is used rather than trimming `include`
   // because `next typegen` and `next build` rewrite `include` and put
@@ -63,5 +71,8 @@
   // errors about files that have moved — "Cannot find module
   // '../../src/app/page.js'" for a page that is now under `[locale]`.
   // One generator, one directory: the one this project's own scripts refresh.
-  "exclude": ["node_modules", ".next"]
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }

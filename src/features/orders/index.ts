@@ -14,6 +14,8 @@ export type {
   Fulfilment,
   NotificationGroup,
   Order,
+  OrderPoint,
+  OrderRoute,
   OrderBucket,
   OrderRider,
   OrderStep,
