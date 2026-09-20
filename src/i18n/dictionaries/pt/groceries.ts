@@ -25,9 +25,6 @@ const groceries = {
     "Experimente uma palavra mais curta ou limpe a pesquisa para ver toda a loja.",
   storeEmpty: "Esta loja ainda não adicionou produtos",
   storeEmptyBody: "Volte em breve ou escolha outra loja perto de si.",
-  fulfilment: "Quando entregar",
-  modeInstant: "Imediata",
-  modeSchedule: "Agendar",
   checkout: "Finalizar compra",
   storeUnavailable: "Esta loja está indisponível de momento",
   storeUnavailableBody:

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
-import type { PlacedOrder } from "./types";
+import type { PlacedOrder } from "@/features/checkout";
 
 export type ConfirmedCopy = {
   title: string;

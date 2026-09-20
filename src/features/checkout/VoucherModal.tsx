@@ -15,7 +15,7 @@ export type VoucherCopy = {
   codePlaceholder: string;
   apply: string;
   applied: string;
-  terms: string;
+  remove: string;
   emptyTitle: string;
   emptyBody: string;
   unavailableTitle: string;
@@ -28,32 +28,36 @@ export type VoucherCopy = {
  * Measured: a sticky 73px header with the title at 20/600; a 56px code field
  * at 16px radius with an `APPLY` button inside it; then the list at 16 apart,
  * each card 20px radius with 16 inside. The applied card is drawn on a pink
- * wash with white `Applied` text, the available one on white with a `line-
- * subtle` border, and the unavailable one flat grey with its reason in red.
+ * wash, the available one on white with a `line-subtle` border, and the
+ * unavailable one flat grey with its reason in red.
  *
- * **No voucher ships.** `DELIGO20`, `FREEDELIVERY` and `WELCOME5` are the
- * design's sample content, and which of them a given customer can use is a
- * question about their order history and each voucher's own rules — three
- * things a frontend would be guessing at. The list renders whatever the API
- * returns and says so when it returns nothing; the populated design is at
- * `/checkout-states`.
+ * Every voucher, its terms and whether it applies are the API's
+ * (`/offers/available-offers/:id`); the reason an offer does not apply is the
+ * backend's own sentence. **Removing** a voucher has no endpoint: the checkout
+ * is rebuilt from the cart without it, which is what the old app did.
  */
 export function VoucherModal({
   open,
   onOpenChange,
   vouchers,
+  appliedCode,
   unavailable,
+  busy,
+  notice,
   onApply,
+  onRemove,
   copy,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   vouchers: readonly Voucher[];
-  /** The list could not be read at all — a different sentence from "you have
-   *  no vouchers", with a different fix, and only one of them is the
-   *  customer's. */
+  appliedCode?: string;
+  /** The list could not be read — a different sentence from "none apply". */
   unavailable?: boolean;
-  onApply: (code: string) => void;
+  busy?: boolean;
+  notice?: string | null;
+  onApply: (identifier: string) => void;
+  onRemove: () => void;
   copy: VoucherCopy;
 }) {
   const [code, setCode] = useState("");
@@ -72,19 +76,37 @@ export function VoucherModal({
             aria-label={copy.codeLabel}
             placeholder={copy.codePlaceholder}
             value={code}
-            onChange={(event) => setCode(event.target.value)}
+            onChange={(event) => setCode(event.target.value.toUpperCase())}
             className="h-10 border-none bg-transparent px-0"
           />
           <Button
             size="sm"
             variant="secondary"
             className="rounded-8"
-            disabled={code.trim().length === 0}
+            disabled={busy || code.trim().length === 0}
             onClick={() => onApply(code.trim())}
           >
             {copy.apply}
           </Button>
         </div>
+
+        {appliedCode ? (
+          <div className="bg-brand-pale rounded-16 flex items-center justify-between gap-4 px-4 py-3">
+            <span className="text-16 text-brand-deep font-semibold">{appliedCode}</span>
+            <Button
+              variant="link"
+              className="text-14 font-semibold"
+              disabled={busy}
+              onClick={onRemove}
+            >
+              {copy.remove}
+            </Button>
+          </div>
+        ) : null}
+
+        <p role="status" className="text-14 text-danger empty:hidden">
+          {notice}
+        </p>
 
         {unavailable ? (
           <EmptyState
@@ -101,8 +123,13 @@ export function VoucherModal({
         ) : (
           <ul className="flex flex-col gap-4">
             {vouchers.map((voucher) => (
-              <li key={voucher.code}>
-                <VoucherCard voucher={voucher} onApply={onApply} copy={copy} />
+              <li key={voucher.id}>
+                <VoucherCard
+                  voucher={voucher}
+                  busy={busy}
+                  onApply={onApply}
+                  copy={copy}
+                />
               </li>
             ))}
           </ul>
@@ -114,11 +141,13 @@ export function VoucherModal({
 
 function VoucherCard({
   voucher,
+  busy,
   onApply,
   copy,
 }: {
   voucher: Voucher;
-  onApply: (code: string) => void;
+  busy?: boolean;
+  onApply: (identifier: string) => void;
   copy: VoucherCopy;
 }) {
   const applied = voucher.state === "applied";
@@ -145,20 +174,19 @@ function VoucherCard({
                   : "text-ink-strong",
             ].join(" ")}
           >
-            {voucher.code}
+            {voucher.code ?? voucher.title}
           </p>
-          <p className="text-16 text-ink-warm">{voucher.description}</p>
-          {/* Verbatim. "You save €8.00" and "Min. order €20 · Use by Oct 5"
-              are the voucher's own terms, and nothing here recomputes one. */}
+          {voucher.code && voucher.title ? (
+            <p className="text-16 text-ink-strong font-medium">{voucher.title}</p>
+          ) : null}
+          {voucher.description ? (
+            <p className="text-16 text-ink-warm">{voucher.description}</p>
+          ) : null}
           {voucher.terms ? (
-            <p
-              className={[
-                "text-12 font-medium",
-                unavailable ? "text-danger" : "text-brand-strong",
-              ].join(" ")}
-            >
-              {voucher.terms}
-            </p>
+            <p className="text-12 text-brand-strong font-medium">{voucher.terms}</p>
+          ) : null}
+          {voucher.message ? (
+            <p className="text-12 text-danger font-medium">{voucher.message}</p>
           ) : null}
         </div>
 
@@ -170,14 +198,13 @@ function VoucherCard({
           <Button
             variant="link"
             className="text-14 shrink-0 font-semibold"
-            disabled={unavailable}
-            onClick={() => onApply(voucher.code)}
+            disabled={busy || unavailable}
+            onClick={() => onApply(voucher.identifier)}
           >
             {copy.apply}
           </Button>
         )}
       </div>
-      <p className="text-12 text-ink-muted font-medium">{copy.terms}</p>
     </article>
   );
 }

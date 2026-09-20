@@ -75,14 +75,13 @@ export default async function GroceryStorePage({
     cart: {
       title: food("yourCart"),
       empty: food("cartEmpty"),
-      modeLabel: t("fulfilment"),
-      mode: { instant: t("modeInstant"), schedule: t("modeSchedule") },
       line: {
         remove: cart("remove"),
         quantity: cart("quantity"),
         increase: cart("increaseQuantity"),
         decrease: cart("decreaseQuantity"),
         itemImage: cart("itemImage"),
+        addons: cart("addons"),
       },
       charge: {
         subtotal: cart("chargeSubtotal"),

@@ -298,15 +298,22 @@ check(
  * person to change the design's own number to keep a guard quiet, which is the
  * guard winning an argument it should not have been in.
  *
- * Sample content on a development-only page is exempt. Everything else — every
- * component, every route, every shipping module — still is not.
+ * Sample content on a development-only page is exempt. So is the published
+ * contact copy in the `content` dictionaries (Phase 20): "+351 920 136 680" is
+ * DeliGo's own telephone number, a fact about the company carried over from the
+ * old app, not a dial code anything prefixes a customer's number with.
+ * Everything else — every component, every route, every shipping module — is
+ * not.
  */
+const isContactCopy = (f) =>
+  /i18n[\\/]dictionaries[\\/](en|pt)[\\/]content\.ts$/.test(f);
 const isDevFixture = (f) =>
   DEV_ONLY_ROUTES.some((name) => rel(f).includes(`${sep}${name}${sep}`));
 
 const dialCodeElsewhere = [...code]
-  .filter(([f]) => f !== join(FEATURE, "countries.ts"))
+  .filter(([f]) => f !== join(SRC, "lib", "countries.ts"))
   .filter(([f]) => !isDevFixture(f))
+  .filter(([f]) => !isContactCopy(f))
   .filter(([, s]) => /\+351/.test(s))
   .map(([f]) => rel(f));
 check(

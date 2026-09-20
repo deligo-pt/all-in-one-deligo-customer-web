@@ -1,26 +1,34 @@
 /**
- * The account area's public surface.
+ * The account area's public surface (Phase 20).
  *
- * Two views cover six pages: the profile the design actually draws, and one
- * list view the addresses, cards, vouchers and referrals pages share. The
- * shell is exported because the settings page composes its own body inside it.
+ * The profile, the addresses screen, the shared list (cards, vouchers,
+ * referral history) and support chat, plus the shell the settings page
+ * composes its own body inside. The dialogs are internal and load on use.
  */
-export { AccountShell, type AccountNavItem } from "./AccountShell";
-export { ProfileView, type ProfileCopy } from "./ProfileView";
+export { AccountShell, type AccountNavItem } from "@/components/layout/AccountShell";
+export {
+  ProfileView,
+  type Preference,
+  type ProfileCopy,
+  type ProfileStat,
+} from "./ProfileView";
+export { AddressesView, type AddressesCopy } from "./AddressesView";
 export {
   AccountListView,
   type AccountListCopy,
   type AccountListRow,
 } from "./AccountListView";
-export { accountNav, type AccountNavLabels } from "./nav";
-export { notWiredAccount } from "./transport";
-export { AccountUnavailableError } from "./types";
+export { SupportView, type SupportCopy } from "./SupportView";
+export { accountNav, type AccountNavLabels } from "@/components/layout/accountNav";
 export type {
+  AccountAddress,
   AccountTransport,
-  Address,
-  EmergencyContact,
-  Preference,
+  AddressInput,
+  AddressType,
   Profile,
   Referral,
   SavedCard,
+  SupportMessage,
+  SupportThread,
+  Voucher,
 } from "./types";

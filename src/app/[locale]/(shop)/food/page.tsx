@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { VerticalHero } from "@/components/shared/VerticalHero";
 import { getLocale, getTranslations } from "@/i18n/server";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
+import { getDeliveryLocation } from "@/services/location/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("food");
@@ -20,7 +22,16 @@ export async function generateMetadata(): Promise<Metadata> {
  * placeholder field renders instead. See D-12.
  */
 export default async function FoodPage() {
-  const [t, locale] = await Promise.all([getTranslations("food"), getLocale()]);
+  const [t, locale, placed] = await Promise.all([
+    getTranslations("food"),
+    getLocale(),
+    getDeliveryLocation(),
+  ]);
+
+  // A customer we can already place is sent to the results rather than asked a
+  // question we know the answer to (Phase 20n). The listing carries the
+  // address picker on its delivery card, so this is a door and not a gate.
+  if (placed) redirect(withLocale(ROUTES.restaurants.path, locale));
 
   return (
     <VerticalHero

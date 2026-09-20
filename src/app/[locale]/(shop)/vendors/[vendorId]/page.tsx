@@ -25,10 +25,11 @@ export default async function VendorPage({
 }: {
   params: Promise<{ vendorId: string }>;
 }) {
-  const [{ vendorId }, t, cartT, locale] = await Promise.all([
+  const [{ vendorId }, t, cartT, common, locale] = await Promise.all([
     params,
     getTranslations("food"),
     getTranslations("cart"),
+    getTranslations("common"),
     getLocale(),
   ]);
 
@@ -68,6 +69,27 @@ export default async function VendorPage({
     noMatchesBody: t("noItemsBody"),
     noMenu: t("noMenu"),
     noMenuBody: t("noMenuBody"),
+    storeDetails: {
+      trigger: t("storeDetailsTrigger"),
+      subtitle: t("storeDetailsSubtitle"),
+      close: common("close"),
+      open: t("openNow"),
+      closed: t("closedNow"),
+      hours: t("storeHours"),
+      closingDays: t("storeClosingDays"),
+      preparation: t("storePreparation"),
+      address: t("storeAddress"),
+      phone: t("storePhone"),
+      email: t("storeEmail"),
+      nif: t("storeNif"),
+      contactTitle: t("contactInformation"),
+      otherTitle: t("otherDetails"),
+      legalName: t("legalEntityName"),
+      euCompliance: t("euCompliance"),
+      mapUnavailable: t("mapUnavailable"),
+      closingSoon: t("closingSoon"),
+      orderWithin: t("orderWithin"),
+    },
     cart: {
       title: t("yourCart"),
       empty: t("cartEmpty"),
@@ -77,6 +99,7 @@ export default async function VendorPage({
         increase: cartT("increaseQuantity"),
         decrease: cartT("decreaseQuantity"),
         itemImage: cartT("itemImage"),
+        addons: cartT("addons"),
       },
       charge: {
         subtotal: cartT("chargeSubtotal"),

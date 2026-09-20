@@ -1,23 +1,34 @@
 /** The checkout screen's words, in Portuguese. See `en/checkout.ts` for what
- *  each is for and why the payment methods are named here at all. */
+ *  each is for. */
 const checkout = {
   title: "Finalizar compra",
 
-  scheduleLabel: "Entrega agendada",
-  scheduleChange: "Alterar",
-  scheduleChoose: "Escolher hora de entrega",
-  scheduleChooseBody:
-    "Escolha um horário que lhe convenha, ou deixe assim e entregamos assim que possível.",
+  fulfilmentTitle: "Como quer receber?",
+  fulfilmentDelivery: "Entrega",
+  fulfilmentDeliveryBody: "Um estafeta leva à sua morada",
+  fulfilmentPickup: "Recolha na loja",
+  fulfilmentPickupBody: "Levante na loja, sem taxa de entrega",
+  pickupUnavailable: "Esta loja já não tem horários de recolha hoje",
+  pickupFrom: "Levantar em",
+  pickupTimeLabel: "Hora de recolha",
+  pickupChange: "Alterar hora",
+  pickupTitle: "Escolha a hora de recolha",
+  pickupBody:
+    "Escolha um intervalo de 30 minutos. O pedido fica pronto a levantar a partir do início.",
+  pickupToday: "Hoje",
+  pickupTomorrow: "Amanhã",
+  pickupNoSlots: "Sem horários de recolha neste dia",
+  pickupConfirm: "Confirmar hora de recolha",
 
   deliveryTitle: "Detalhes da entrega",
-  deliveryEdit: "Editar",
+  deliveryEdit: "Alterar",
   deliveryNoAddress: "Ainda sem morada de entrega",
   deliveryMapAlt: "Mapa da morada de entrega",
+  deliveryDetail: "{distance} km · {minutes} min",
   instructionTitle: "Instruções de entrega",
 
   paymentTitle: "Método de pagamento",
   paymentShowAll: "Ver todos",
-  paymentShowLess: "Ver menos",
   methodMbway: "MB WAY",
   methodMbwayBody: "Pagamento móvel instantâneo (Portugal)",
   methodCard: "Cartão de Crédito/Débito",
@@ -30,51 +41,50 @@ const checkout = {
   methodGooglePayBody: "Opção de pagamento com a carteira Google",
   methodOther: "Outros métodos de pagamento",
   methodOtherBody: "Opções alternativas",
+  savedCards: "Cartões guardados",
+  savedCardExpiry: "Válido até {expiry}",
+  newCard: "Usar outro cartão",
+  saveCard: "Guardar este cartão",
+  saveCardBody:
+    "Para pagar mais depressa da próxima vez. O cartão fica guardado pelo fornecedor de pagamento.",
+  gatewayNotice:
+    "Conclui o pagamento na página segura do fornecedor de pagamento e depois volta aqui.",
+  instantNotice: "Este cartão é cobrado de imediato, sem redirecionamento.",
+  chooseMethod: "Escolha primeiro como quer pagar.",
+  payNow: "Pagar agora",
 
-  cardNumber: "Número do cartão",
-  cardNumberPlaceholder: "0000 0000 0000 0000",
-  cardHolder: "Nome do titular",
-  cardHolderPlaceholder: "Introduza o nome como está no cartão",
-  cardExpiry: "Data de validade",
-  cardExpiryPlaceholder: "MM/AA",
-  cardCvv: "CVV",
-  cardCvvPlaceholder: "••••••",
-  cardNotice:
-    "Os dados do cartão são introduzidos no formulário seguro do fornecedor de pagamento, que chega numa fase posterior. Estes campos não recolhem nada.",
-
-  tipTitle: "Dar gorjeta ao estafeta",
-  tipLater: "Mais tarde",
-  tipLabel: "Gorjeta",
-
-  locationTitle: "Selecione a sua localização exata",
-  locationBody: "Mostramos-lhe os restaurantes perto de si",
-  locationAddressLabel: "Morada de entrega",
-  locationAddressPlaceholder: "Introduza a sua morada",
-  locationLocateMe: "Localizar-me",
-  locationConfirm: "Confirmar localização",
+  addressTitle: "Escolha uma morada de entrega",
+  addressBody:
+    "A encomenda é entregue na sua morada ativa. Escolher outra torna-a a sua morada ativa em toda a aplicação.",
+  addressActive: "Ativa",
+  addressHome: "Casa",
+  addressOffice: "Escritório",
+  addressCurrent: "Localização atual",
+  addressOther: "Outra",
+  addressEmpty: "Sem moradas guardadas",
+  addressEmptyBody: "Adicione uma morada à sua conta e volte à finalização da compra.",
 
   voucherTitle: "Aplicar um voucher",
   voucherCodeLabel: "Código do voucher",
   voucherCodePlaceholder: "Introduza o código do voucher",
   voucherApply: "Aplicar",
   voucherApplied: "Aplicado",
-  voucherTerms: "Termos e Condições",
-  voucherEmpty: "Sem vouchers disponíveis",
+  voucherRemove: "Remover voucher",
+  voucherEmpty: "Sem vouchers para esta encomenda",
   voucherEmptyBody:
-    "Não tem vouchers nesta conta neste momento. Ainda pode introduzir um código acima.",
-  voucherUnavailable: "Os vouchers ainda não estão disponíveis",
+    "Nenhuma das suas ofertas se aplica a esta loja neste momento. Ainda pode introduzir um código acima.",
+  voucherUnavailable: "Não foi possível carregar os vouchers",
   voucherUnavailableBody:
-    "Este painel está construído; os vouchers por trás dele são ligados numa fase posterior. Nada aqui são dados de exemplo.",
+    "Ainda pode introduzir um código acima, ou tentar de novo daqui a pouco.",
+  voucherPercent: "{value}% de desconto",
+  voucherFlat: "{amount} de desconto",
+  voucherBogo: "Compre {buy}, leve {get}",
+  voucherCap: "até {amount}",
+  voucherMin: "encomenda mín. {amount}",
+  voucherUntil: "até {date}",
 
-  scheduleTitle: "Entrega inteligente",
-  scheduleBody: "Escolha quando chega",
-  scheduleYourDelivery: "A sua entrega",
-  scheduleRecommended: "Recomendado:",
-  scheduleEmpty: "Sem janelas de entrega",
-  scheduleEmptyBody: "Não há nada para reservar nesta loja neste momento.",
-  scheduleUnavailable: "As janelas de entrega ainda não estão disponíveis",
-  scheduleUnavailableBody:
-    "Este seletor está construído; as janelas por trás dele são ligadas numa fase posterior.",
+  vatIncluded: "IVA incl. {amount}",
+  vatAdded: "+ IVA {amount}",
 
   confirmedTitle: "Pedido confirmado!",
   confirmedBody: "O seu pedido foi feito com sucesso.",
@@ -86,12 +96,31 @@ const checkout = {
   confirmedStayUpdatedBody:
     "Avisamos quando o seu pedido estiver a ser preparado, a caminho e entregue.",
   confirmedBackHome: "Voltar à página inicial",
+  confirmedClose: "Fechar",
+  paymentPaid: "Pago",
 
-  unavailableTitle: "A finalização da compra ainda não está ligada",
+  returnFinishing: "A concluir a sua encomenda…",
+  returnFailedTitle: "A sua encomenda não foi criada",
+  returnFailedBody:
+    "Se o pagamento foi feito, tente de novo: a encomenda é criada a partir da finalização, sem cobrar duas vezes.",
+  returnMissingTitle: "Nenhum pagamento pendente",
+  returnMissingBody:
+    "Este navegador não tem nenhuma compra à espera de pagamento. O que já encomendou está nas suas encomendas.",
+  retry: "Tentar de novo",
+  viewOrders: "Ver as minhas encomendas",
+  failedTitle: "Pagamento não concluído",
+  failedBody: "Nada foi encomendado. Pode pagar de novo a partir do carrinho.",
+  backToCart: "Voltar ao carrinho",
+
+  preparing: "A preparar a finalização da compra…",
+  emptyTitle: "Nada para finalizar",
+  emptyBody: "O seu carrinho não tem nenhuma loja selecionada para finalizar.",
+  unavailableTitle: "Não foi possível carregar a finalização",
   unavailableBody:
-    "Este ecrã está construído; os endpoints de encomenda e pagamento por trás dele são ligados numa fase posterior. Nada aqui são dados de exemplo — simplesmente não há nada para finalizar até que exista.",
-  notWired:
-    "A finalização da compra ainda não está ligada. Este controlo é real e o pedido que enviaria chega numa fase posterior — nenhuma encomenda foi feita e nada foi cobrado.",
+    "Não foi possível ler a encomenda agora. Nada foi cobrado; tente de novo.",
+  actionFailed: "Não foi possível concluir, e nada foi cobrado. Tente de novo.",
+  previewOnly:
+    "Esta é uma pré-visualização do design. Nada é enviado a partir desta página.",
 } satisfies Record<string, string>;
 
 export default checkout;

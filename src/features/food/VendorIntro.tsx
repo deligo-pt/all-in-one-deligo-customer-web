@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { ImageSlot } from "@/components/shared/ImageSlot";
 import { DealCard } from "./DealCard";
@@ -13,10 +14,14 @@ export function VendorIntro({
   vendor,
   dealsTitle,
   dealsSubtitle,
+  storeDetails,
 }: {
   vendor: Omit<VendorDetail, "menu">;
   dealsTitle: string;
   dealsSubtitle: string;
+  /** The store-details button and the closing countdown (Phase 20d). Absent
+   *  on a screen that has no dialog to open, such as the states page. */
+  storeDetails?: ReactNode;
 }) {
   const meta = [
     vendor.cuisines.join(" · ") || null,
@@ -57,6 +62,7 @@ export function VendorIntro({
             </span>
           ))}
         </p>
+        {storeDetails}
       </header>
 
       {vendor.deals.length ? (

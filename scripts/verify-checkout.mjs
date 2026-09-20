@@ -1,26 +1,22 @@
 #!/usr/bin/env node
 /**
- * Phase 10 guard — checkout.
+ * Phase 10 guard — checkout. Rewritten in Phase 18, when checkout went live.
  *
- * Every phase so far has been able to be wrong in public. This one can be
- * wrong in a bank statement.
+ * This one can be wrong in a bank statement. Phase 10 asserted that nothing
+ * could be ordered; Phase 18 connects the order and the payment, and the
+ * failures that matter change with it:
  *
- * `placeOrder` is the first call in this project that spends money, and the
- * failure it must never have is not a crash — it is a **stub that resolves**.
- * A checkout that answered its own request would put "Order Confirmed!", a
- * reference number and a total in front of a customer for an order that was
- * never placed, and it would look completely right doing it. §2 is that
- * assertion and it is the reason this file exists.
- *
- * The rest follows the shape the last three guards arrived at: money is never
- * computed, sample content cannot reach a shipping page, the screen says which
- * nothing it is showing, and the decisions that could be silently undone —
- * a radio group for payment, an inert card form, one summary panel shared with
- * the cart, four dialogs kept out of the first paint — are each asserted.
+ *  - **money taken, no order** — the customer pays on REDUNIQ's page and
+ *    nothing creates the order afterwards (the old app's `sessionStorage`
+ *    finish, lost in another tab). §2 is about that.
+ *  - **a second opinion on the amount** — any arithmetic between the backend's
+ *    summary and the screen. §1.
+ *  - **a card number in our DOM** (D-14), and **controls the API cannot take**
+ *    — a tip, a delivery window — pretending to work. §4.
  */
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { DEV_ONLY_ROUTES } from "./dev-only-routes.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -111,96 +107,161 @@ const read = (f) => (existsSync(f) ? stripComments(readFileSync(f, "utf8")) : ""
 const code = new Map(
   filesUnder(SRC).map((f) => [f, stripComments(readFileSync(f, "utf8"))]),
 );
+const load = (f) => import(pathToFileURL(join(SRC, f)).href);
 
-const featureFiles = filesUnder(FEATURE);
+const featureFiles = [
+  ...filesUnder(FEATURE),
+  ...filesUnder(join(SRC, "features", "payment")),
+];
 const types = read(join(FEATURE, "types.ts"));
-const transport = read(join(FEATURE, "transport.ts"));
+const transport = read(join(FEATURE, "api.ts"));
 const view = read(join(FEATURE, "CheckoutView.tsx"));
 const payment = read(join(FEATURE, "PaymentCard.tsx"));
 const map = read(join(FEATURE, "MapSlot.tsx"));
 const barrel = read(join(FEATURE, "index.ts"));
+const serverRead = read(join(SRC, "services", "checkout", "server.ts"));
+const checkoutBrowser = read(join(SRC, "services", "checkout", "browser.ts"));
+const pendingRoute = read(join(SRC, "app", "api", "checkout", "pending", "route.ts"));
+const completeRoute = read(join(SRC, "app", "api", "checkout", "complete", "route.ts"));
 const routePage = join(APP, "(checkout)", "checkout", "page.tsx");
+const statesPage = join(APP, "checkout-states", "page.tsx");
 const fixturePath = join(APP, "checkout-states", "fixture.ts");
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§1  The amount is the backend's, and this screen does no arithmetic");
+section("§1  The amount is the backend's, and nothing here does arithmetic");
 
 check(
-  "every money value on the contract is text",
-  // Checkout declares exactly one money field of its own — the total it
-  // reports back. Everything else it renders belongs to `CartStore`, which it
-  // re-exports rather than restating, so the first version of this rule looked
-  // for `subtotal`/`price` in a file that correctly does not contain them.
-  // Asserting the import is what covers the rest; §5 does that.
+  "every money value on the contract is text, and the store is the cart's",
   /total: string/.test(types) &&
     !/(?:subtotal|price|total|amount): number/.test(types) &&
     /import type \{ CartStore \} from "@\/features\/cart"/.test(types),
-  "This is the screen where `toFixed(2)` stops being a style question. A type that cannot hold a float cannot quietly re-derive the amount a customer is charged — and a second order type here, rather than the cart's, is how the two come to disagree about what is being bought.",
+  "A type that cannot hold a float cannot quietly re-derive the amount a customer is charged.",
 );
 
-check(
-  "the tip is an amount the customer picks, not a number the page adds",
-  /TIP_OPTIONS: readonly string\[\]/.test(read(join(FEATURE, "paymentMethods.ts"))),
-  "A tip changes the total, and the total comes back from the server with the tip already in it. Typing these as numbers is an invitation to patch the total here and disagree with the charge.",
-);
-
-/** Conversion is banned outright; arithmetic needs a money word on the same
- *  line and a *spaced* operator. The shape `verify:food` reached after four
- *  rewrites, inherited rather than re-derived. */
 const CONVERSION = /\.toFixed\s*\(|\bparseFloat\s*\(|\bNumber\s*\(/;
-const MONEY_WORD = /\b(?:price|subtotal|amount|total|charge|discount|fee|tip)\b/i;
+const MONEY_WORD = /\b(?:price|subtotal|amount|total|charge|discount|fee|tip|vat)\b/i;
 const OPERATOR = /\s[-+*/]\s*[\w(.]/;
 const offending = (src) =>
   src
     .split("\n")
     .filter((l) => CONVERSION.test(l) || (MONEY_WORD.test(l) && OPERATOR.test(l)));
 
-const moneyScope = [...featureFiles, routePage, fixturePath].filter(existsSync);
+const moneyScope = [
+  ...featureFiles,
+  routePage,
+  fixturePath,
+  join(SRC, "services", "checkout", "server.ts"),
+  join(SRC, "app", "api", "checkout", "complete", "route.ts"),
+].filter(existsSync);
 const calculators = moneyScope.filter(
   (f) => offending(code.get(f) ?? read(f)).length > 0,
 );
 check(
   `nothing computes or converts a money value (${moneyScope.length} files)`,
   calculators.length === 0,
-  `The backend computes money. A second opinion computed here is how a checkout and the charge that follows it come to disagree.\n      ${calculators.map(rel).join("\n      ")}`,
+  `The backend prices the summary. A second opinion computed here is how a checkout and the charge that follows it come to disagree.\n      ${calculators.map(rel).join("\n      ")}`,
+);
+
+check(
+  "the total is the summary's `payoutSummary.grandTotal`, never a sum",
+  /payoutSummary\?\.grandTotal/.test(serverRead) && !/\.reduce\(/.test(serverRead),
+  "Measured: `payoutSummary.grandTotal` is what is charged and `orderCalculation` has no grand total. Adding the rows up is a promise that our rounding matches theirs.",
+);
+
+check(
+  "VAT is the API's reported amounts, never a rate applied here",
+  // The captions' arguments, not the field names: the raw type declares all
+  // three, so a rule on the names alone passed with the caption fed `serviceCharge`.
+  /vat\("vatAdded", calc\.serviceChargeVatAmount\)/.test(serverRead) &&
+    /vat\("vatIncluded", delivery\.vatAmount\)/.test(serverRead) &&
+    /vat\("vatIncluded", calc\.totalTaxAmount\)/.test(serverRead) &&
+    !/\b23\b|VAT_RATE|vatRate/.test(serverRead),
+  "The old app fell back to a hard-coded 23% when a field was missing. The service charge is net and delivery is gross, and each ships its own VAT amount — the captions print those.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§2  🔴 Nothing can be ordered, and nothing pretends otherwise");
+section("§2  🔴 A payment that leaves the site is finished by this site");
 
-const rejects = (transport.match(/Promise\.reject\(/g) ?? []).length;
+const WRITES = ["start", "applyVoucher", "chooseAddress", "pay"];
+const missingWrites = WRITES.filter(
+  (m) =>
+    !new RegExp(`\\b${m}\\(`).test(types) ||
+    !new RegExp(`async ${m}\\(`).test(transport),
+);
 check(
-  `every method of the shipped transport fails (${rejects}/4 reject)`,
-  rejects >= 4,
-  "A `read` that resolved would show an invented cart. A `placeOrder` that resolved would show an order confirmation, a reference number and a total for an order that does not exist — and it would look completely right. There is no version of that file which pretends.",
+  `the contract names every write and the client implements each (${WRITES.join(", ")})`,
+  missingWrites.length === 0,
+  `\`features/checkout/api.ts\` is the only implementation.\n      ${missingWrites.join(", ")}`,
 );
 
 check(
-  "🔴 `placeOrder` in particular rejects",
-  /placeOrder\(\)\s*\{\s*return Promise\.reject\(/.test(transport),
-  "This is the one call in the project that spends money. Everything else in this guard is precaution; this is the assertion.",
-);
-
-const NETWORK = /\bfetch\s*\(|\baxios\b|XMLHttpRequest/;
-const callers = featureFiles.filter((f) => NETWORK.test(code.get(f) ?? ""));
-check(
-  "no file in the feature makes a network call",
-  callers.length === 0,
-  `Track B builds the screens and Phase 18 connects them. A request placed here now is one the API layer will not know about — no interceptor, no token refresh, no error normalisation.\n      ${callers.map(rel).join("\n      ")}`,
-);
-
-const METHODS = ["read", "listVouchers", "listSlots", "placeOrder"];
-const missing = METHODS.filter((m) => !new RegExp(`\\b${m}\\b`).test(types));
-check(
-  `the contract names every call the screen makes (${METHODS.join(", ")})`,
-  missing.length === 0,
-  `A contract missing one of these is a control Phase 18 has to redesign around.\n      ${missing.join(", ")}`,
+  "each write goes to the endpoint measured for it",
+  /post\("\/checkout", \{\s*useCart: true,/.test(transport) &&
+    /"\/offers\/validate-apply-offer"/.test(transport) &&
+    /\/customers\/toggle-delivery-address-status\//.test(transport) &&
+    /"\/payment\/reduniq\/create-payment-intent"/.test(transport) &&
+    /"\/payment\/reduniq\/pay-with-saved-token"/.test(transport),
+  "Measured on the owner's account: `/checkout` takes `useCart` and rejects any address id; the address is changed by making a saved one active.",
 );
 
 check(
-  "the three reads fail independently",
-  /allSettled/.test(read(routePage)),
-  "Vouchers that cannot be listed is a sheet that says so and a checkout that still works. `Promise.all` would let one rejection take the page down with it.",
+  "🔴 the checkout is remembered before the redirect, or the customer is not sent to pay",
+  /fetch\("\/api\/checkout\/pending", \{\s*method: "POST"/.test(checkoutBrowser) &&
+    /return Boolean\(response\?\.ok\)/.test(checkoutBrowser) &&
+    /!\(await rememberCheckout\(checkoutId, notes\)\)\s*\) \{[\s\S]{0,300}?handle-payment-failure[\s\S]{0,200}?throw new Error\(\);\s*\}\s*return \{ redirectUrl \};/.test(
+      transport,
+    ) &&
+    /"redirectUrl" in result\) \{\s*window\.location\.assign\(result\.redirectUrl\)/.test(
+      view,
+    ),
+  "Without the remembered checkout, a paid customer comes back to a page that cannot create their order: money taken, no order.",
+);
+
+const sessionStorageUsers = [...code]
+  .filter(([, s]) => /\bsessionStorage\b/.test(s))
+  .map(([f]) => rel(f));
+check(
+  "🔴 the order is created on our server from the summary's own gateway token — never from sessionStorage",
+  /"\/orders\/create-order"/.test(completeRoute) &&
+    /gatewayPaymentToken/.test(completeRoute) &&
+    /isConvertedToOrder/.test(completeRoute) &&
+    sessionStorageUsers.length === 0,
+  `The old app finished from \`sessionStorage\`, which a return in another tab does not have. A converted summary must answer with its order, so a reload never orders twice.\n      ${sessionStorageUsers.join("\n      ")}`,
+);
+
+check(
+  "the remembered checkout is an httpOnly cookie that only this site can set or spend",
+  /httpOnly: true/.test(pendingRoute) &&
+    [pendingRoute, completeRoute].every((s) => /isSameOrigin\(/.test(s)),
+  "Another site able to post here could choose which checkout this browser finishes, or reset one mid-payment.",
+);
+
+const lib = await load("lib/checkout.ts");
+const ID = "6aa7f35fb7e530b2b778d31c";
+check(
+  "the pending-checkout rules hold when executed",
+  lib.parsePendingCheckout(JSON.stringify({ id: ID, notes: "Ring twice" }))?.notes ===
+    "Ring twice" &&
+    lib.parsePendingCheckout({ id: "../orders", notes: "" }) === null &&
+    lib.parsePendingCheckout("{not json") === null &&
+    lib.parsePendingCheckout({ id: ID, notes: 5 }) === null &&
+    lib.parsePendingCheckout({ id: ID, notes: "x".repeat(1000) })?.notes.length ===
+      lib.DELIVERY_NOTE_MAX &&
+    lib.isCheckoutId(ID) &&
+    !lib.isCheckoutId("ORD-L7QZMLXPVF"),
+  "Only a Mongo id may reach `/checkout/summary/:id` from a cookie or a URL, and the note is bounded.",
+);
+
+const staticSession = featureFiles.filter((f) =>
+  /import\s[^;]*from\s+"@\/services\/session\/browser"|from\s+"axios"/.test(
+    code.get(f) ?? "",
+  ),
+);
+check(
+  "axios stays off the first load: the session client is imported on use",
+  staticSession.length === 0 &&
+    /import\("@\/services\/session\/browser"\)/.test(transport),
+  `Measured in Phase 15: a static import put 12 KB on \`/login\` and 6 KB on every account route.\n      ${staticSession.map(rel).join("\n      ")}`,
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -229,38 +290,130 @@ check(
 );
 
 check(
-  "the states page is on the development-only list",
-  DEV_ONLY_ROUTES.includes("checkout-states"),
-  "`verify:shell` asserts everything on that list 404s in production, and `verify:bundle` excludes it from the budget on the strength of that.",
+  "the states page is development-only and sends nothing",
+  DEV_ONLY_ROUTES.includes("checkout-states") &&
+    /offlineNotice=\{/.test(read(statesPage)) &&
+    /if \(offlineNotice\) \{/.test(view),
+  "Checkout is live: the states page renders the real view, so without the offline notice its buttons would write to the API with a fixture's ids.",
 );
 
-check(
-  "no dialog is a value export of the barrel",
-  !/export \{[^}]*\b(?:LocationModal|VoucherModal|ScheduleModal|ConfirmedModal|PaymentCard|DeliveryCard|TipCard|ScheduleCard|MapSlot)\b/.test(
-    barrel,
+const shippingOutside = [...code]
+  .filter(([f]) => !f.startsWith(FEATURE + sep))
+  .filter(([f]) => !DEV_ONLY_ROUTES.some((r) => f.includes(`${sep}${r}${sep}`)))
+  .map(([, s]) => s)
+  .join("\n");
+const barrelComponents = [
+  ...(barrel + read(join(SRC, "features", "payment", "index.ts"))).matchAll(
+    /export \{([^}]+)\} from "\.\/([A-Z]\w*)"/g,
   ),
-  "A static import of a barrel hands the importer every export — measured at 27 KB, 9.3 KB and 11 KB in Phases 6 and 8. This route carries four dialogs, more than any other, and none of them belongs to anybody else.",
+]
+  .flatMap((m) => m[1].split(","))
+  .map((n) => n.trim())
+  .filter((n) => /^[A-Z]/.test(n));
+const unrendered = barrelComponents.filter(
+  (n) => !new RegExp(`<${n}\\b`).test(shippingOutside),
+);
+check(
+  `every component the barrel exports is rendered by a shipping route (${barrelComponents.length})`,
+  barrelComponents.length > 0 && unrendered.length === 0,
+  `A static import of a barrel hands the importer every export — measured at 27 KB, 9.3 KB and 11 KB in Phases 6 and 8.\n      ${unrendered.join(", ")}`,
+);
+
+const returnPages = ["payment-success", "payment-failed"].map((r) =>
+  read(join(APP, "(checkout)", r, "page.tsx")),
+);
+check(
+  "the return routes ship neither the checkout screen nor each other's parts",
+  returnPages.every(
+    (s) =>
+      /from "@\/features\/payment"/.test(s) &&
+      !/^import \{[^}]*\} from "@\/features\/checkout"/m.test(s),
+  ) &&
+    /const ConfirmedModal = dynamic\(/.test(
+      read(join(SRC, "features", "payment", "PaymentOutcome.tsx")),
+    ),
+  "Measured: importing the checkout barrel put `CheckoutView` and the confirmation dialog on `/payment-failed` — 188 KB for one sentence. Type imports are erased; value imports are not.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§4  Four dialogs, none of them in the first paint");
+section("§4  Nothing on the screen collects what the API cannot take");
+
+check(
+  "🔴 no card number enters this site",
+  !/cardNumber|cc-number|cc-csc|autoComplete="cc-/.test(
+    featureFiles.map((f) => code.get(f)).join("\n"),
+  ),
+  "Card details belong to the payment provider (D-14): every method is paid on REDUNIQ's page, and saved cards are tokens.",
+);
+
+const gone = [
+  "TipCard.tsx",
+  "ScheduleCard.tsx",
+  "ScheduleModal.tsx",
+  "transport.ts",
+].filter((f) => existsSync(join(FEATURE, f)));
+check(
+  "no tip and no delivery window — `/checkout` rejects both (measured)",
+  gone.length === 0 && !/\btip\b|slotId|schedul/i.test(transport + types),
+  `A control whose choice goes nowhere is the fake this project rules out; the schema answered \`Unrecognized key(s): 'scheduledTime', 'tip'\`.\n      ${gone.join(", ")}`,
+);
 
 const dynamics = (view.match(/dynamic\(/g) ?? []).length;
 check(
-  `every dialog arrives through dynamic() (${dynamics}/4)`,
-  dynamics >= 4,
-  "A Radix dialog, a map slot, a date grid and a voucher list. A customer who pays with the method already selected opens none of them, and this route is the most dialog-heavy in the application.",
+  `both dialogs arrive through dynamic() (${dynamics}/2)`,
+  dynamics >= 2 &&
+    !/^import \{[^}]*\b(?:AddressModal|VoucherModal)\b[^}]*\} from/m.test(view),
+  "A customer who pays with the method already selected opens neither.",
 );
 
 check(
   "the map is not a live map",
-  // Named things, not a keyword sweep. The first version banned `/maps/i`,
-  // which matches this component's own name — `MapSlot` — so it reported the
-  // file for existing. A guard that flags the thing it is protecting is a
-  // guard people learn to switch off.
   !/google\.maps|googleapis|@react-google-maps|GoogleMap|useLoadScript/.test(map) &&
     /ImageSlot/.test(map),
-  "Track B has no API key, no address to centre on and nothing for a marker to mean. Mounting Maps to show a customer a blank default location costs the budget a script tag and tells them nothing — Plan.md §6 lists it among the things that must never be in a first paint.",
+  "Plan.md §6 lists Maps among the things that must never be in a first paint.",
+);
+
+const pickup = await load("lib/pickup.ts");
+const at0731 = new Date("2026-09-15T06:31:00Z"); // 07:31 in Lisbon, summer time
+const restaurant = pickup.pickupDays(
+  { openingHours: "07:00", closingHours: "22:30", businessType: "RESTAURANT" },
+  at0731,
+);
+const store = pickup.pickupDays(
+  {
+    openingHours: "7:00 AM",
+    closingHours: "10:30 PM",
+    businessType: "STORE",
+    closingDays: ["Wednesday"],
+  },
+  at0731,
+);
+check(
+  "self-pickup offers only the slots the API accepts, executed",
+  restaurant.length === 1 &&
+    pickup.formatTimeOfDay(restaurant[0].slots[0]) === "08:00" &&
+    restaurant[0].slots.every((t) => t.minutes % 30 === 0) &&
+    pickup.formatTimeOfDay(restaurant[0].slots.at(-1)) === "22:30" &&
+    pickup.slotToIso(
+      { date: restaurant[0].date, time: restaurant[0].slots[0] },
+      at0731,
+    ) === "2026-09-15T07:00:00.000Z" &&
+    pickup.slotToIso(
+      { date: { year: 2026, month: 1, day: 10 }, time: { hours: 9, minutes: 0 } },
+      at0731,
+    ) === "2026-01-10T09:00:00.000Z" &&
+    store.map((d) => d.slots.length > 0).join() === "true,false,true" &&
+    /fulfillmentType: "PICKUP", pickupTime/.test(transport),
+  "Measured: a restaurant is today only (`PICKUP_TIME_MUST_BE_TODAY`), a time must start a 30-minute slot (`PICKUP_TIME_NOT_HALF_HOUR_SLOT`), and hours are Lisbon wall-clock. A slot computed in the browser's own time zone would be an hour off for half the year.",
+);
+
+check(
+  "a pickup survives a rebuild, and delivery sends exactly `{ useCart: true }`",
+  /checkoutApi\.start\(checkout\.pickupTime\)/.test(view) &&
+    /\.\.\.\(pickupTime \? \{ fulfillmentType: "PICKUP", pickupTime \} : \{\}\)/.test(
+      transport,
+    ),
+  "Removing a voucher rebuilds the summary; without the time it would silently turn a pickup into a delivery with a delivery fee.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -269,60 +422,52 @@ section("§5  The decisions that could be silently undone");
 check(
   "payment is a radio group, not six toggles",
   /role="radiogroup"/.test(payment) && /type="radio"/.test(payment),
-  "A customer pays one way. `aria-pressed` on six buttons says each is independently on or off, which is a different promise — and a native radio brings arrow keys and one tab stop for the group without shipping a line of JavaScript.",
-);
-
-check(
-  "🔴 the card form collects nothing",
-  (payment.match(/disabled\b/g) ?? []).length >= 4 &&
-    !/autoComplete="cc-|autoComplete="on"/.test(payment),
-  "Card details belong to the payment provider. A real number through this application's DOM puts it in PCI scope for no benefit — the old app pays through REDUNIQ's own form and this one will too (D-14). The four inputs are inert and the notice under them says so.",
+  "A customer pays one way; a native radio brings arrow keys and one tab stop for free.",
 );
 
 check(
   "the summary panel is the cart's, imported rather than restated",
-  /from "@\/features\/cart"/.test(view) && /OrderSummary/.test(view),
-  "The design draws the same 415px panel on both screens and D-4 makes one store one order. A second copy here is how the cart and the checkout come to disagree about what is being bought — and how the previous project ended up with seven pinks.",
+  /from "@\/features\/cart"/.test(view) && /<OrderSummary\b/.test(view),
+  "One component in the design and in the code.",
 );
 
 check(
-  "the confirmation can be reached by a payment that left the site",
-  /placed\?: PlacedOrder/.test(view),
-  "MB WAY, PayPal and 3-D Secure all return to a URL. What the customer must see on arrival is the confirmation, not the form they have already paid on — so the order is resolved by the server and handed in, not only produced by a click here.",
+  "every write re-reads from the server, and a new summary is a new screen",
+  /applyVoucher\(checkout\.id, identifier\);[\s\S]*?router\.refresh\(\)/.test(view) &&
+    /router\.replace\(checkoutUrl\(await checkoutApi\.start\(\)\)\)/.test(view) &&
+    /key=\{checkout\.id\}/.test(read(routePage)),
+  "A voucher reprices this summary; removing one or changing the address builds another. Patching amounts locally is a second opinion, and keeping choices across summaries pays for the wrong one.",
+);
+
+check(
+  "the secondary reads fail independently",
+  /allSettled/.test(read(routePage)),
+  "Vouchers that cannot be listed is a sheet that says so and a checkout that still works.",
+);
+
+check(
+  "the voucher sheet tells 'none apply' apart from 'could not load'",
+  /copy\.unavailableTitle/.test(read(join(FEATURE, "VoucherModal.tsx"))) &&
+    /copy\.emptyTitle/.test(read(join(FEATURE, "VoucherModal.tsx"))),
+  "Only one of them should send a customer looking for a code.",
+);
+
+check(
+  "a refusal is announced",
+  /\srole="status"/.test(view) && /copy\.actionFailed/.test(view),
+  "The API's own sentence when there is one, ours when there is not.",
+);
+
+const routes = await load("lib/routes.ts");
+check(
+  "REDUNIQ's return paths are the old app's and exist here",
+  routes.ROUTES.paymentSuccess?.path === "/payment-success" &&
+    routes.ROUTES.paymentFailed?.path === "/payment-failed",
+  "The return URL is configured on the backend. Renaming these strands every paid customer on a 404.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-section("§6  The screen says which nothing it is showing");
-
-check(
-  "checkout tells 'not connected' apart from an empty cart",
-  /copy\.unavailableTitle/.test(view) && /unavailable \|\| !checkout/.test(view),
-  "Different sentences, different fixes, and neither of them is the customer's.",
-);
-
-for (const [name, source] of [
-  ["the voucher sheet", read(join(FEATURE, "VoucherModal.tsx"))],
-  ["the delivery picker", read(join(FEATURE, "ScheduleModal.tsx"))],
-]) {
-  check(
-    `${name} tells 'none available' apart from 'not connected'`,
-    // Rendered, not merely declared. A field on a copy type proves the string
-    // was thought about; `copy.x` in the tree proves it reaches the screen —
-    // and it is the *pair* that matters, since collapsing one into the other
-    // is the failure being guarded against.
-    /copy\.unavailableTitle/.test(source) && /copy\.emptyTitle/.test(source),
-    "A customer with no vouchers and a voucher list that cannot be read see the same blank sheet otherwise, and only one of them should go looking for a code.",
-  );
-}
-
-check(
-  "a refused control explains itself instead of being disabled",
-  /copy\.notWired/.test(view) && /\srole="status"/.test(view),
-  "Phase 8 settled this on the dish modal: a button that cannot be pressed cannot say why. `Place Order`, `Locate me` and `Apply` are all pressable, all refuse, and the refusal is announced.",
-);
-
-// ─────────────────────────────────────────────────────────────────────────────
-section("§7  The guard is wired in");
+section("§6  The guard is wired in");
 
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
 check(
@@ -331,7 +476,6 @@ check(
   "A guard nothing calls passes forever.",
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
 console.log("");
 if (failures.length) {
   console.error(`\x1b[31m✗ ${failures.length} failed, ${passed} passed\x1b[0m\n`);

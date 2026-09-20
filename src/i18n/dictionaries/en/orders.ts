@@ -1,10 +1,10 @@
 /**
  * The order and notification screens' words.
  *
- * Transcribed from the `Notification` frame (1440×1802), the `Review` modal
- * (720×561), the `Section - Progress Tracker` component set, and the 412px
- * mobile order frames the desktop file does not have (D-15). Data — a vendor's
- * name, "15.60€", "ETA: 12 mins", a delivery code — is never here.
+ * Transcribed from the `Notification` frame, the `Review` modal, the
+ * `Section - Progress Tracker` component set and the order frames (D-15);
+ * the status words, cancel reasons and refund sentences are the old app's.
+ * Data — a store's name, an amount, a code, a notification — is never here.
  */
 const orders = {
   // ── The list ─────────────────────────────────────────────────────────────
@@ -14,32 +14,81 @@ const orders = {
   tabOngoing: "Ongoing",
   tabComplete: "Complete",
   tabCancelled: "Cancelled",
+  searchLabel: "Search your orders",
+  searchPlaceholder: "Order number, store or dish",
   track: "Track Order",
   details: "Details",
   reorder: "Reorder",
   orderImage: "Order photograph",
   emptyTitle: "No orders here yet",
-  emptyBody: "Orders you place show up here, with their status and receipts.",
+  emptyBody: "Orders you place show up here, with their status.",
+  noMatchTitle: "No matching orders",
+  noMatchBody: "Try another order number, store or dish, or another tab.",
+  eta: "ETA: {minutes} min",
+
+  // ── Statuses ─────────────────────────────────────────────────────────────
+  statusPending: "Placed",
+  statusAccepted: "Accepted",
+  statusPreparing: "Preparing",
+  statusReady: "Ready for pickup",
+  statusPickedUp: "Picked up by rider",
+  statusOnTheWay: "On the way",
+  statusDelivered: "Delivered",
+  statusCollected: "Collected",
+  statusRejected: "Rejected",
+  statusCancelled: "Cancelled",
+  statusNotCollected: "Not collected",
 
   // ── The tracker ──────────────────────────────────────────────────────────
   trackerLabel: "Order progress",
+  stepPlaced: "Placed",
   stepConfirmed: "Confirmed",
   stepKitchen: "Kitchen",
-  stepPacked: "Packed",
-  stepReady: "Ready for pickup",
-  stepCollected: "Collected",
-  stepPicked: "Picked",
+  stepReady: "Ready",
   stepRiderPicked: "Rider Picked",
   stepOnWay: "On Way",
+  stepDelivered: "Delivered",
+  stepCollected: "Collected",
 
   // ── The detail ───────────────────────────────────────────────────────────
   riderTitle: "Your rider",
   riderImage: "Rider photograph",
   deliveryCode: "Delivery code",
   deliveryCodeBody: "Give this code to the rider when your order arrives.",
+  pickupCode: "Pickup code",
+  pickupCodeBody: "Show this code at the counter to collect your order.",
+  endedReason: "Reason:",
+  refundPending:
+    "Refund in progress. Your payment is being refunded; this may take 3–5 business days.",
+  refundRefunded: "Refund completed. Your payment has been refunded to your account.",
+  refundNone: "No refund is due for this order.",
   cancel: "Cancel order",
   invoice: "Download invoice",
+  invoicePending: "The invoice is not ready yet.",
+  mapLive: "Live tracking",
+  mapWaiting: "Waiting for the rider",
+  mapUnavailable: "The map could not be loaded.",
+  mapStore: "Restaurant",
+  mapDestination: "Delivery address",
+  mapRider: "Your rider",
+  backToOrders: "My Orders",
+  reportIssue: "Report an issue",
   writeReview: "Write a review",
+  actionFailed: "That did not go through. Please try again.",
+
+  // ── The cancel dialog ────────────────────────────────────────────────────
+  cancelTitle: "Cancel this order?",
+  cancelBody:
+    "If the restaurant has not accepted your order yet, you will be refunded. Once they have accepted it, no refund is due.",
+  cancelQuestion: "Why do you want to cancel this order?",
+  cancelReasonChangedMind: "Changed my mind",
+  cancelReasonMistake: "Ordered by mistake",
+  cancelReasonTooLong: "Taking too long",
+  cancelReasonOther: "Other",
+  cancelOtherPlaceholder: "Tell us why you are cancelling",
+  cancelConfirm: "Cancel order",
+  cancelKeep: "Keep order",
+  close: "Close",
 
   // ── The review ───────────────────────────────────────────────────────────
   reviewTitle: "How was your order?",
@@ -55,22 +104,22 @@ const orders = {
   notificationsTitle: "Notifications",
   notificationsSubtitle:
     "Stay updated on your orders, rides, deliveries, and exclusive offers.",
-  notificationsAll: "All",
   notificationsUnread: "{count} unread",
-  notificationImage: "Notification illustration",
+  notificationsToday: "Today",
+  notificationsYesterday: "Yesterday",
+  markAllRead: "Mark all as read",
+  viewOrder: "View order",
   notificationsEmpty: "Nothing new",
-  notificationsEmptyBody:
-    "Updates about your orders, rides and deliveries arrive here.",
+  notificationsEmptyBody: "Updates about your orders arrive here.",
 
-  // ── The two nothings ─────────────────────────────────────────────────────
-  unavailableTitle: "Your orders are not connected yet",
-  unavailableBody:
-    "This screen is built; the orders behind it are connected in a later phase. Nothing here is placeholder data — there is simply nothing to show until there is.",
-  notificationsUnavailable: "Notifications are not connected yet",
-  notificationsUnavailableBody:
-    "This screen is built; the notifications behind it are connected in a later phase.",
-  notWired:
-    "This is not connected yet. The control is real and the request it would send arrives in a later phase — nothing was cancelled, reordered or submitted.",
+  // ── The nothings ─────────────────────────────────────────────────────────
+  unavailableTitle: "Your orders could not be loaded",
+  unavailableBody: "Please try again in a moment.",
+  notFoundTitle: "Order not found",
+  notFoundBody: "This order is not on your account.",
+  notificationsUnavailable: "Notifications could not be loaded",
+  notificationsUnavailableBody: "Please try again in a moment.",
+  previewOnly: "This is a design preview. Nothing is sent from this page.",
 } satisfies Record<string, string>;
 
 export default orders;

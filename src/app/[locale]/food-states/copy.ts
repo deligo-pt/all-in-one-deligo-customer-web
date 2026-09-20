@@ -33,7 +33,7 @@ export function listingCopy(t: (key: string) => string): ListingCopy {
 }
 
 export function menuCopy(
-  t: (key: string) => string,
+  t: (key: string, values?: Record<string, string | number>) => string,
   cart: (key: string) => string,
 ): MenuCopy {
   return {
@@ -47,6 +47,27 @@ export function menuCopy(
     noMatchesBody: t("noItemsBody"),
     noMenu: t("noMenu"),
     noMenuBody: t("noMenuBody"),
+    storeDetails: {
+      trigger: t("storeDetailsTrigger"),
+      subtitle: t("storeDetailsSubtitle"),
+      close: t("close"),
+      open: t("openNow"),
+      closed: t("closedNow"),
+      hours: t("storeHours"),
+      closingDays: t("storeClosingDays"),
+      preparation: t("storePreparation"),
+      address: t("storeAddress"),
+      phone: t("storePhone"),
+      email: t("storeEmail"),
+      nif: t("storeNif"),
+      contactTitle: t("contactInformation"),
+      otherTitle: t("otherDetails"),
+      legalName: t("legalEntityName"),
+      euCompliance: t("euCompliance"),
+      mapUnavailable: t("mapUnavailable"),
+      closingSoon: t("closingSoon"),
+      orderWithin: t("orderWithin"),
+    },
     cart: {
       title: t("yourCart"),
       empty: t("cartEmpty"),
@@ -56,6 +77,7 @@ export function menuCopy(
         increase: cart("increaseQuantity"),
         decrease: cart("decreaseQuantity"),
         itemImage: cart("itemImage"),
+        addons: cart("addons"),
       },
       charge: {
         subtotal: cart("chargeSubtotal"),

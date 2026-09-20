@@ -1,18 +1,10 @@
 import type { CheckoutCopy } from "@/features/checkout";
+import type { OutcomeCopy } from "@/features/payment";
 
 /**
- * The checkout view's copy, built from the `checkout`, `cart` and `food`
- * dictionaries.
- *
- * Three, because the screen is made of three things: its own words, the cart's
- * summary panel which it renders whole, and the dish modal's instruction
- * placeholder which the design repeats verbatim. The development page loads
- * all three itself, so `t` is passed in rather than `@/i18n/server` being
- * imported here — this file needs no request context.
- *
- * It exists so the fixture is reviewed against the strings customers will
- * read. A states page with wording of its own proves the layout and nothing
- * about the copy.
+ * The checkout view's copy for the development states page, built from the
+ * `checkout`, `cart` and `food` dictionaries — the same keys `/checkout`
+ * reads, so the fixture is reviewed against the strings customers will read.
  */
 export function checkoutCopy(
   t: (key: string) => string,
@@ -21,11 +13,25 @@ export function checkoutCopy(
 ): CheckoutCopy {
   return {
     title: t("title"),
-    schedule: {
-      label: t("scheduleLabel"),
-      change: t("scheduleChange"),
-      choose: t("scheduleChoose"),
-      chooseBody: t("scheduleChooseBody"),
+    fulfilment: {
+      title: t("fulfilmentTitle"),
+      delivery: t("fulfilmentDelivery"),
+      deliveryBody: t("fulfilmentDeliveryBody"),
+      pickup: t("fulfilmentPickup"),
+      pickupBody: t("fulfilmentPickupBody"),
+      pickupUnavailable: t("pickupUnavailable"),
+      pickupFrom: t("pickupFrom"),
+      pickupTime: t("pickupTimeLabel"),
+      pickupChange: t("pickupChange"),
+    },
+    pickup: {
+      title: t("pickupTitle"),
+      body: t("pickupBody"),
+      close: t("confirmedClose"),
+      today: t("pickupToday"),
+      tomorrow: t("pickupTomorrow"),
+      noSlots: t("pickupNoSlots"),
+      confirm: t("pickupConfirm"),
     },
     delivery: {
       title: t("deliveryTitle"),
@@ -38,7 +44,6 @@ export function checkoutCopy(
     payment: {
       title: t("paymentTitle"),
       showAll: t("paymentShowAll"),
-      showLess: t("paymentShowLess"),
       methodName: {
         mbway: t("methodMbway"),
         card: t("methodCard"),
@@ -55,17 +60,13 @@ export function checkoutCopy(
         "google-pay": t("methodGooglePayBody"),
         other: t("methodOtherBody"),
       },
-      cardNumber: t("cardNumber"),
-      cardNumberPlaceholder: t("cardNumberPlaceholder"),
-      cardHolder: t("cardHolder"),
-      cardHolderPlaceholder: t("cardHolderPlaceholder"),
-      cardExpiry: t("cardExpiry"),
-      cardExpiryPlaceholder: t("cardExpiryPlaceholder"),
-      cardCvv: t("cardCvv"),
-      cardCvvPlaceholder: t("cardCvvPlaceholder"),
-      cardNotice: t("cardNotice"),
+      savedCards: t("savedCards"),
+      newCard: t("newCard"),
+      saveCard: t("saveCard"),
+      saveCardBody: t("saveCardBody"),
+      gatewayNotice: t("gatewayNotice"),
+      instantNotice: t("instantNotice"),
     },
-    tip: { title: t("tipTitle"), later: t("tipLater"), tipLabel: t("tipLabel") },
     summary: {
       deliveryIn: cart("deliveryIn"),
       addMoreItems: cart("addMoreItems"),
@@ -81,45 +82,49 @@ export function checkoutCopy(
       grandTotal: cart("grandTotal"),
       placeOrder: cart("placeOrder"),
     },
-    location: {
-      title: t("locationTitle"),
-      body: t("locationBody"),
-      close: t("scheduleChange"),
-      addressLabel: t("locationAddressLabel"),
-      addressPlaceholder: t("locationAddressPlaceholder"),
-      locateMe: t("locationLocateMe"),
-      confirm: t("locationConfirm"),
-      mapAlt: t("deliveryMapAlt"),
-      notWired: t("notWired"),
+    payNow: t("payNow"),
+    address: {
+      title: t("addressTitle"),
+      body: t("addressBody"),
+      close: t("confirmedClose"),
+      active: t("addressActive"),
+      emptyTitle: t("addressEmpty"),
+      emptyBody: t("addressEmptyBody"),
     },
     voucher: {
       title: t("voucherTitle"),
-      close: t("scheduleChange"),
+      close: t("confirmedClose"),
       codeLabel: t("voucherCodeLabel"),
       codePlaceholder: t("voucherCodePlaceholder"),
       apply: t("voucherApply"),
       applied: t("voucherApplied"),
-      terms: t("voucherTerms"),
+      remove: t("voucherRemove"),
       emptyTitle: t("voucherEmpty"),
       emptyBody: t("voucherEmptyBody"),
       unavailableTitle: t("voucherUnavailable"),
       unavailableBody: t("voucherUnavailableBody"),
     },
-    scheduleModal: {
-      title: t("scheduleTitle"),
-      body: t("scheduleBody"),
-      close: t("scheduleChange"),
-      yourDelivery: t("scheduleYourDelivery"),
-      recommended: t("scheduleRecommended"),
-      emptyTitle: t("scheduleEmpty"),
-      emptyBody: t("scheduleEmptyBody"),
-      unavailableTitle: t("scheduleUnavailable"),
-      unavailableBody: t("scheduleUnavailableBody"),
-    },
+    chooseMethod: t("chooseMethod"),
+    actionFailed: t("actionFailed"),
+  };
+}
+
+export function outcomeCopy(t: (key: string) => string): OutcomeCopy {
+  return {
+    finishing: t("returnFinishing"),
+    failedTitle: t("returnFailedTitle"),
+    failedBody: t("returnFailedBody"),
+    missingTitle: t("returnMissingTitle"),
+    missingBody: t("returnMissingBody"),
+    retry: t("retry"),
+    viewOrders: t("viewOrders"),
+    backToCart: t("backToCart"),
+    paymentFailedTitle: t("failedTitle"),
+    paymentFailedBody: t("failedBody"),
     confirmed: {
       title: t("confirmedTitle"),
       body: t("confirmedBody"),
-      close: t("scheduleChange"),
+      close: t("confirmedClose"),
       reference: t("confirmedReference"),
       delivery: t("confirmedDelivery"),
       payment: t("confirmedPayment"),
@@ -128,8 +133,5 @@ export function checkoutCopy(
       stayUpdatedBody: t("confirmedStayUpdatedBody"),
       backHome: t("confirmedBackHome"),
     },
-    unavailableTitle: t("unavailableTitle"),
-    unavailableBody: t("unavailableBody"),
-    notWired: t("notWired"),
   };
 }

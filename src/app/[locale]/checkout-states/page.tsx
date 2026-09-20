@@ -1,40 +1,27 @@
 import { notFound } from "next/navigation";
 import { CheckoutView } from "@/features/checkout";
+import { PaymentOutcome } from "@/features/payment";
 import { TranslationProvider } from "@/i18n/TranslationProvider";
 import { getLocale } from "@/i18n/server";
 import { loadNamespace } from "@/i18n/namespaces";
 import type { Messages } from "@/lib/i18n/translate";
 import {
+  ADDRESS_FIXTURE,
+  CARD_FIXTURE,
   CHECKOUT_FIXTURE,
   PLACED_FIXTURE,
-  SLOT_FIXTURE,
-  UNSCHEDULED_FIXTURE,
   VOUCHER_FIXTURE,
 } from "./fixture";
-import { checkoutCopy } from "./copy";
+import { checkoutCopy, outcomeCopy } from "./copy";
 
 /**
- * Checkout, in each of its states.
+ * Checkout, in its populated state, against the design's sample content.
  *
- * The same awkwardness every Track B phase has met: nothing is wired, so
- * `/checkout` renders its unavailable state and the design cannot be reviewed
- * from the product. A screen nobody can render is a screen nobody has looked
- * at.
- *
- * So the view is rendered here against a fixture. **Development only, and it
- * 404s in production** — the same treatment as `/tokens`, `/primitives`,
- * `/formats`, `/auth-states`, `/food-states` and `/cart-states`. The fixture
- * is in its own file so no import path from a shipping page can reach it, and
- * so `verify:checkout` can assert that none does.
- *
- * Four instances, because there are four things worth looking at: a scheduled
- * order, the same order with nothing booked yet, the confirmation the payment
- * **return URL** lands on, and the unavailable state the real route shows
- * today. The three dialogs open from the first two — `Edit`, `Apply a
- * voucher`, `Change`.
- *
- * Every label comes from the dictionaries, so this page has no prose of its
- * own and needs no keys.
+ * **Development only, and it 404s in production.** `/checkout` is live since
+ * Phase 18, so this page exists to review the layout with content the test
+ * account does not have: an applied voucher, two addresses, a saved card. It is
+ * **offline** — every write refuses with `previewOnly`, so nothing is sent to
+ * the API from here. The confirmation dialog renders below it.
  */
 export default async function CheckoutStatesPage() {
   if (process.env.NODE_ENV === "production") notFound();
@@ -49,7 +36,7 @@ export default async function CheckoutStatesPage() {
   ]);
 
   const lookup = (messages: Messages) => (key: string) => messages[key] ?? key;
-  const copy = checkoutCopy(lookup(checkout), lookup(cart), lookup(food));
+  const t = lookup(checkout);
 
   return (
     <TranslationProvider locale={locale} messages={{ common, checkout, cart, nav }}>
@@ -57,32 +44,21 @@ export default async function CheckoutStatesPage() {
         <CheckoutView
           checkout={CHECKOUT_FIXTURE}
           vouchers={VOUCHER_FIXTURE}
-          days={SLOT_FIXTURE}
+          cards={CARD_FIXTURE}
+          addresses={ADDRESS_FIXTURE}
+          pickupHours={{ openingHours: "07:00", closingHours: "23:30" }}
+          pickupAvailable
           locale={locale}
-          copy={copy}
+          copy={checkoutCopy(t, lookup(cart), lookup(food))}
+          offlineNotice={t("previewOnly")}
         />
-        <CheckoutView
-          checkout={UNSCHEDULED_FIXTURE}
-          vouchers={VOUCHER_FIXTURE}
-          days={SLOT_FIXTURE}
-          locale={locale}
-          copy={copy}
-        />
-        <CheckoutView
-          checkout={CHECKOUT_FIXTURE}
-          vouchers={VOUCHER_FIXTURE}
-          days={SLOT_FIXTURE}
-          locale={locale}
-          copy={copy}
-          placed={PLACED_FIXTURE}
-        />
-        <CheckoutView
-          checkout={null}
-          vouchers={[]}
-          days={[]}
-          locale={locale}
-          copy={copy}
-          unavailable
+        <PaymentOutcome
+          kind="confirmed"
+          order={PLACED_FIXTURE}
+          homeHref={`/${locale}`}
+          ordersHref={`/${locale}/checkout-states`}
+          cartHref={`/${locale}/checkout-states`}
+          copy={outcomeCopy(t)}
         />
       </div>
     </TranslationProvider>

@@ -23,7 +23,7 @@ export async function groceryCatalog(): Promise<GroceryCatalog> {
   const context = { t: food, locale };
 
   return {
-    async listStores({ location }) {
+    async listStores({ location, term }) {
       const api = await serverApi();
       const { data } = await api.get("/vendors/nearby/open", {
         params: {
@@ -31,6 +31,8 @@ export async function groceryCatalog(): Promise<GroceryCatalog> {
           longitude: location.longitude,
           businessType: "STORE",
           limit: PAGE_LIMIT,
+          // The business name, matched by the API (Phase 20c).
+          ...(term ? { searchTerm: term } : {}),
         },
       });
       const stores = ((data?.data ?? []) as RawVendor[]).map((v) =>

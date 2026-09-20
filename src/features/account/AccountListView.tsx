@@ -6,20 +6,25 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { AccountShell, type AccountNavItem } from "./AccountShell";
+import { CopyButton } from "@/components/shared/CopyButton";
+import { accountApi } from "./api";
+import { AccountShell, type AccountNavItem } from "@/components/layout/AccountShell";
 
 export type AccountListCopy = {
   title: string;
   subtitle?: string;
   navLabel: string;
-  add?: string;
   remove: string;
+  confirmRemove: string;
+  cancel: string;
   default: string;
   emptyTitle: string;
   emptyBody: string;
   unavailableTitle: string;
   unavailableBody: string;
-  notWired: string;
+  actionFailed: string;
+  copy: string;
+  copied: string;
 };
 
 export type AccountListRow = {
@@ -29,21 +34,16 @@ export type AccountListRow = {
   meta?: string;
   isDefault?: boolean;
   removable?: boolean;
+  /** A code the row offers to copy (a voucher). */
+  copyText?: string;
 };
 
 /**
- * Addresses, saved cards and vouchers, drawn once.
+ * Saved cards and vouchers, drawn once (the design draws neither; D-16).
  *
- * All three are the same shape in the design's mobile frames — a label, a
- * detail line, an optional default marker and a destructive action — and the
- * desktop file draws none of them (D-16). Three near-identical components
- * would be three places for the empty state, the refusal and the delete
- * confirmation to drift apart; the previous project's seven pinks started
- * exactly this way.
- *
- * The remove action goes through the transport and is refused out loud.
- * Removing a card or an address is not undoable, so a local splice that
- * *looked* like it worked would be the worst possible version.
+ * Removing asks twice — the second press is the one that sends — because a
+ * removed card cannot be restored from here. Every removal re-reads the page
+ * from the server; a refusal shows the API's own sentence.
  */
 export function AccountListView({
   rows,
@@ -51,8 +51,9 @@ export function AccountListView({
   activeId,
   icon,
   copy,
-  onRemove,
+  removes,
   unavailable = false,
+  offlineNotice,
   children,
 }: {
   rows: readonly AccountListRow[];
@@ -60,26 +61,34 @@ export function AccountListView({
   activeId: string;
   icon: IconName;
   copy: AccountListCopy;
-  /** Rejects in Track B; Phase 20 supplies the real one. */
-  onRemove?: (id: string) => Promise<void>;
+  /** What a row's Remove does. Only saved cards can be removed from a list;
+   *  a function cannot cross from the server page, so the kind is named. */
+  removes?: "card";
   unavailable?: boolean;
-  /** Anything the page needs above the list — the referral code panel uses it. */
+  /** Set on the states page: every write refuses with this sentence. */
+  offlineNotice?: string;
+  /** Anything the page needs above the list — the referral panel uses it. */
   children?: ReactNode;
 }) {
   const router = useRouter();
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   async function remove(id: string) {
-    if (!onRemove) return;
+    if (!removes) return;
+    if (offlineNotice) return setNotice(offlineNotice);
     setBusy(true);
     setNotice(null);
     try {
-      await onRemove(id);
-      router.refresh();
-    } catch {
-      setNotice(copy.notWired);
+      await accountApi.removeCard(id);
+      setConfirming(null);
+    } catch (error) {
+      setNotice(
+        error instanceof Error && error.message ? error.message : copy.actionFailed,
+      );
     } finally {
+      router.refresh();
       setBusy(false);
     }
   }
@@ -95,12 +104,9 @@ export function AccountListView({
       <div className="flex flex-col gap-6">
         {children}
 
-        {copy.add ? (
-          <Button variant="outline" className="self-start" disabled={busy}>
-            <Icon name="plus" className="size-4" />
-            {copy.add}
-          </Button>
-        ) : null}
+        <p role="status" className="text-14 text-danger empty:hidden">
+          {notice}
+        </p>
 
         {unavailable ? (
           <EmptyState
@@ -133,24 +139,48 @@ export function AccountListView({
                     <p className="text-12 text-ink-warm font-medium">{row.meta}</p>
                   ) : null}
                 </div>
-                {row.removable && onRemove ? (
-                  <Button
-                    variant="link"
-                    className="text-14 text-danger font-semibold"
-                    disabled={busy}
-                    onClick={() => remove(row.id)}
-                  >
-                    {copy.remove}
-                  </Button>
+                {row.copyText ? (
+                  <CopyButton
+                    text={row.copyText}
+                    label={copy.copy}
+                    copiedLabel={copy.copied}
+                  />
+                ) : null}
+                {row.removable && removes ? (
+                  confirming === row.id ? (
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => remove(row.id)}
+                      >
+                        {copy.confirmRemove}
+                      </Button>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => setConfirming(null)}
+                      >
+                        {copy.cancel}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      variant="link"
+                      className="text-14 text-danger font-semibold"
+                      disabled={busy}
+                      onClick={() => setConfirming(row.id)}
+                    >
+                      {copy.remove}
+                    </Button>
+                  )
                 ) : null}
               </li>
             ))}
           </ul>
         )}
-
-        <p role="status" className="text-14 text-ink-muted">
-          {notice}
-        </p>
       </div>
     </AccountShell>
   );

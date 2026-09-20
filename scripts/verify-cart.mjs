@@ -379,9 +379,62 @@ check(
 
 const route = read(routePage);
 check(
-  "the header pill prints the backend's total and never derives one",
-  /cart\.total/.test(route) && !/\breduce\b/.test(route),
-  "With checkout per store there may be no whole-cart number, and the pill omits the value when there is none. Reducing the store subtotals to fill it would be inventing one.",
+  "the header pill counts, and carries no money",
+  !/cart\.total/.test(route) && !/\breduce\b/.test(route),
+  "The count is the whole cart's; `cartCalculation` is the **active store's** alone. Printing them side by side described one store's money as the cart's, and adding the stores up to fix that would invent a number nobody agreed to (D-4). The store's own total is on its card; the breakdown is in the summary.",
+);
+
+check(
+  "each store's total is printed once, on its own card",
+  /store\.subtotal \? `\$\{itemsLabel\} \u00b7 \$\{store\.subtotal\}` : itemsLabel/.test(
+    group,
+  ) && !/copy\.subtotal\}: \$\{store\.subtotal/.test(group),
+  "It was in the card's header badge and again as a 24px line in its footer, and the second one sat directly opposite the summary's own Subtotal — a different number under the same word.",
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+section("\u00a78  Editing an add-on (Phase 20e)");
+
+const api = read(join(FEATURE, "api.ts"));
+const row = read(join(FEATURE, "CartLineRow.tsx"));
+const cartServer = read(join(SRC, "services", "cart", "server.ts"));
+
+check(
+  "the add-on write carries the line's own quantity",
+  /setAddonQuantity[\s\S]{0,400}quantity: line\.quantity/.test(api),
+  "`/carts/add-to-cart` requires it and **sets** it: sending the add-on alone resets the line to one. The old app learned this the expensive way.",
+);
+
+check(
+  "it names one add-on by its option sku, so the others survive",
+  /addons: \[\{ optionSku, quantity \}\]/.test(api),
+  "The endpoint merges add-ons by `optionSku`; a full list would delete every add-on left out of it.",
+);
+
+check(
+  "the add-on stepper goes to zero, and the line's does not",
+  /min=\{0\}/.test(row) && /min=\{1\}/.test(row),
+  "Removing an add-on is not removing the dish. The line keeps its own Remove control, so its stepper must not mean two things.",
+);
+
+check(
+  "an add-on's price is the API's own total, formatted once",
+  /price: money\(a\.lineTotal, locale\)/.test(cartServer),
+  "\u00a71 again: a unit price times a quantity computed here is a cart that can disagree with the checkout that charges it.",
+);
+
+check(
+  "only an add-on the API can be told about becomes a control",
+  /\.filter\(\(a\) => a\.sku && a\.name\)/.test(cartServer),
+  "Without an `optionSku` there is nothing to send back, and a stepper that cannot write is worse than a line of text.",
+);
+
+check(
+  "the joined label and the editable rows are alternatives, never both",
+  /onAddonQuantityChange && line\.addons\.length > 0 \? \([\s\S]{0,1800}\) : line\.optionsLabel \? \(/.test(
+    row,
+  ),
+  "The compact contexts (the vendor page's cart panel) keep the one-line label; the cart page shows the controls. Rendering both prints every add-on twice.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

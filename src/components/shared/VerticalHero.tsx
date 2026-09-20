@@ -26,6 +26,7 @@ export function VerticalHero({
   image,
   href,
   locale,
+  known,
   copy,
 }: {
   /** Absent renders the placeholder field — see D-12. */
@@ -33,6 +34,8 @@ export function VerticalHero({
   href: string;
   locale: string;
   copy: VerticalHeroCopy;
+  /** Where we already deliver, if we know — the field starts there. */
+  known?: string;
 }) {
   return (
     <section className="relative isolate flex min-h-[calc(100vh-6.875rem)] items-center overflow-hidden">
@@ -58,7 +61,12 @@ export function VerticalHero({
 
           <p className="text-20 text-ink-muted max-w-lg">{copy.body}</p>
 
-          <LocationForm locale={locale} href={href} copy={copy.location} />
+          <LocationForm
+            locale={locale}
+            href={href}
+            known={known}
+            copy={copy.location}
+          />
 
           <Button size="lg" className="rounded-8" asChild>
             <Link href={href}>

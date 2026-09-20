@@ -40,6 +40,12 @@ export const CART_FIXTURE: Cart = {
           description: "Double pepperoni, extra mozzarella, signature tomato sauce.",
           price: "12.50€",
           quantity: 1,
+          // A line with editable extras, so the states page shows the Phase 20e
+          // steppers with no cart and no session.
+          addons: [
+            { sku: "OPT-CHEESE", name: "Extra cheese", quantity: 2, price: "3.00€" },
+            { sku: "OPT-CHILLI", name: "Chilli flakes", quantity: 1, price: "0.50€" },
+          ],
           optionsLabel: "Medium · Classic crust",
         },
         {
@@ -49,6 +55,7 @@ export const CART_FIXTURE: Cart = {
           description: "Oven-baked bread topped with garlic butter and mozzarella.",
           price: "5.90€",
           quantity: 1,
+          addons: [],
         },
       ],
       totals: {
@@ -79,6 +86,7 @@ export const CART_FIXTURE: Cart = {
           description: "Double pepperoni, extra mozzarella, signature tomato sauce.",
           price: "12.50€",
           quantity: 1,
+          addons: [],
         },
         {
           id: "line-4",
@@ -87,6 +95,7 @@ export const CART_FIXTURE: Cart = {
           description: "Oven-baked bread topped with garlic butter and mozzarella.",
           price: "5.90€",
           quantity: 1,
+          addons: [],
         },
       ],
       totals: {
@@ -118,6 +127,7 @@ export const CART_FIXTURE: Cart = {
           // to six would show a contradiction that reads as a bug.
           price: "5.90€",
           quantity: 3,
+          addons: [],
         },
       ],
       totals: {

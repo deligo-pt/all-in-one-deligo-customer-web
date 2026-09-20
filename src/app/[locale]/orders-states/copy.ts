@@ -1,17 +1,33 @@
+import type { SummaryCopy } from "@/features/cart";
 import type {
   NotificationCopy,
   OrderDetailCopy,
   OrderListCopy,
 } from "@/features/orders";
 
+type T = (k: string, values?: Record<string, string | number>) => string;
+
 /**
- * The three views' copy, built from the `orders` and `cart` dictionaries.
- *
- * Two, because the order detail and the notification page both render the
- * cart's 415px summary panel whole — its copy belongs with the panel rather
- * than copied into a second dictionary that could drift from it.
+ * The three views' copy for the development states page, from the same
+ * `orders` and `cart` keys `services/orders/copy.ts` reads for the routes.
  */
-export function listCopy(t: (k: string) => string): OrderListCopy {
+const summaryCopy = (cart: T): SummaryCopy => ({
+  deliveryIn: cart("deliveryIn"),
+  addMoreItems: cart("addMoreItems"),
+  applyVoucher: cart("applyVoucher"),
+  orderSummary: cart("orderSummary"),
+  charge: {
+    subtotal: cart("chargeSubtotal"),
+    delivery: cart("chargeDelivery"),
+    service: cart("chargeService"),
+    tip: cart("chargeTip"),
+    discount: cart("chargeDiscount"),
+  },
+  grandTotal: cart("grandTotal"),
+  placeOrder: cart("placeOrder"),
+});
+
+export function listCopy(t: T): OrderListCopy {
   return {
     title: t("title"),
     subtitle: t("subtitle"),
@@ -21,97 +37,105 @@ export function listCopy(t: (k: string) => string): OrderListCopy {
       complete: t("tabComplete"),
       cancelled: t("tabCancelled"),
     },
+    searchLabel: t("searchLabel"),
+    searchPlaceholder: t("searchPlaceholder"),
     track: t("track"),
     details: t("details"),
     reorder: t("reorder"),
     orderImage: t("orderImage"),
+    noMatchTitle: t("noMatchTitle"),
+    noMatchBody: t("noMatchBody"),
     emptyTitle: t("emptyTitle"),
     emptyBody: t("emptyBody"),
     unavailableTitle: t("unavailableTitle"),
     unavailableBody: t("unavailableBody"),
-    notWired: t("notWired"),
+    actionFailed: t("actionFailed"),
   };
 }
 
-export function summaryCopy(cart: (k: string) => string) {
-  return {
-    deliveryIn: cart("deliveryIn"),
-    addMoreItems: cart("addMoreItems"),
-    applyVoucher: cart("applyVoucher"),
-    orderSummary: cart("orderSummary"),
-    charge: {
-      subtotal: cart("chargeSubtotal"),
-      delivery: cart("chargeDelivery"),
-      service: cart("chargeService"),
-      tip: cart("chargeTip"),
-      discount: cart("chargeDiscount"),
-    },
-    grandTotal: cart("grandTotal"),
-    placeOrder: cart("placeOrder"),
-  };
-}
-
-export function detailCopy(
-  t: (k: string, v?: Record<string, string | number>) => string,
-  cart: (k: string) => string,
-  riderName = "",
-): OrderDetailCopy {
+export function detailCopy(t: T, cart: T, riderName?: string): OrderDetailCopy {
   return {
     tracker: {
       label: t("trackerLabel"),
       step: {
+        placed: t("stepPlaced"),
         confirmed: t("stepConfirmed"),
         kitchen: t("stepKitchen"),
-        packed: t("stepPacked"),
         ready: t("stepReady"),
-        collected: t("stepCollected"),
-        picked: t("stepPicked"),
         "rider-picked": t("stepRiderPicked"),
         "on-way": t("stepOnWay"),
+        delivered: t("stepDelivered"),
+        collected: t("stepCollected"),
       },
     },
     summary: summaryCopy(cart),
     review: {
       title: t("reviewTitle"),
-      close: t("reviewSkip"),
-      status: t("details"),
+      close: t("close"),
       overall: t("reviewOverall"),
       thanks: t("reviewThanks"),
       placeholder: t("reviewPlaceholder"),
-      riderQuestion: t("reviewRider", { name: riderName }),
+      riderQuestion: t("reviewRider", { name: riderName ?? "" }),
       starLabels: [1, 2, 3, 4, 5].map((count) => t("reviewStars", { count })),
       submit: t("reviewSubmit"),
       skip: t("reviewSkip"),
-      notWired: t("notWired"),
     },
+    cancelDialog: {
+      title: t("cancelTitle"),
+      body: t("cancelBody"),
+      close: t("close"),
+      question: t("cancelQuestion"),
+      reasons: [
+        t("cancelReasonChangedMind"),
+        t("cancelReasonMistake"),
+        t("cancelReasonTooLong"),
+      ],
+      other: t("cancelReasonOther"),
+      otherPlaceholder: t("cancelOtherPlaceholder"),
+      confirm: t("cancelConfirm"),
+      keep: t("cancelKeep"),
+    },
+    map: {
+      live: t("mapLive"),
+      waiting: t("mapWaiting"),
+      unavailable: t("mapUnavailable"),
+      storeLabel: t("mapStore"),
+      destinationLabel: t("mapDestination"),
+      riderLabel: t("mapRider"),
+    },
+    backToOrders: t("backToOrders"),
+    reportIssue: t("reportIssue"),
     riderTitle: t("riderTitle"),
+    riderImage: t("riderImage"),
     deliveryCode: t("deliveryCode"),
     deliveryCodeBody: t("deliveryCodeBody"),
+    pickupCode: t("pickupCode"),
+    pickupCodeBody: t("pickupCodeBody"),
+    endedTitle: t("endedReason"),
+    refund: {
+      pending: t("refundPending"),
+      refunded: t("refundRefunded"),
+      none: t("refundNone"),
+    },
     cancel: t("cancel"),
     reorder: t("reorder"),
     invoice: t("invoice"),
+    invoicePending: t("invoicePending"),
     writeReview: t("writeReview"),
-    riderImage: t("riderImage"),
-    notWired: t("notWired"),
+    actionFailed: t("actionFailed"),
   };
 }
 
-export function notificationCopy(
-  t: (k: string, v?: Record<string, string | number>) => string,
-  cart: (k: string) => string,
-  unread = 0,
-): NotificationCopy {
+export function notificationCopy(t: T, cart: T, unread: number): NotificationCopy {
   return {
     title: t("notificationsTitle"),
     subtitle: t("notificationsSubtitle"),
-    all: t("notificationsAll"),
     unread: unread > 0 ? t("notificationsUnread", { count: unread }) : undefined,
-    summary: summaryCopy(cart),
-    notificationImage: t("notificationImage"),
+    markAllRead: t("markAllRead"),
     emptyTitle: t("notificationsEmpty"),
     emptyBody: t("notificationsEmptyBody"),
     unavailableTitle: t("notificationsUnavailable"),
     unavailableBody: t("notificationsUnavailableBody"),
-    notWired: t("notWired"),
+    actionFailed: t("actionFailed"),
   };
 }

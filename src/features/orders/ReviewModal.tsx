@@ -9,7 +9,6 @@ import type { Order } from "./types";
 export type ReviewCopy = {
   title: string;
   close: string;
-  status: string;
   overall: string;
   thanks: string;
   placeholder: string;
@@ -18,76 +17,80 @@ export type ReviewCopy = {
   starLabels: readonly string[];
   submit: string;
   skip: string;
-  notWired: string;
 };
 
 /**
  * `How was your order?` — 720×561 at 20px radius.
  *
- * Measured: the heading at 28/600, a meta line of vendor · reference · status
- * at 13/400, `OVERALL EXPERIENCE` at 14/600 above the stars, a `surface-warm`
- * textarea at 12px radius, the rider question, then `Submit Review` and
- * `Skip for now`.
+ * Measured: the heading at 28/600, a meta line, `OVERALL EXPERIENCE` above the
+ * stars, a `surface-warm` textarea, the rider question, then `Submit Review`
+ * and `Skip for now`.
  *
- * **One score for the order and one for the rider — no sub-ratings.** That is
- * what the backend now accepts, and it is the shape the other project was
- * rebuilt to this week: `ratingType`, `subRatings` and a rider id are all
- * rejected outright. The frontend never sends who the rider was; the order
- * says.
- *
- * The photo button the design draws is **not built**. Uploading needs a
- * destination, a size limit and a content policy, none of which exist yet, and
- * a button that opens a file picker and drops the file is worse than no button.
+ * The overall score is sent as every product's score (D-20) — the API rates
+ * products, the design asks one question — and appears only while the
+ * products are unrated; the rider question only while the rider is. A rating
+ * cannot be edited or deleted, so a refusal keeps the dialog open.
  */
 export function ReviewModal({
   open,
   onOpenChange,
   order,
+  busy,
+  notice,
   onSubmit,
   copy,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   order: Order;
+  busy?: boolean;
+  notice?: string | null;
   onSubmit: (rating: number, review: string, riderRating: number) => void;
   copy: ReviewCopy;
 }) {
   const [rating, setRating] = useState(0);
   const [riderRating, setRiderRating] = useState(0);
   const [review, setReview] = useState("");
+  const rateProducts = order.productsToRate.length > 0;
+  const ready = (rateProducts && rating > 0) || (order.rateRider && riderRating > 0);
 
   return (
     <Modal
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={(next) => !busy && onOpenChange(next)}
       title={copy.title}
       description={`${order.vendorName} · ${order.reference} · ${order.statusLabel}`}
       closeLabel={copy.close}
       className="w-[min(45rem,calc(100vw-2rem))]"
     >
-      <div className="flex flex-col gap-4">
-        <p className="text-14 text-ink-muted font-semibold tracking-wide uppercase">
-          {copy.overall}
-        </p>
-        <StarInput
-          value={rating}
-          onChange={setRating}
-          label={copy.overall}
-          starLabels={copy.starLabels}
-        />
-        {rating > 0 ? <p className="text-14 text-ink">{copy.thanks}</p> : null}
-      </div>
+      {rateProducts ? (
+        <>
+          <div className="flex flex-col gap-4">
+            <p className="text-14 text-ink-muted font-semibold tracking-wide uppercase">
+              {copy.overall}
+            </p>
+            <StarInput
+              value={rating}
+              onChange={setRating}
+              label={copy.overall}
+              starLabels={copy.starLabels}
+            />
+            {rating > 0 ? <p className="text-14 text-ink">{copy.thanks}</p> : null}
+          </div>
 
-      <textarea
-        rows={3}
-        value={review}
-        onChange={(event) => setReview(event.target.value)}
-        aria-label={copy.title}
-        placeholder={copy.placeholder}
-        className="border-line rounded-12 bg-surface-warm text-16 text-ink placeholder:text-ink-warm w-full resize-none border p-4"
-      />
+          <textarea
+            rows={3}
+            maxLength={500}
+            value={review}
+            onChange={(event) => setReview(event.target.value)}
+            aria-label={copy.title}
+            placeholder={copy.placeholder}
+            className="border-line rounded-12 bg-surface-warm text-16 text-ink placeholder:text-ink-warm w-full resize-none border p-4"
+          />
+        </>
+      ) : null}
 
-      {order.rider ? (
+      {order.rateRider ? (
         <div className="flex flex-wrap items-center justify-between gap-4">
           <p className="text-16 text-ink-strong">{copy.riderQuestion}</p>
           <StarInput
@@ -99,16 +102,25 @@ export function ReviewModal({
         </div>
       ) : null}
 
+      <p role="status" className="text-14 text-danger empty:hidden">
+        {notice}
+      </p>
+
       <div className="flex flex-col gap-4">
         <Button
           block
           className="rounded-12 bg-brand-strong h-12"
-          disabled={rating === 0}
+          disabled={busy || !ready}
           onClick={() => onSubmit(rating, review.trim(), riderRating)}
         >
           {copy.submit}
         </Button>
-        <Button variant="link" className="text-16" onClick={() => onOpenChange(false)}>
+        <Button
+          variant="link"
+          className="text-16"
+          disabled={busy}
+          onClick={() => onOpenChange(false)}
+        >
           {copy.skip}
         </Button>
       </div>

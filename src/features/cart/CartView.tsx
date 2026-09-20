@@ -164,6 +164,12 @@ export function CartView({
               const line = lineById(lineId);
               if (line) void run(() => cartApi.setQuantity(line, quantity));
             }}
+            onAddonQuantityChange={(lineId, optionSku, quantity) => {
+              const line = lineById(lineId);
+              if (line) {
+                void run(() => cartApi.setAddonQuantity(line, optionSku, quantity));
+              }
+            }}
             onRemove={(lineId) => {
               const line = lineById(lineId);
               if (line) void run(() => cartApi.remove([line]));

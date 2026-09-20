@@ -55,9 +55,9 @@ export default async function CartStatesPage() {
   const itemsLabels = Object.fromEntries(
     CART_FIXTURE.stores.map((store) => [store.id, items(storeItemCount(store))]),
   );
-  const headerLabel = CART_FIXTURE.total
-    ? `${items(cartItemCount(CART_FIXTURE))} · ${CART_FIXTURE.total}`
-    : items(cartItemCount(CART_FIXTURE));
+  // The pill counts and carries no money — the route does the same, and for
+  // the same reason: the count is the cart's, the total is one store's.
+  const headerLabel = items(cartItemCount(CART_FIXTURE));
 
   return (
     <TranslationProvider locale={locale} messages={{ common, cart, nav }}>

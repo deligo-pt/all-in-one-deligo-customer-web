@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { DELIVERY_NOTE_MAX } from "@/lib/checkout";
 import { MapSlot } from "./MapSlot";
 import type { DeliveryAddress } from "./types";
 
@@ -21,14 +22,9 @@ export type DeliveryCopy = {
  * at 817×210; then `Delivery Instruction` at 16/600 over a `surface-muted`
  * field at 8px radius.
  *
- * The instruction placeholder is the **same string** the dish modal already
- * uses — "Any allergies or special requests? Let us know here..." — and it is
- * the same dictionary key, not a second copy of the sentence. The design
- * repeats it verbatim in both places.
- *
- * With no address there is no `Edit`: there is nothing to edit. The button
- * becomes the one that sets one, which is the same control the location modal
- * opens either way.
+ * The address and the distance line are the summary's (`deliveryAddress`,
+ * `delivery.distance`, `delivery.estimatedTime`). The instruction goes to the
+ * order as `deliveryNotes` when it is created.
  */
 export function DeliveryCard({
   address,
@@ -46,24 +42,28 @@ export function DeliveryCard({
   return (
     <section className="border-line rounded-24 bg-surface flex flex-col gap-4 border px-6 py-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
+        <div className="flex min-w-0 flex-col gap-1">
           <h2 className="text-20 text-ink font-semibold">{copy.title}</h2>
-          <p className="text-16 text-ink-muted flex items-center gap-2">
+          <p className="text-16 text-ink-muted flex items-center gap-2 break-words">
             <Icon name="map" className="size-4 shrink-0" />
             {address?.line ?? copy.noAddress}
           </p>
+          {address?.detail ? (
+            <p className="text-14 text-ink-muted ps-6">{address.detail}</p>
+          ) : null}
         </div>
         <Button variant="link" className="text-16 font-medium" onClick={onEditAddress}>
           {copy.edit}
         </Button>
       </div>
 
-      <MapSlot src={address?.mapImage} alt={copy.mapAlt} />
+      <MapSlot alt={copy.mapAlt} />
 
       <div className="flex flex-col gap-2">
         <h3 className="text-16 text-ink font-semibold">{copy.instructionTitle}</h3>
         <textarea
           rows={3}
+          maxLength={DELIVERY_NOTE_MAX}
           value={instruction}
           onChange={(event) => onInstructionChange(event.target.value)}
           aria-label={copy.instructionTitle}

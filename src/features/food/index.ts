@@ -35,6 +35,7 @@ export type {
   OptionChoice,
   OptionGroup,
   ProductDetail,
+  StoreDetails,
   Vendor,
   VendorDetail,
   VendorPage,

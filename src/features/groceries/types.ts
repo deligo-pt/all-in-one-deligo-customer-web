@@ -64,7 +64,11 @@ export type StoreListing = {
 export type GroceryCatalog = {
   /** `/vendors/nearby/open?businessType=STORE`. The API does not group stores
    *  or filter them by product category, so there is one shelf. */
-  listStores(input: { location: ListingLocation }): Promise<StoreListing>;
+  listStores(input: {
+    location: ListingLocation;
+    /** A name to match — the API's `searchTerm` (Phase 20c). */
+    term?: string;
+  }): Promise<StoreListing>;
   /** `/vendors/nearby/open/:userId` with its products, grouped into aisles. */
   getStore(storeId: string): Promise<GroceryStore>;
 };

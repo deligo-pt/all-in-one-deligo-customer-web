@@ -57,11 +57,15 @@ export default async function CartPage() {
     cart.stores.map((store) => [store.id, t.plural("items", storeItemCount(store))]),
   );
 
-  const items = t.plural("items", cartItemCount(cart));
-  // The cart's value is printed beside the count when the backend states one,
-  // and omitted when it does not. Adding the stores up here to fill the pill
-  // would be inventing a number nobody agreed to (D-4).
-  const headerLabel = cart.total ? `${items} · ${cart.total}` : items;
+  // The pill counts, and says nothing about money.
+  //
+  // It used to print `cart.total` beside the count, and with two stores in the
+  // cart that read as a lie: the count is the whole cart's, the total is only
+  // the **active** store's — the one `cartCalculation` sums — so "2 items ·
+  // 8.00€" described one item's worth. The store's own total is on its own
+  // card now, and the breakdown is in the summary beside it. Nothing is added
+  // up here either way (D-4).
+  const headerLabel = t.plural("items", cartItemCount(cart));
 
   const copy: CartCopy = {
     title: t("title"),
@@ -84,6 +88,7 @@ export default async function CartPage() {
     increase: t("increaseQuantity"),
     decrease: t("decreaseQuantity"),
     itemImage: t("itemImage"),
+    addons: t("addons"),
 
     deliveryIn: t("deliveryIn"),
     addMoreItems: t("addMoreItems"),

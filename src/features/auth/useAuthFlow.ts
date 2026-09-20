@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DEFAULT_DIAL_CODE, toContactNumber } from "./countries";
+import { DEFAULT_DIAL_CODE, toContactNumber } from "@/lib/countries";
 import { OTP_LENGTH } from "./OtpInput";
 import { notWiredTransport } from "./transport";
 import {

@@ -34,6 +34,7 @@ export function cartCopy(
     increase: t("increaseQuantity"),
     decrease: t("decreaseQuantity"),
     itemImage: t("itemImage"),
+    addons: t("addons"),
 
     deliveryIn: t("deliveryIn"),
     addMoreItems: t("addMoreItems"),

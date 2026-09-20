@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
 import { ContentPage } from "@/components/shared/ContentPage";
 import { getTranslations } from "@/i18n/server";
+import { readContent } from "@/services/content/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("account");
   return { title: t("faqsTitle") };
 }
 
-/** One of the twelve prose pages the design does not draw and whose words are
- *  not ours to write — see `ContentPage` and D-16. */
-export default async function FaqsPage() {
-  const t = await getTranslations("account");
+/** A prose page with the owner's copy, carried over from the old app
+ *  (Phase 20) — see `services/content/server.ts`. */
+export default async function Page() {
+  const [t, document] = await Promise.all([
+    getTranslations("account"),
+    readContent("faqs"),
+  ]);
   return (
     <ContentPage
       title={t("faqsTitle")}
+      document={document}
       pendingTitle={t("contentPendingTitle")}
       pendingBody={t("contentPendingBody")}
     />

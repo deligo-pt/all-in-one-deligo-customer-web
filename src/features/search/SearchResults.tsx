@@ -1,8 +1,13 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import { ImageSlot } from "@/components/shared/ImageSlot";
-import type { SearchResult } from "./types";
+import { VendorCard } from "@/features/food";
+import type { Locale } from "@/lib/i18n/locale";
+import { withLocale } from "@/lib/i18n/path";
+import { ROUTES } from "@/lib/routes";
+import type { SearchPlaces, SearchResult } from "./types";
 
 export type SearchCopy = {
   title: string;
@@ -16,26 +21,53 @@ export type SearchCopy = {
   previous: string;
   next: string;
   rating: string;
+  /** "Restaurants", "Stores", "Dishes" — the three groups (Phase 20c). */
+  restaurants: string;
+  stores: string;
+  dishes: string;
+  vendorImage: string;
 };
 
 /**
  * `/search` — the design has no search screen, so this is the listing's grid
  * with dish cards in the menu card's type scale (Phase 16). Results render in
  * the server's order; paging is links, so a result page can be shared.
+ *
+ * **Places first, then dishes** (Phase 20c). Someone typing "Tasca" usually
+ * wants the restaurant, not its chicken soup, and the two come from two
+ * different endpoints — the store from the nearby-vendors list, the dishes
+ * from the search index, which holds no store documents at all. Places are
+ * absent, not empty, when there is no delivery location to look near.
  */
 export function SearchResults({
   results,
+  places,
+  locale,
+  filters,
   copy,
   state,
   previousHref,
   nextHref,
 }: {
   results: readonly SearchResult[];
+  /** Matching restaurants and stores; absent without a delivery location. */
+  places?: SearchPlaces;
+  locale: Locale;
+  /** The filter bar, rendered above the groups. */
+  filters?: ReactNode;
   copy: SearchCopy;
   state: "prompt" | "results" | "unavailable";
   previousHref?: string;
   nextHref?: string;
 }) {
+  // The two kinds of place, each with the route its cards lead to: a store's
+  // page is not the restaurant page, and the card takes the href it is given.
+  const placeGroups = (
+    [
+      [copy.restaurants, places?.restaurants ?? [], undefined],
+      [copy.stores, places?.stores ?? [], ROUTES.groceryStore.path],
+    ] as const
+  ).filter(([, rows]) => rows.length > 0);
   return (
     <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
       <header className="flex flex-col gap-2">
@@ -44,6 +76,40 @@ export function SearchResults({
           <p className="text-16 text-ink-muted">{copy.count}</p>
         ) : null}
       </header>
+
+      {state === "results" && filters ? filters : null}
+
+      {state === "results" && placeGroups.length > 0
+        ? placeGroups.map(([title, rows, storePath]) => (
+            <section key={title} className="flex flex-col gap-6">
+              <h2 className="text-24 text-ink font-semibold">{title}</h2>
+              <ul className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
+                {rows.map((vendor) => (
+                  <li key={vendor.id}>
+                    <VendorCard
+                      vendor={vendor}
+                      locale={locale}
+                      href={
+                        storePath
+                          ? withLocale(
+                              storePath.replace("[storeId]", vendor.id),
+                              locale,
+                            )
+                          : undefined
+                      }
+                      imageLabel={copy.vendorImage}
+                      ratingLabel={copy.rating}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))
+        : null}
+
+      {state === "results" && placeGroups.length > 0 && results.length > 0 ? (
+        <h2 className="text-24 text-ink font-semibold">{copy.dishes}</h2>
+      ) : null}
 
       {state === "prompt" ? (
         <EmptyState

@@ -26,7 +26,7 @@
 export { AuthPanel } from "./AuthPanel";
 // Exported so a caller building an identifier — the states page below, the API
 // layer in Phase 15 — joins the dial code the same way the form does.
-export { DEFAULT_DIAL_CODE, toContactNumber } from "./countries";
+export { DEFAULT_DIAL_CODE, toContactNumber } from "@/lib/countries";
 export { notWiredTransport } from "./transport";
 export { AuthFailure, isAuthFailure } from "./types";
 export type {

@@ -1,24 +1,16 @@
 import type { IconName } from "@/components/ui/Icon";
 
 /**
- * The payment methods the design lists, in the design's order.
+ * The payment methods the design lists, in the design's order, each with the
+ * value `POST /payment/reduniq/create-payment-intent` takes for it.
  *
- * **Chrome, not data — and the distinction is deliberate.** Which methods
- * DeliGo offers is a product decision drawn in the file, the same way the
- * sign-in panel's three providers were in Phase 6; it is not a list the
- * catalogue describes. What *is* the backend's is which of these a given
- * order can actually use — MB WAY is Portugal-only, Apple Pay depends on the
- * device — and Phase 18 filters this list rather than inventing a different
- * one.
+ * All six are the API's (`CARD`, `MB_WAY`, `APPLE_PAY`, `PAYPAL`, `GOOGLE_PAY`,
+ * `OTHER` — the collection lists exactly these), and every one of them is
+ * paid on REDUNIQ's own page. Nothing about a card is typed into this site
+ * (D-14): saved cards are tokens, and "save this card" is a flag the gateway
+ * honours on its page.
  *
- * The copy lives in the dictionary, not here. This file holds the identity,
- * the order and the glyph; `verify:i18n` would fail on a user-visible string
- * that escaped it, and rightly.
- *
- * Carried from the old app (Plan.md §2.2): its live payment provider is
- * REDUNIQ, where **CARD is broken and Google Pay works**. That is a wiring
- * fact for Phase 18, and it is recorded here so that whoever wires it does not
- * rediscover it in production.
+ * The copy lives in the dictionary; this file holds identity, order and glyph.
  */
 export type PaymentMethodId =
   "mbway" | "card" | "apple-pay" | "paypal" | "google-pay" | "other";
@@ -26,25 +18,15 @@ export type PaymentMethodId =
 export type PaymentMethod = {
   id: PaymentMethodId;
   icon: IconName;
-  /** Whether choosing it reveals a form. Only the card does. */
-  expands?: true;
+  /** The API's enum value. */
+  api: string;
 };
 
 export const PAYMENT_METHODS: readonly PaymentMethod[] = [
-  { id: "mbway", icon: "phone" },
-  { id: "card", icon: "card", expands: true },
-  { id: "apple-pay", icon: "apple" },
-  { id: "paypal", icon: "paypal" },
-  { id: "google-pay", icon: "google" },
-  { id: "other", icon: "wallet" },
+  { id: "mbway", icon: "phone", api: "MB_WAY" },
+  { id: "card", icon: "card", api: "CARD" },
+  { id: "apple-pay", icon: "apple", api: "APPLE_PAY" },
+  { id: "paypal", icon: "paypal", api: "PAYPAL" },
+  { id: "google-pay", icon: "google", api: "GOOGLE_PAY" },
+  { id: "other", icon: "wallet", api: "OTHER" },
 ];
-
-/**
- * The tip amounts the design offers, verbatim, plus the option to decide later.
- *
- * Strings, not numbers, and never added to anything here. A tip changes the
- * total, and the total is the backend's to restate — `CartTotals` comes back
- * from the server for exactly this reason. `verify:checkout` fails on any
- * arithmetic in this feature.
- */
-export const TIP_OPTIONS: readonly string[] = ["1€", "2€", "3€", "5€", "6€"];

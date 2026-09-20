@@ -18,6 +18,7 @@ const cart = {
   quantity: "Quantidade",
   increaseQuantity: "Aumentar quantidade",
   decreaseQuantity: "Diminuir quantidade",
+  addons: "Extras",
   itemImage: "Fotografia do artigo",
 
   deliveryIn: "Entrega em",

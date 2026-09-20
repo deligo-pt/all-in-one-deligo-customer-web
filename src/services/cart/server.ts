@@ -4,13 +4,19 @@ import { formatCurrency } from "@/lib/i18n/format";
 import type { Locale } from "@/lib/i18n/locale";
 import { hasServerSession, serverApi } from "@/services/api/server";
 
-type RawCartItem = {
+export type RawCartItem = {
   productId: string;
   name?: string;
   image?: string;
   variationSku?: string | null;
   isActive?: boolean;
-  addons?: { name?: string; sku?: string; quantity?: number }[];
+  addons?: {
+    name?: string;
+    sku?: string;
+    quantity?: number;
+    /** The add-on's own total for this line, the backend's arithmetic. */
+    lineTotal?: number;
+  }[];
   vendorId?:
     | {
         _id?: string;
@@ -35,10 +41,21 @@ const money = (amount: number | undefined, locale: Locale) =>
 const vendorOf = (item: RawCartItem) =>
   typeof item.vendorId === "object" ? item.vendorId : undefined;
 
-function toLine(item: RawCartItem, locale: Locale): CartLine {
+export function toLine(item: RawCartItem, locale: Locale): CartLine {
   const addons = (item.addons ?? [])
     .filter((a) => a.name)
     .map((a) => ((a.quantity ?? 1) > 1 ? `${a.name} ×${a.quantity}` : a.name!));
+  // The same add-ons as rows, for the cart page's steppers (Phase 20e). Only
+  // those with an `sku`: without one there is nothing to send back, and a
+  // control that cannot write is worse than a line of text.
+  const addonRows = (item.addons ?? [])
+    .filter((a) => a.sku && a.name)
+    .map((a) => ({
+      sku: a.sku!,
+      name: a.name!,
+      quantity: a.quantity ?? 1,
+      price: money(a.lineTotal, locale),
+    }));
   return {
     id: `${item.productId}::${item.variationSku ?? ""}`,
     productId: item.productId,
@@ -48,6 +65,7 @@ function toLine(item: RawCartItem, locale: Locale): CartLine {
     price: money(item.itemSummary?.grandTotal, locale) ?? "",
     quantity: item.itemSummary?.quantity ?? 1,
     optionsLabel: addons.length ? addons.join(" · ") : undefined,
+    addons: addonRows,
   };
 }
 

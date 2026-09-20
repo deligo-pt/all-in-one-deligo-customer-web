@@ -1,29 +1,31 @@
+"use client";
+
+import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { PAYMENT_METHODS, type PaymentMethodId } from "./paymentMethods";
+import type { SavedCard } from "./types";
 
 export type PaymentCopy = {
   title: string;
   showAll: string;
-  showLess: string;
-  /** One name and one description per method, keyed by id. A `Record`, not a
-   *  function: this object is built on the server and handed to a client
-   *  component, and a function cannot cross that boundary — the lesson
-   *  `FilterCopy` taught in Phase 7. */
+  /** Keyed by id. A `Record`, not a function: this object crosses from the
+   *  server to a client component. */
   methodName: Record<PaymentMethodId, string>;
   methodDescription: Record<PaymentMethodId, string>;
-  cardNumber: string;
-  cardNumberPlaceholder: string;
-  cardHolder: string;
-  cardHolderPlaceholder: string;
-  cardExpiry: string;
-  cardExpiryPlaceholder: string;
-  cardCvv: string;
-  cardCvvPlaceholder: string;
-  cardNotice: string;
+  savedCards: string;
+  newCard: string;
+  saveCard: string;
+  saveCardBody: string;
+  gatewayNotice: string;
+  instantNotice: string;
 };
 
-/** How many rows are visible before `Show all`. The design draws two. */
+/** A saved card's id, or `"new"` for the provider's page. */
+export type CardChoice = string;
+export const NEW_CARD: CardChoice = "new";
+
+/** How many rows are visible below `lg` before `Show all`. The design draws two. */
 const COLLAPSED = 2;
 
 /**
@@ -32,40 +34,38 @@ const COLLAPSED = 2;
  * Measured: the card at 24px radius over a `line` border; the heading at
  * 20/600; each option a 72px row at 16px radius with a 40×40 `brand-tint` tile
  * at 8px radius, a radio on the end, and 16 between rows; `Show all` at 16/500
- * in brand.
+ * in brand. The method's name leads and its description follows (the file has
+ * them the wrong way round on all six rows).
  *
- * ## Two corrections to the file
+ * ## No card form (D-14, answered)
  *
- * **The method's name and its description are drawn the wrong way round.** The
- * file gives `MB WAY` 12/400 in black and `Instant mobile payment (Portugal)`
- * 16/500 in grey — a caption above a heading. Every one of the six rows has it,
- * which is what an instance override applied to the wrong text layer looks
- * like. The name leads here, at 16/500, over the description at 14/400 in
- * `ink-muted`.
- *
- * **The rows are a radio group, not six toggles.** The file draws a 20px
- * circle; a customer pays one way. Native radios, so arrow keys, a single tab
- * stop and the group's name all come free.
- *
- * ## The card form
- *
- * Built as drawn, and **wired to nothing** — no state leaves this component,
- * no name a password manager recognises, autocomplete off. Card details belong
- * to the payment provider, not to us: the old app pays through REDUNIQ, and
- * putting a real PAN through our own DOM would pull this application into PCI
- * scope for no benefit. See D-14; Phase 18 replaces these four inputs with the
- * provider's hosted fields, and the notice under them says so meanwhile.
+ * The design's four card inputs are gone. Every method is paid on REDUNIQ's
+ * own page, so a card number never enters this site; what Card offers here is
+ * what the API has — the customer's **saved cards** (`/payment-tokens`, a
+ * brand and four digits) charged in one call, or the provider's page with an
+ * optional "save this card".
  */
 export function PaymentCard({
   value,
   onChange,
+  cards,
+  card,
+  onCardChange,
+  saveCard,
+  onSaveCardChange,
   copy,
 }: {
   value: PaymentMethodId | null;
   onChange: (next: PaymentMethodId) => void;
+  cards: readonly SavedCard[];
+  card: CardChoice;
+  onCardChange: (next: CardChoice) => void;
+  saveCard: boolean;
+  onSaveCardChange: (next: boolean) => void;
   copy: PaymentCopy;
 }) {
-  const groupName = "checkout-payment-method";
+  const [expanded, setExpanded] = useState(false);
+  const instant = value === "card" && card !== NEW_CARD;
 
   return (
     <section className="border-line rounded-24 bg-surface flex flex-col gap-6 border px-6 py-8">
@@ -79,7 +79,7 @@ export function PaymentCard({
               <label
                 className={[
                   "rounded-16 flex cursor-pointer items-center gap-4 border p-4 transition-colors",
-                  index >= COLLAPSED ? "max-lg:hidden" : "",
+                  index >= COLLAPSED && !expanded && !selected ? "max-lg:hidden" : "",
                   selected
                     ? "border-brand bg-brand-tint"
                     : "border-line hover:bg-surface-muted",
@@ -101,97 +101,127 @@ export function PaymentCard({
                 </span>
                 <input
                   type="radio"
-                  name={groupName}
+                  name="checkout-payment-method"
                   className="accent-brand size-5 shrink-0"
                   checked={selected}
                   onChange={() => onChange(method.id)}
                 />
               </label>
 
-              {method.expands && selected ? <CardForm copy={copy} /> : null}
+              {method.id === "card" && selected ? (
+                <CardOptions
+                  cards={cards}
+                  card={card}
+                  onCardChange={onCardChange}
+                  saveCard={saveCard}
+                  onSaveCardChange={onSaveCardChange}
+                  copy={copy}
+                />
+              ) : null}
             </div>
           );
         })}
       </div>
 
-      {/* Below `lg` the list collapses to two rows and this reveals the rest,
-          which is the design's own affordance. On a wide screen every option
-          already fits, so the control would expand something that is not
-          folded — see D-8 on why every breakpoint in this project is ours. */}
-      <Button variant="link" className="text-16 self-start font-medium lg:hidden">
-        {copy.showAll}
-      </Button>
+      {value ? (
+        <p className="text-14 text-ink-muted">
+          {instant ? copy.instantNotice : copy.gatewayNotice}
+        </p>
+      ) : null}
+
+      {!expanded ? (
+        <Button
+          variant="link"
+          className="text-16 self-start font-medium lg:hidden"
+          onClick={() => setExpanded(true)}
+        >
+          {copy.showAll}
+        </Button>
+      ) : null}
     </section>
   );
 }
 
-function CardForm({ copy }: { copy: PaymentCopy }) {
-  const field =
-    "border-line-subtle rounded-12 text-16 text-ink placeholder:text-ink-muted h-14 w-full border px-4";
-  const label = "text-16 text-brand";
+function CardOptions({
+  cards,
+  card,
+  onCardChange,
+  saveCard,
+  onSaveCardChange,
+  copy,
+}: {
+  cards: readonly SavedCard[];
+  card: CardChoice;
+  onCardChange: (next: CardChoice) => void;
+  saveCard: boolean;
+  onSaveCardChange: (next: boolean) => void;
+  copy: PaymentCopy;
+}) {
+  const row =
+    "rounded-16 flex cursor-pointer items-center gap-4 border p-4 transition-colors";
 
   return (
-    <div className="border-line rounded-24 flex flex-col gap-4 border px-10 py-5">
-      <div className="flex flex-col gap-1.5">
-        <label className={label} htmlFor="checkout-card-number">
-          {copy.cardNumber}
-        </label>
-        <input
-          id="checkout-card-number"
-          className={field}
-          placeholder={copy.cardNumberPlaceholder}
-          autoComplete="off"
-          inputMode="numeric"
-          disabled
-        />
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <label className={label} htmlFor="checkout-card-holder">
-          {copy.cardHolder}
-        </label>
-        <input
-          id="checkout-card-holder"
-          className={field}
-          placeholder={copy.cardHolderPlaceholder}
-          autoComplete="off"
-          disabled
-        />
-      </div>
-
-      <div className="flex flex-wrap gap-4">
-        <div className="flex min-w-40 flex-1 flex-col gap-1.5">
-          <label className={label} htmlFor="checkout-card-expiry">
-            {copy.cardExpiry}
+    <div className="border-line rounded-24 flex flex-col gap-3 border px-6 py-5">
+      {cards.length > 0 ? (
+        <div
+          role="radiogroup"
+          aria-label={copy.savedCards}
+          className="flex flex-col gap-3"
+        >
+          <p className="text-14 text-ink-warm font-semibold">{copy.savedCards}</p>
+          {cards.map((saved) => (
+            <label
+              key={saved.id}
+              className={[row, card === saved.id ? "border-brand" : "border-line"].join(
+                " ",
+              )}
+            >
+              <Icon name="card" className="text-brand size-5 shrink-0" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-16 text-ink font-medium">{saved.label}</span>
+                <span className="text-12 text-ink-muted">{saved.expiry}</span>
+              </span>
+              <input
+                type="radio"
+                name="checkout-saved-card"
+                className="accent-brand size-5 shrink-0"
+                checked={card === saved.id}
+                onChange={() => onCardChange(saved.id)}
+              />
+            </label>
+          ))}
+          <label
+            className={[row, card === NEW_CARD ? "border-brand" : "border-line"].join(
+              " ",
+            )}
+          >
+            <Icon name="plus" className="text-brand size-5 shrink-0" />
+            <span className="text-16 text-ink flex-1 font-medium">{copy.newCard}</span>
+            <input
+              type="radio"
+              name="checkout-saved-card"
+              className="accent-brand size-5 shrink-0"
+              checked={card === NEW_CARD}
+              onChange={() => onCardChange(NEW_CARD)}
+            />
           </label>
-          <input
-            id="checkout-card-expiry"
-            className={field}
-            placeholder={copy.cardExpiryPlaceholder}
-            autoComplete="off"
-            inputMode="numeric"
-            disabled
-          />
         </div>
-        <div className="flex w-36 flex-col gap-1.5">
-          <label className={label} htmlFor="checkout-card-cvv">
-            {copy.cardCvv}
-          </label>
-          <input
-            id="checkout-card-cvv"
-            className={field}
-            placeholder={copy.cardCvvPlaceholder}
-            autoComplete="off"
-            inputMode="numeric"
-            disabled
-          />
-        </div>
-      </div>
+      ) : null}
 
-      {/* Not decoration. These four inputs are `disabled` and carry nothing
-          away, and the sentence says why — a card form that looks ready to
-          take a number is worse than one that admits it is not. */}
-      <p className="text-14 text-ink-muted">{copy.cardNotice}</p>
+      {card === NEW_CARD ? (
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            className="accent-brand mt-1 size-4 shrink-0"
+            checked={saveCard}
+            onChange={(event) => onSaveCardChange(event.target.checked)}
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-14 text-ink font-semibold">{copy.saveCard}</span>
+            <span className="text-12 text-ink-muted">{copy.saveCardBody}</span>
+          </span>
+        </label>
+      ) : null}
     </div>
   );
 }

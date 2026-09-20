@@ -85,6 +85,10 @@ export const ROUTES = {
 
   cart: { path: "/cart", group: "checkout", phase: 9 },
   checkout: { path: "/checkout", group: "checkout", phase: 10 },
+  // Where REDUNIQ sends the customer back (Phase 18). The paths are the old
+  // app's, because the return URL is configured on the backend, not here.
+  paymentSuccess: { path: "/payment-success", group: "checkout", phase: 18 },
+  paymentFailed: { path: "/payment-failed", group: "checkout", phase: 18 },
 
   account: { path: "/account", group: "account", phase: 12 },
   orders: { path: "/account/orders", group: "account", phase: 11 },
@@ -98,6 +102,7 @@ export const ROUTES = {
   paymentMethods: { path: "/account/payment-methods", group: "account", phase: 12 },
   vouchers: { path: "/account/vouchers", group: "account", phase: 12 },
   referrals: { path: "/account/referrals", group: "account", phase: 12 },
+  support: { path: "/account/support", group: "account", phase: 20 },
   settings: { path: "/account/settings", group: "account", phase: 12 },
   notifications: { path: "/notifications", group: "account", phase: 11 },
 } as const satisfies Record<string, Route>;
