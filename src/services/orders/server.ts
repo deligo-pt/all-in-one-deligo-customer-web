@@ -21,6 +21,8 @@ import {
   orderStep,
   refundState,
   statusNote,
+  oneLanguage,
+  notificationKind,
 } from "@/lib/orders";
 import { ROUTES } from "@/lib/routes";
 import { serverApi } from "@/services/api/server";
@@ -280,7 +282,9 @@ type RawNotification = {
   message?: string;
   isRead?: boolean;
   createdAt?: string;
-  data?: { orderId?: string };
+  type?: string;
+  channelId?: string;
+  data?: { orderId?: string; type?: string; channelId?: string };
 };
 
 const dayKey = (date: Date, locale: Locale) =>
@@ -323,8 +327,13 @@ export async function readNotifications(): Promise<NotificationGroup[]> {
     const group = groups.get(key) ?? { label, notifications: [] };
     group.notifications.push({
       id: item._id,
-      title: item.title ?? "",
-      body: item.message ?? "",
+      // Both languages arrive in one string; the reader gets theirs.
+      title: oneLanguage(item.title ?? "", locale),
+      body: oneLanguage(item.message ?? "", locale),
+      kind: notificationKind(
+        item.type ?? item.channelId ?? item.data?.type ?? item.data?.channelId,
+        Boolean(orderId),
+      ),
       when: formatTime(created, locale),
       unread: !item.isRead,
       action: orderId

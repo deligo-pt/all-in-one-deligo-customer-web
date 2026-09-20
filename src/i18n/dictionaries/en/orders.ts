@@ -107,7 +107,6 @@ const orders = {
   notificationsUnread: "{count} unread",
   notificationsToday: "Today",
   notificationsYesterday: "Yesterday",
-  currentOrder: "Your current order",
   markAllRead: "Mark all as read",
   viewOrder: "View order",
   notificationsEmpty: "Nothing new",

@@ -391,8 +391,13 @@ const literalConfig = filesUnder(ROOT + "/public", [".js"])
 check(
   "the Firebase config comes from the environment, not a committed file",
   literalConfig.length === 0 &&
-    /process\.env\.NEXT_PUBLIC_FIREBASE_PROJECT_ID/.test(
+    // Through `services/push/config`, which is the one place those variables
+    // are read — the page, the token request and the worker share it.
+    /FIREBASE_CONFIG/.test(
       read(join(SRC, "app", "firebase-messaging-sw.js", "route.ts")),
+    ) &&
+    /process\.env\.NEXT_PUBLIC_FIREBASE_PROJECT_ID/.test(
+      read(join(SRC, "services", "push", "config.ts")),
     ),
   `The old worker carried two projects' keys, one commented out.\n      ${literalConfig.map(rel).join("\n      ")}`,
 );

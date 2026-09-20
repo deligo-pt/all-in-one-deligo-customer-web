@@ -28,6 +28,7 @@ const food = {
 
   // ── The location picker on the delivery card (Phase 20b) ─────────────────
 
+  savedAddresses: "Moradas guardadas",
   locationTitle: "Onde devemos entregar?",
   locationBody:
     "Escolha uma das suas moradas guardadas ou indique um novo local. Ao escolher uma morada guardada, é para lá que segue o seu próximo pedido.",

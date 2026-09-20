@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { VerticalHero } from "@/components/shared/VerticalHero";
 import { getLocale, getTranslations } from "@/i18n/server";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
+import { getDeliveryLocation } from "@/services/location/server";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("groceries");
@@ -19,11 +21,18 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function GroceriesPage() {
   // The address bar and the trust line are the food hero's words, shared.
-  const [t, food, locale] = await Promise.all([
+  const [t, food, locale, placed] = await Promise.all([
     getTranslations("groceries"),
     getTranslations("food"),
     getLocale(),
+    getDeliveryLocation(),
   ]);
+
+  // A customer we can already place is sent to the results rather than
+  // asked a question we know the answer to (Phase 20n). The listing has
+  // the address picker on its delivery card, so this is a door and not a
+  // gate: changing it there is one click.
+  if (placed) redirect(withLocale(ROUTES.groceryStores.path, locale));
 
   return (
     <VerticalHero

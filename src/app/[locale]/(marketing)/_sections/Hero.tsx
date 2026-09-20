@@ -2,6 +2,7 @@ import { ImageSlot } from "@/components/shared/ImageSlot";
 import { getLocale, getTranslations } from "@/i18n/server";
 import { unbuiltVerticalsVisible } from "@/lib/flags";
 import { ROUTES } from "@/lib/routes";
+import { getDeliveryContext } from "@/services/location/server";
 import { ServicePicker, type PickerService } from "./ServicePicker";
 
 /**
@@ -23,10 +24,13 @@ const SERVICES = [
 ] as const;
 
 export async function Hero() {
-  const [t, nav, locale] = await Promise.all([
+  const [t, food, nav, locale, delivery] = await Promise.all([
     getTranslations("home"),
+    // The address bar's own strings live with the vertical that owns them.
+    getTranslations("food"),
     getTranslations("nav"),
     getLocale(),
+    getDeliveryContext(),
   ]);
   const showUnbuilt = unbuiltVerticalsVisible();
 
@@ -65,9 +69,20 @@ export async function Hero() {
             locale={locale}
             services={services}
             locationLabel={t("heroLocationLabel")}
-            locationPlaceholder={t("heroLocationPlaceholder")}
-            useCurrentLocationLabel={t("heroUseCurrentLocation")}
             exploreLabel={t("heroExplore")}
+            known={delivery.location?.label || undefined}
+            saved={delivery.choices}
+            locationCopy={{
+              savedLabel: food("savedAddresses"),
+              addressLabel: t("heroLocationLabel"),
+              addressPlaceholder: t("heroLocationPlaceholder"),
+              locateMe: t("heroUseCurrentLocation"),
+              notFound: food("locationNotFound"),
+              denied: food("locationDenied"),
+              unavailable: food("locationUnavailable"),
+              position: food("locationPosition"),
+              currentLocation: food("currentLocation"),
+            }}
           />
         </div>
       </div>

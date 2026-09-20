@@ -241,6 +241,72 @@ check(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+section("\u00a76  The app remembers where the customer is (Phase 20n)");
+
+const picker = read(join(APP, "(marketing)", "_sections", "ServicePicker.tsx"));
+const heroSection = read(join(APP, "(marketing)", "_sections", "Hero.tsx"));
+const foodDoor = read(join(SHOP, "food", "page.tsx"));
+const groceryDoor = read(join(SHOP, "groceries", "page.tsx"));
+
+check(
+  "the landing card's field is the real one",
+  /<LocationForm/.test(picker) && !/<Input/.test(picker),
+  "It was a plain input wired to nothing, \u201cUse current location\u201d was a `<span>`, and Explore was a link \u2014 a customer typed their address, pressed Explore, and the front door asked for it again.",
+);
+
+check(
+  "the landing card starts from the address we hold",
+  /getDeliveryContext\(\)/.test(heroSection) &&
+    /known=\{delivery\.location\?\.label/.test(heroSection),
+  "A customer with an active delivery address was shown an empty \u201cWhere should we deliver?\u201d, as if the app had never met them.",
+);
+
+check(
+  "an unchanged address is not sent to the geocoder again",
+  /if \(settled && query === settled\.trim\(\)\)/.test(form),
+  "The place is already placed; asking Google to find it again is a round trip to learn what we were told. Measured: Explore with a known address makes zero geocode requests.",
+);
+
+check(
+  "the customer's own addresses are offered where they are asked",
+  /saved\.length > 0 && copy\.savedLabel/.test(form) &&
+    /activateAddress\(chosen\.id\)/.test(form) &&
+    /saved=\{delivery\.choices\}/.test(heroSection) &&
+    // Behind `dynamic()`: Radix's Select inside the form put the landing page
+    // at 207.7 KB of a 200 KB budget, paid for by guests who have no saved
+    // addresses at all.
+    /dynamic\(\(\) =>\s*import\("@\/components\/shared\/SavedAddressPicker"\)/.test(
+      form,
+    ),
+  "A customer with three saved addresses was being asked to type one of them. Choosing one makes it active account-wide — the same write the listing's picker makes — so the next page already agrees with it.",
+);
+
+check(
+  "the field takes the width the card leaves it",
+  /min-w-0 flex-1/.test(form) && /fill$/m.test(picker),
+  'The icon variant of `Input` wraps itself in a `relative` div, which in a flex row sizes to its content: a long address was cut off at "Dhaka, Bang…" while half the card sat empty.',
+);
+
+check(
+  "a saved address chosen in the field costs no geocode either",
+  /setSettled\(chosen\.line\)/.test(form) && /query === settled\.trim\(\)/.test(form),
+  "It is already placed; Explore should not send it to Google to be placed again.",
+);
+
+check(
+  "a customer we can place is shown the results, not asked",
+  /if \(placed\) redirect\(/.test(foodDoor) &&
+    /if \(placed\) redirect\(/.test(groceryDoor),
+  "The listing carries the address picker on its delivery card, so the front door is a door and not a gate.",
+);
+
+check(
+  "the redirect reads a named value, not the browser's `location`",
+  !/if \(location\) redirect\(/.test(foodDoor + groceryDoor),
+  "`location` in a server component resolves to the DOM global, which is always truthy \u2014 the redirect would fire for everyone, including a customer with nowhere to deliver.",
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 section("\u00a75  The guard is wired in");
 
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));

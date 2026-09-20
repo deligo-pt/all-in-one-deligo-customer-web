@@ -36,6 +36,7 @@ const food = {
 
   // ── The location picker on the delivery card (Phase 20b) ─────────────────
 
+  savedAddresses: "Saved addresses",
   locationTitle: "Where should we deliver?",
   locationBody:
     "Pick one of your saved addresses, or tell us a new place. Choosing a saved address makes it the one your next order goes to.",

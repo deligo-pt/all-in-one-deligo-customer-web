@@ -290,6 +290,87 @@ check(
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
+section("\u00a78  Push, on every page (Phase 20g)");
+
+const swRoute = read(join(SRC, "app", "firebase-messaging-sw.js", "route.ts"));
+const listener = read(join(SRC, "components", "shared", "PushListener.tsx"));
+const localeLayout = read(join(SRC, "app", "[locale]", "layout.tsx"));
+const headerCounts = read(join(SRC, "components", "layout", "HeaderCounts.tsx"));
+const authPush = read(join(SRC, "features", "auth", "push.ts"));
+
+check(
+  "the service worker the app registers exists",
+  swRoute.length > 0 && /firebase-messaging-sw\.js/.test(authPush),
+  "Registration has pointed at `/firebase-messaging-sw.js` since Phase 15 and the file was never written: `register()` threw, the catch answered null, and no notification could arrive with the tab closed.",
+);
+
+check(
+  "it is generated from the environment, not a committed copy of the keys",
+  /FIREBASE_CONFIG/.test(swRoute) &&
+    !existsSync(join(ROOT, "public", "firebase-messaging-sw.js")) &&
+    !/AIza/.test(swRoute),
+  "The old app pasted the project's keys into `public/firebase-messaging-sw.js` and committed them, where they outlived a rotation. A worker cannot read `process.env`, so this route builds it.",
+);
+
+check(
+  "a deployment with no push configured serves a worker that does nothing",
+  /pushConfigured\(\) \?/.test(swRoute),
+  "A worker that throws on install is worse than one that answers nothing: it fails every registration afterwards too.",
+);
+
+check(
+  "the worker links without naming a language",
+  !/\/(en|pt)\//.test(swRoute),
+  "It cannot know which language the reader's tab is in; the proxy resolves an unprefixed path to their own.",
+);
+
+check(
+  "push is mounted for the whole locale, not just the account",
+  /<PushListener/.test(localeLayout) &&
+    !/<PushListener/.test(
+      read(join(SRC, "app", "[locale]", "(account)", "layout.tsx")),
+    ),
+  "The customer waiting for \u201con its way\u201d is usually reading a menu, not sitting on their orders.",
+);
+
+check(
+  "it never asks for permission and never loads Firebase unasked",
+  !/requestPermission/.test(listener) && /hasSession\(\)/.test(listener),
+  "Sign-in asks (Phase 15). A page that asks on load is the pattern every browser now buries.",
+);
+
+const cartApi = read(join(SRC, "features", "cart", "api.ts"));
+
+check(
+  "every cart write announces itself, so the basket follows it",
+  (cartApi.match(/announce\(\);/g) ?? []).length >= 5 &&
+    // Listened for, not merely imported.
+    /addEventListener\(CART_EVENT, bump\)/.test(headerCounts),
+  "The badge re-reads on a path change, and adding a dish happens on the page you are already on: it stayed a step behind until a reload. Announcing it in the transport means a new caller cannot forget.",
+);
+
+check(
+  "the header does not import a feature barrel to hear them",
+  !/@\/features\//.test(headerCounts) &&
+    /@\/lib\/events/.test(headerCounts) &&
+    /@\/lib\/events/.test(cartApi),
+  "The header is on every page; a barrel import there drags that feature's views onto every route — 27 KB, 9.3 KB and 11 KB, three times already.",
+);
+
+check(
+  "a push moves the header's badges",
+  /PUSH_EVENT/.test(headerCounts) && /\[pathname, changes\]/.test(headerCounts),
+  "Otherwise the bell keeps yesterday's number until the next navigation, next to a toast announcing the thing it is not counting.",
+);
+
+check(
+  "a background notification reaches an open tab",
+  /navigator\.serviceWorker\.addEventListener\("message"/.test(listener) &&
+    /postMessage\(\{ type: "deligo:push" \}\)/.test(swRoute),
+  "A tab open behind another window is the common case; without this its badges are stale until it is touched.",
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
 section("§7  The guard is wired in");
 
 const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));

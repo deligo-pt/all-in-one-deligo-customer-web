@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { Button } from "@/components/ui/Button";
 import { Icon, type IconName } from "@/components/ui/Icon";
-import { Input } from "@/components/ui/Input";
+import { LocationForm, type LocationFormCopy } from "@/components/shared/LocationForm";
+import type { LocationChoice } from "@/services/location/server";
 import { cn } from "@/lib/cn";
 import type { Locale } from "@/lib/i18n/locale";
 import { withLocale } from "@/lib/i18n/path";
@@ -23,9 +22,12 @@ import { ROUTES, type RouteName } from "@/lib/routes";
  * announce six independent actions and give no clue that picking one unpicks
  * the others.
  *
- * Nothing here reads the location yet. Phase 16 wires the field to the places
- * API; until then Explore goes to the chosen vertical and the field is a real
- * input rather than a picture of one.
+ * **The field is the real one** (Phase 20n). It was a plain input wired to
+ * nothing, "Use current location" was a `<span>`, and Explore was a link — so
+ * a customer typed their address, pressed Explore, and the vertical's front
+ * door asked for it again. It is now the same `LocationForm` the rest of the
+ * app uses: the address is geocoded, stored, and the chosen vertical opens
+ * with it already set. It starts from the address we already hold.
  */
 export type PickerService = {
   route: RouteName;
@@ -38,16 +40,20 @@ export function ServicePicker({
   locale,
   services,
   locationLabel,
-  locationPlaceholder,
-  useCurrentLocationLabel,
   exploreLabel,
+  known,
+  saved,
+  locationCopy,
 }: {
   locale: Locale;
   services: readonly PickerService[];
   locationLabel: string;
-  locationPlaceholder: string;
-  useCurrentLocationLabel: string;
   exploreLabel: string;
+  /** Where we already deliver, if we know. */
+  known?: string;
+  /** The customer's saved addresses, offered in the field's picker. */
+  saved?: readonly LocationChoice[];
+  locationCopy: LocationFormCopy;
 }) {
   const [selected, setSelected] = useState(services[0]?.route);
   const active = services.find((service) => service.route === selected) ?? services[0];
@@ -88,30 +94,20 @@ export function ServicePicker({
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="hero-location" className="text-12 text-brand font-medium">
-          {locationLabel}
-        </label>
-        <Input
-          id="hero-location"
-          name="location"
-          placeholder={locationPlaceholder}
-          startIcon={<Icon name="location" className="size-4" />}
-          className="text-14 rounded-8 h-11"
+        <span className="text-12 text-brand font-medium">{locationLabel}</span>
+        {/* The chosen tab decides where Explore goes; the form decides that it
+            goes there *with* a location. */}
+        <LocationForm
+          locale={locale}
+          href={withLocale(ROUTES[active?.route ?? "food"].path, locale)}
+          known={known}
+          saved={saved}
+          submitLabel={exploreLabel}
+          // The card is 798px wide; the field takes what the row leaves, so a
+          // long address is read rather than cut off at "Dhaka, Bang…".
+          fill
+          copy={locationCopy}
         />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Geolocation is Phase 16's — the browser prompt without somewhere to
-            send the coordinates is a permission request for nothing. */}
-        <span className="text-14 text-brand inline-flex items-center gap-2 font-medium">
-          <Icon name="my-location" className="size-4" />
-          {useCurrentLocationLabel}
-        </span>
-        <Button shape="pill" size="sm" asChild>
-          <Link href={withLocale(ROUTES[active?.route ?? "food"].path, locale)}>
-            {exploreLabel}
-          </Link>
-        </Button>
       </div>
     </div>
   );

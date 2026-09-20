@@ -1,5 +1,11 @@
 import type { CartStore } from "@/features/cart";
-import type { Fulfilment, OrderBucket, OrderStep, RefundState } from "@/lib/orders";
+import type {
+  Fulfilment,
+  NotificationKind,
+  OrderBucket,
+  OrderStep,
+  RefundState,
+} from "@/lib/orders";
 
 /**
  * What the order screens need from the backend (Phase 19), read from
@@ -69,6 +75,8 @@ export type AppNotification = {
   id: string;
   title: string;
   body: string;
+  /** What it is about, so the row can show the right icon (Phase 20h fix). */
+  kind: NotificationKind;
   /** "14:30" — within its day group. */
   when: string;
   unread: boolean;

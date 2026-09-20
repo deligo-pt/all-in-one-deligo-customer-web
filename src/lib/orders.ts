@@ -167,3 +167,47 @@ export function matchesSearch(haystack: string, term: string): boolean {
   const hay = fold(haystack);
   return words.every((word) => hay.includes(word));
 }
+
+/**
+ * One language out of the API's two (Phase 20h fix).
+ *
+ * Notification titles and messages arrive with **both languages in one
+ * string**, joined by " / " — measured on the owner's account:
+ *
+ *   "Your BBQ will be removed from the cart in 28 minutes /
+ *    O seu Churrasco será removido do carrinho dentro de 28 minutos"
+ *
+ * A customer reading English should not be handed the Portuguese half as
+ * well. The API gives no structure to work from, so the split is on the
+ * separator it uses, and only when there is **exactly one** — a message that
+ * legitimately contains " / " is left whole rather than cut in half.
+ *
+ * English is first, Portuguese second: the order the backend sends, and the
+ * order every measured message has used.
+ */
+export function oneLanguage(text: string, locale: string): string {
+  const parts = text.split(" / ");
+  if (parts.length !== 2) return text.trim();
+  const [english, portuguese] = parts;
+  const chosen = locale.startsWith("pt") ? portuguese : english;
+  return (chosen ?? text).trim();
+}
+
+/** What a notification is about, from the API's `type`/`channelId`. The icon
+ *  is chosen from this, not from the words in the title. */
+export type NotificationKind = "order" | "offer" | "security" | "general";
+
+export function notificationKind(
+  type: string | undefined,
+  hasOrder: boolean,
+): NotificationKind {
+  const value = (type ?? "").toUpperCase();
+  if (value.includes("ORDER") || value.includes("DELIVER") || hasOrder) return "order";
+  if (value.includes("PROMO") || value.includes("OFFER") || value.includes("CART")) {
+    return "offer";
+  }
+  if (value.includes("SECURITY") || value.includes("LOGIN") || value.includes("OTP")) {
+    return "security";
+  }
+  return "general";
+}

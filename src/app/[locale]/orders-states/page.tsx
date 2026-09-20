@@ -7,7 +7,6 @@ import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
 import type { Messages } from "@/lib/i18n/translate";
 import {
-  ACTIVE_STORE,
   CANCELLED_ORDER,
   FINISHED_ORDER,
   LIVE_ORDER,
@@ -73,12 +72,6 @@ export default async function OrdersStatesPage() {
         ))}
         <NotificationList
           groups={NOTIFICATIONS_FIXTURE}
-          activeOrder={{
-            store: ACTIVE_STORE,
-            reference: "#ORD-DG20458",
-            status: "On the way",
-            href: "#",
-          }}
           copy={notificationCopy(t, c, 1)}
           offlineNotice={offline}
         />

@@ -354,8 +354,11 @@ check(
     !/requestPermission/.test(pushService) &&
     /import\("firebase\/messaging"\)/.test(pushService) &&
     !/PushListener/.test(barrel) &&
-    /<PushListener\b/.test(read(join(APP, "(account)", "layout.tsx"))),
-  "Sign-in asks once (Phase 15). A listener on every account route that pulled the orders barrel would ship three screens to the profile page.",
+    // Phase 20g moved the mount up to the locale layout: an order update
+    // should reach a customer reading a menu, not only one already on their
+    // orders. `verify:shell` §8 owns where it is mounted now.
+    /<PushListener\b/.test(read(join(APP, "layout.tsx"))),
+  "Sign-in asks once (Phase 15). A listener that pulled the orders barrel would ship three screens to every page in the app.",
 );
 
 check(
@@ -463,6 +466,45 @@ check(
   "the pill says which of the two states the map is in",
   /rider \? copy\.live : copy\.waiting/.test(orderMap),
   '"Live tracking" over a map with no rider on it is a claim the screen cannot support.',
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+section("\u00a78  The notifications page is the notifications (Phase 20h fix)");
+
+const model = read(join(SRC, "lib", "orders.ts"));
+
+check(
+  "no order summary sits beside the list",
+  !/OrderSummary/.test(notifications) && !/activeOrder/.test(notifications),
+  "A page called Notifications was showing a cart-shaped panel of an order nobody had asked about, in half the width the reading column should have had. The orders screen is one click away in the menu beside it.",
+);
+
+check(
+  "the reader gets one language, not both",
+  /export function oneLanguage/.test(model) &&
+    /oneLanguage\(item\.title/.test(server) &&
+    /oneLanguage\(item\.message/.test(server),
+  'The API sends both in one string: "…removed from the cart in 28 minutes / O seu …dentro de 28 minutos". An English reader should not be handed the Portuguese half.',
+);
+
+check(
+  "a message that is not two halves is left whole",
+  /if \(parts\.length !== 2\) return text\.trim\(\);/.test(model),
+  'A message that legitimately contains " / " must not be cut in half.',
+);
+
+check(
+  "each row says what it is about before it is read",
+  /KIND_ICON\[item\.kind\]/.test(notifications) &&
+    /export function notificationKind/.test(model) &&
+    /kind: notificationKind\(/.test(server),
+  "Every row wore the same bell. The kind comes from the API's type, not from words in the title.",
+);
+
+check(
+  "a row that leads somewhere is a link, all of it",
+  /<Link[\s\S]{0,400}markRead\(item\.id\)/.test(notifications),
+  "The old app's rows navigated; a 14px link at the end of a card is a target for a mouse and not for a thumb.",
 );
 
 // ─────────────────────────────────────────────────────────────────────────────

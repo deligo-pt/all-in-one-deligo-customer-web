@@ -139,6 +139,7 @@ export const NOTIFICATIONS_FIXTURE: readonly NotificationGroup[] = [
     notifications: [
       {
         id: "n1",
+        kind: "order",
         title: "Order #ORD-DG20458 is on the way",
         body: "Tiago is heading to your location.",
         when: "14:30",
@@ -153,6 +154,7 @@ export const NOTIFICATIONS_FIXTURE: readonly NotificationGroup[] = [
     notifications: [
       {
         id: "n2",
+        kind: "order",
         title: "Order #ORD-DG20301 - Delivered",
         body: "Enjoy your meal from Pasta Paradiso.",
         when: "20:15",

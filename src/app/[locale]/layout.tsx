@@ -4,7 +4,9 @@ import { notFound } from "next/navigation";
 import "../globals.css";
 import { BCP47, LOCALES, isLocale } from "@/lib/i18n/locale";
 import { loadNamespace } from "@/i18n/namespaces";
+import { getTranslations } from "@/i18n/server";
 import { TranslationProvider } from "@/i18n/TranslationProvider";
+import { PushListener } from "@/components/shared/PushListener";
 
 // Inter is the design's only typeface: 7,721 of the 7,733 text runs in the
 // Figma page use it. `latin` alone covers both Portuguese and English —
@@ -39,6 +41,21 @@ export async function generateMetadata({
     metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
     title: common.appName,
     description: common.tagline,
+    /**
+     * The tab's mark — the same DeliGo roundel the header wears.
+     *
+     * Declared here rather than dropped in as `app/icon.svg`, because the file
+     * convention attaches icons to the segment that owns `<head>` and this
+     * app's root layout lives under `[locale]`: the files were served and no
+     * `<link>` was ever emitted. `favicon.ico` stays at the app root for the
+     * browsers that ask for it by path without being told.
+     */
+    icons: {
+      // `favicon.ico` is not listed: `app/favicon.ico` is a file convention
+      // Next links on its own, and naming it here emitted it twice.
+      icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+      apple: "/apple-icon.png",
+    },
     // hreflang. The reason the locale is in the URL at all (D-2): a search
     // engine can only index a Portuguese page and an English page separately if
     // they are separate addresses.
@@ -64,9 +81,10 @@ export default async function LocaleLayout({
   //
   // Every other namespace is mounted by the layout or page that needs it, so a
   // route never serialises strings it never renders.
-  const [common, errors] = await Promise.all([
+  const [common, errors, t] = await Promise.all([
     loadNamespace(locale, "common"),
     loadNamespace(locale, "errors"),
+    getTranslations("common"),
   ]);
 
   return (
@@ -74,6 +92,10 @@ export default async function LocaleLayout({
       <body className="flex min-h-full flex-col">
         <TranslationProvider locale={locale} messages={{ common, errors }}>
           {children}
+          {/* Push, for every page under this locale (Phase 20g). It renders
+              nothing until a message arrives, and loads Firebase only for a
+              signed-in browser that already granted permission. */}
+          <PushListener closeLabel={t("close")} />
         </TranslationProvider>
       </body>
     </html>

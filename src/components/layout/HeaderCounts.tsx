@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { CART_EVENT, PUSH_EVENT } from "@/lib/events";
 import { hasSession } from "@/services/session/state";
 
 type Counts = { unread: number; cartItems: number };
@@ -32,6 +33,24 @@ export function HeaderCounts({
 }) {
   const pathname = usePathname();
   const [counts, setCounts] = useState<Counts>({ unread: 0, cartItems: 0 });
+  /**
+   * Bumped by anything that changes what these badges count, so they follow
+   * the action that caused it instead of waiting for the next navigation: a
+   * push (Phase 20g) and a cart write (Phase 20g fix — adding a dish happens
+   * on the page you are already on, so the path never changes and the bell
+   * and basket stayed a step behind until a reload).
+   */
+  const [changes, setChanges] = useState(0);
+
+  useEffect(() => {
+    const bump = () => setChanges((count) => count + 1);
+    window.addEventListener(PUSH_EVENT, bump);
+    window.addEventListener(CART_EVENT, bump);
+    return () => {
+      window.removeEventListener(PUSH_EVENT, bump);
+      window.removeEventListener(CART_EVENT, bump);
+    };
+  }, []);
 
   useEffect(() => {
     if (!hasSession()) return;
@@ -57,7 +76,7 @@ export function HeaderCounts({
     return () => {
       cancelled = true;
     };
-  }, [pathname]);
+  }, [pathname, changes]);
 
   const link = (
     href: string,

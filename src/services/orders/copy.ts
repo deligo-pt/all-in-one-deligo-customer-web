@@ -57,6 +57,8 @@ export async function orderListCopy(): Promise<OrderListCopy> {
 export async function orderDetailCopy(riderName?: string): Promise<OrderDetailCopy> {
   const [t, summary] = await Promise.all([getTranslations("orders"), summaryCopy()]);
   return {
+    // The order's own items and totals, in the cart's summary shape.
+    summary,
     tracker: {
       label: t("trackerLabel"),
       step: {
@@ -70,7 +72,6 @@ export async function orderDetailCopy(riderName?: string): Promise<OrderDetailCo
         collected: t("stepCollected"),
       },
     },
-    summary,
     review: {
       title: t("reviewTitle"),
       close: t("close"),
@@ -129,15 +130,12 @@ export async function orderDetailCopy(riderName?: string): Promise<OrderDetailCo
 }
 
 export async function notificationListCopy(unread: number): Promise<NotificationCopy> {
-  const [t, summary] = await Promise.all([getTranslations("orders"), summaryCopy()]);
+  const t = await getTranslations("orders");
   return {
     title: t("notificationsTitle"),
     subtitle: t("notificationsSubtitle"),
     unread: unread > 0 ? t("notificationsUnread", { count: unread }) : undefined,
     markAllRead: t("markAllRead"),
-    currentOrder: t("currentOrder"),
-    trackOrder: t("track"),
-    summary,
     emptyTitle: t("notificationsEmpty"),
     emptyBody: t("notificationsEmptyBody"),
     unavailableTitle: t("notificationsUnavailable"),

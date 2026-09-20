@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Icon } from "@/components/ui/Icon";
-import { OrderSummary, type SummaryCopy } from "@/features/cart";
-import type { CartStore } from "@/features/cart";
+import { Icon, type IconName } from "@/components/ui/Icon";
+import type { NotificationKind } from "@/lib/orders";
 import { ordersApi } from "./api";
 import type { NotificationGroup } from "./types";
 
@@ -17,9 +16,6 @@ export type NotificationCopy = {
   /** "3 unread", counted on the server. Absent when there are none. */
   unread?: string;
   markAllRead: string;
-  currentOrder: string;
-  trackOrder: string;
-  summary: SummaryCopy;
   emptyTitle: string;
   emptyBody: string;
   unavailableTitle: string;
@@ -33,34 +29,36 @@ export type NotificationCopy = {
  * Measured: the title at 32/600 over 16/400 in `ink-warm`, an unread pill,
  * then day groups — "TODAY", "YESTERDAY" at 14/500 — of cards at 16px radius,
  * the title at 18/600, the body at 16/400, a time at 12/600 and one action
- * link. The live order's summary sits on the right.
+ * link. One column: this page is the notifications, and nothing else.
  *
  * **The design's vertical filter row is not drawn**: every notification the
  * API sends is `type: ORDER` with no vertical (measured on 102), so the row
  * would hold one chip. Opening a notification's order marks it read; "Mark all
  * as read" is shown only while something is unread.
  */
+/** The glyph each kind of notification wears, so the row says what it is
+ *  about before it is read. */
+const KIND_ICON: Record<NotificationKind, IconName> = {
+  order: "shop",
+  offer: "tag",
+  security: "key",
+  general: "notification",
+};
+
 export function NotificationList({
   groups,
-  activeOrder,
   copy,
   unavailable = false,
   offlineNotice,
   framed = false,
 }: {
   groups: readonly NotificationGroup[];
-  /** The latest ongoing order, named and linked. Unlabelled, it reads as a cart. */
-  activeOrder?: {
-    store: CartStore;
-    reference: string;
-    status: string;
-    href: string;
-  };
   copy: NotificationCopy;
+  /** The list could not be read — different from having none. */
   unavailable?: boolean;
   /** Set on the states page: every write refuses with this sentence. */
   offlineNotice?: string;
-  /** Inside the account frame, which draws the title and the menu. */
+  /** Rendered inside the account frame, which is narrower. */
   framed?: boolean;
 }) {
   const router = useRouter();
@@ -114,14 +112,13 @@ export function NotificationList({
         {notice}
       </p>
 
-      <div
-        className={
-          framed
-            ? "flex flex-col gap-8 2xl:flex-row"
-            : "flex flex-col gap-8 lg:flex-row"
-        }
-      >
-        <div className="flex min-w-0 flex-1 flex-col gap-8">
+      {/* One column. The order summary that used to sit beside this list is
+          gone (Phase 20h fix): a page called Notifications was showing a cart
+          -shaped panel of an order nobody had asked about, and the customer's
+          reading column was half the width because of it. The orders screen
+          is one click away in the menu beside it. */}
+      <div className="flex flex-col gap-8">
+        <div className="flex min-w-0 flex-col gap-8">
           {unavailable ? (
             <EmptyState
               icon={<Icon name="notification" className="size-8" />}
@@ -141,70 +138,74 @@ export function NotificationList({
                   {group.label}
                 </h2>
                 <ul className="flex flex-col gap-3">
-                  {group.notifications.map((item) => (
-                    <li
-                      key={item.id}
-                      className={[
-                        "rounded-16 flex flex-col gap-1 border p-5",
-                        item.unread
-                          ? "border-brand-soft bg-brand-tint"
-                          : "border-line bg-surface",
-                      ].join(" ")}
-                    >
-                      <p className="text-18 text-ink-strong font-semibold">
-                        {item.title}
-                      </p>
-                      <p className="text-16 text-ink-warm">{item.body}</p>
-                      <div className="mt-1 flex flex-wrap items-center justify-between gap-4">
-                        <span className="text-12 text-ink-warm font-semibold">
-                          {item.when}
+                  {group.notifications.map((item) => {
+                    const body = (
+                      <>
+                        <span
+                          aria-hidden
+                          className={[
+                            "flex size-11 shrink-0 items-center justify-center rounded-full",
+                            item.unread
+                              ? "bg-surface text-brand"
+                              : "bg-surface-muted text-ink-muted",
+                          ].join(" ")}
+                        >
+                          <Icon
+                            name={KIND_ICON[item.kind] ?? "notification"}
+                            className="size-5"
+                          />
                         </span>
+                        <span className="flex min-w-0 flex-1 flex-col gap-1">
+                          <span className="text-16 text-ink-strong font-semibold">
+                            {item.title}
+                          </span>
+                          <span className="text-14 text-ink-warm">{item.body}</span>
+                          <span className="text-12 text-ink-muted font-medium">
+                            {item.when}
+                          </span>
+                        </span>
+                        {item.unread ? (
+                          <span
+                            aria-hidden
+                            className="bg-brand mt-2 size-2 shrink-0 rounded-full"
+                          />
+                        ) : null}
+                      </>
+                    );
+                    const shell = [
+                      "rounded-16 flex w-full gap-4 border p-5 text-start transition-colors",
+                      item.unread
+                        ? "border-brand-soft bg-brand-tint"
+                        : "border-line bg-surface",
+                    ].join(" ");
+                    return (
+                      <li key={item.id}>
+                        {/* The whole row is the link where there is somewhere to
+                            go — the old app's behaviour, and the target a thumb
+                            actually aims at. Opening it marks it read. */}
                         {item.action ? (
                           <Link
                             href={item.action.href}
+                            aria-label={`${item.title} — ${item.action.label}`}
                             onClick={() => {
                               if (item.unread && !offlineNotice)
                                 void ordersApi.markRead(item.id).catch(() => {});
                             }}
-                            className="text-14 text-brand-strong font-medium underline-offset-4 hover:underline"
+                            className={`${shell} hover:border-brand`}
                           >
-                            {item.action.label}
+                            {body}
                           </Link>
-                        ) : null}
-                      </div>
-                    </li>
-                  ))}
+                        ) : (
+                          <div className={shell}>{body}</div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             ))
           )}
         </div>
-
-        {activeOrder ? (
-          <div className="lg:w-104 lg:shrink-0">
-            <div className="sticky top-[8rem]">
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <h2 className="text-16 text-ink-strong font-semibold">
-                      {copy.currentOrder}
-                    </h2>
-                    <p className="text-14 text-ink-muted">
-                      {`${activeOrder.reference} · ${activeOrder.status}`}
-                    </p>
-                  </div>
-                  <Link
-                    href={activeOrder.href}
-                    className="text-14 text-brand-strong font-semibold underline-offset-4 hover:underline"
-                  >
-                    {copy.trackOrder}
-                  </Link>
-                </div>
-                <OrderSummary store={activeOrder.store} copy={copy.summary} />
-              </div>
-            </div>
-          </div>
-        ) : null}
       </div>
     </div>
   );
