@@ -38,7 +38,7 @@ export default async function AccountPage() {
 
   if (!profile) {
     return (
-      <div className="max-w-shell mx-auto w-full px-8 py-16">
+      <div className="max-w-shell mx-auto w-full px-4 sm:px-8 py-16">
         <EmptyState
           icon={<Icon name="user" className="size-8" />}
           title={t("unavailableTitle")}

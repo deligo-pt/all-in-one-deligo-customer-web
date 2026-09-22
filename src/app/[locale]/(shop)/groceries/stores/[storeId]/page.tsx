@@ -39,7 +39,7 @@ export default async function GroceryStorePage({
   if (storeRead.status === "rejected") {
     if (isApiError(storeRead.reason) && storeRead.reason.status === 404) notFound();
     return (
-      <div className="max-w-shell mx-auto w-full px-8 py-16">
+      <div className="max-w-shell mx-auto w-full px-4 sm:px-8 py-16">
         <EmptyState
           icon={<Icon name="shop" className="size-8" />}
           title={t("storeUnavailable")}

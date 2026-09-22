@@ -59,11 +59,19 @@ export function ServicePicker({
   const active = services.find((service) => service.route === selected) ?? services[0];
 
   return (
-    <div className="bg-surface rounded-24 flex w-full flex-col gap-8 p-6 shadow-lg sm:p-10">
+    <div className="bg-surface rounded-24 flex w-full flex-col gap-6 p-4 shadow-lg sm:gap-8 sm:p-10">
+      {/* On a phone, a one-line slider: swipe, snap to a tab, no scrollbar and
+          no divider (the grey bar under the tabs is what was reported as a
+          "horizontal bar", 22 Sep 2026), and a fade at the end edge to say
+          there is more. It runs to the card's edges (`-mx-4 px-4`) so a tab
+          slides out from under the padding rather than being cut at it.
+          From `sm` the tabs sit on one or two lines with the design's
+          divider, as before. In production only Food and Groceries are
+          listed (D-6), which is a single row either way. */}
       <div
         role="radiogroup"
         aria-label={locationLabel}
-        className="border-line flex gap-6 overflow-x-auto border-b sm:gap-10"
+        className="border-line -mx-4 flex snap-x snap-mandatory scroll-px-4 gap-6 overflow-x-auto px-4 [scrollbar-width:none] max-sm:[mask-image:linear-gradient(to_right,black_85%,transparent)] sm:mx-0 sm:flex-wrap sm:gap-x-10 sm:gap-y-3 sm:overflow-visible sm:border-b sm:px-0 [&::-webkit-scrollbar]:hidden"
       >
         {services.map((service) => {
           const isActive = service.route === selected;
@@ -73,14 +81,23 @@ export function ServicePicker({
               type="button"
               role="radio"
               aria-checked={isActive}
-              onClick={() => setSelected(service.route)}
+              onClick={(event) => {
+                setSelected(service.route);
+                // In the slider, bring the chosen tab fully into view.
+                // `block: "nearest"` keeps the page itself from moving.
+                event.currentTarget.scrollIntoView({
+                  behavior: "smooth",
+                  block: "nearest",
+                  inline: "nearest",
+                });
+              }}
               className={cn(
-                "flex shrink-0 flex-col items-center gap-2 pb-4 transition-colors",
+                "flex shrink-0 snap-start flex-col items-center gap-2 pb-3 transition-colors sm:pb-4",
                 isActive ? "text-brand" : "text-ink hover:text-brand",
               )}
             >
               <Icon name={service.icon} className="size-6" />
-              <span className="text-16 font-medium">{service.label}</span>
+              <span className="text-14 font-medium sm:text-16">{service.label}</span>
               <span
                 aria-hidden
                 className={cn(

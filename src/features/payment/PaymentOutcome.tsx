@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { SupportOpener } from "@/components/shared/SupportOpener";
 import { Icon } from "@/components/ui/Icon";
 import type { PlacedOrder } from "@/features/checkout";
 import { abandonPayment, completePayment } from "@/services/checkout/browser";
@@ -28,6 +29,9 @@ export type OutcomeCopy = {
   backToCart: string;
   paymentFailedTitle: string;
   paymentFailedBody: string;
+  /** The support button on the failed screen, and the sentence it types. */
+  contactSupport: string;
+  supportPrefill: string;
   confirmed: ConfirmedCopy;
 };
 
@@ -77,7 +81,7 @@ export function PaymentOutcome(
 }
 
 const Frame = ({ children }: { children: React.ReactNode }) => (
-  <div className="max-w-shell mx-auto w-full px-8 py-16">{children}</div>
+  <div className="max-w-shell mx-auto w-full px-4 sm:px-8 py-16">{children}</div>
 );
 
 function Finish({
@@ -184,9 +188,14 @@ function Failed({ cartHref, copy }: { cartHref: string; copy: OutcomeCopy }) {
         title={copy.paymentFailedTitle}
         description={copy.paymentFailedBody}
         action={
-          <Button asChild>
-            <Link href={cartHref}>{copy.backToCart}</Link>
-          </Button>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <Button asChild>
+              <Link href={cartHref}>{copy.backToCart}</Link>
+            </Button>
+            {/* The old app opens its chat from this screen too. Asking here
+                costs nothing: the panel opens over the page (Phase 20h). */}
+            <SupportOpener label={copy.contactSupport} prefill={copy.supportPrefill} />
+          </div>
         }
       />
     </Frame>

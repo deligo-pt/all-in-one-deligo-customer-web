@@ -7,6 +7,8 @@ import { unbuiltVerticalsVisible } from "@/lib/flags";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
 import type { MessageKey } from "@/i18n/namespaces";
+import { PHONE_SLIDE, PHONE_SLIDER } from "@/lib/phoneSlider";
+import { cn } from "@/lib/cn";
 
 /**
  * A 3×2 grid of 352×353 cards, each a photograph with a white 127px caption
@@ -70,16 +72,18 @@ export async function ExploreServices() {
   );
 
   return (
-    <section className="max-w-narrow mx-auto w-full px-8 py-20">
+    <section className="max-w-narrow mx-auto w-full px-4 sm:px-8 py-12 sm:py-20">
       <SectionHeading
         eyebrow={t("servicesEyebrow")}
         title={t("servicesTitle")}
         body={t("servicesBody")}
       />
 
-      <ul className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+      {/* A swipe row on a phone — six stacked 352px cards were 2,000px of
+          scrolling — and the design's grid from `sm`. See `lib/phoneSlider`. */}
+      <ul className={cn("mt-8 grid gap-8 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3", PHONE_SLIDER)}>
         {services.map((service) => (
-          <li key={service.route}>
+          <li key={service.route} className={PHONE_SLIDE}>
             <Card interactive className="relative h-88 overflow-hidden">
               <ImageSlot
                 src={service.image}

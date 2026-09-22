@@ -76,21 +76,24 @@ export async function SiteFooter() {
 
   return (
     <footer className="bg-brand-tint border-line text-brand border-t">
-      <div className="max-w-shell mx-auto flex flex-col gap-14 px-8 py-16">
-        <div className="border-brand-soft flex flex-col gap-4 border-b pb-10">
+      <div className="max-w-shell mx-auto flex flex-col gap-10 px-4 py-12 sm:gap-14 sm:px-8 sm:py-16">
+        <div className="border-brand-soft flex flex-col gap-4 border-b pb-8 sm:pb-10">
           <Logo locale={locale} label={common("appName")} size="lg" />
           <p className="text-16 max-w-2xl">{t("description")}</p>
           <p className="text-12">{t("promise")}</p>
         </div>
 
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-18">
+        {/* Two columns even on a phone: the link lists are short, and one
+            column made the footer ~1,500px of scrolling. The newsletter, which
+            needs the width for its field, spans both. */}
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-5 lg:gap-18">
           {columns.map((column) => (
             <nav key={column.heading} aria-label={t(column.heading)}>
               <h2 className="text-16 mb-4 font-semibold">{t(column.heading)}</h2>
               <ul className="flex flex-col gap-3">
                 {column.links.map((link) => (
                   <li key={link.key}>
-                    <Link href={href(link.route)} className="text-16 hover:underline">
+                    <Link href={href(link.route)} className="text-14 hover:underline sm:text-16">
                       {t(link.key)}
                     </Link>
                   </li>
@@ -103,14 +106,14 @@ export async function SiteFooter() {
             <h2 className="text-16 mb-4 font-semibold">{t("whyHeading")}</h2>
             <ul className="flex flex-col gap-3">
               {WHY_POINTS.map((point) => (
-                <li key={point} className="text-16">
+                <li key={point} className="text-14 sm:text-16">
                   {t(point)}
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="flex flex-col gap-4">
+          <div className="col-span-2 flex flex-col gap-4 lg:col-span-1">
             <h2 className="text-16 font-semibold">{t("newsletterHeading")}</h2>
             <p className="text-12">{t("newsletterBody")}</p>
             <NewsletterForm
@@ -138,7 +141,10 @@ export async function SiteFooter() {
             <p className="text-14">
               {t("copyright", { year: new Date().getFullYear() })}
             </p>
-            <div className="text-14 flex items-center gap-4">
+            {/* Wraps: privacy, terms, the language picker and the currency are
+                about 340px in a row, and on a 320px phone the currency hung
+                23px off the screen. */}
+            <div className="text-14 flex flex-wrap items-center gap-x-4 gap-y-2">
               <Link href={href("privacy")} className="hover:underline">
                 {t("privacy")}
               </Link>

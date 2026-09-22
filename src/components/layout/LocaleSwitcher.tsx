@@ -30,7 +30,17 @@ const LANGUAGE_NAME_KEY = {
   pt: "languagePortuguese",
 } as const satisfies Record<Locale, string>;
 
-export function LocaleSwitcher({ className }: { className?: string } = {}) {
+/**
+ * `compact` shows the code ("PT", "EN") instead of the language's name — the
+ * header's form, as the old app's navbar had it. The full name is 116px wide
+ * and was what pushed the desktop header past its own container (Phase 20
+ * responsive pass); the menu drawer keeps the full name, where there is room.
+ * Each option still carries the full name as its accessible label.
+ */
+export function LocaleSwitcher({
+  className,
+  compact = false,
+}: { className?: string; compact?: boolean } = {}) {
   const { t, locale } = useTranslation("common");
   const pathname = usePathname();
   const router = useRouter();
@@ -52,8 +62,12 @@ export function LocaleSwitcher({ className }: { className?: string } = {}) {
         }}
       >
         {LOCALES.map((option) => (
-          <option key={option} value={option}>
-            {t(LANGUAGE_NAME_KEY[option])}
+          <option
+            key={option}
+            value={option}
+            aria-label={compact ? t(LANGUAGE_NAME_KEY[option]) : undefined}
+          >
+            {compact ? option.toUpperCase() : t(LANGUAGE_NAME_KEY[option])}
           </option>
         ))}
       </select>

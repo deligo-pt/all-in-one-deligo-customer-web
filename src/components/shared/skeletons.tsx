@@ -23,7 +23,7 @@ export function PageSkeleton({ children }: { children: React.ReactNode }) {
     <main
       id="main"
       aria-busy="true"
-      className="max-w-shell mx-auto flex w-full flex-1 flex-col gap-8 px-8 py-8"
+      className="max-w-shell mx-auto flex w-full flex-1 flex-col gap-8 px-4 sm:px-8 py-8"
     >
       {children}
     </main>

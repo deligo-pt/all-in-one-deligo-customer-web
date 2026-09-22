@@ -48,7 +48,7 @@ export async function PlusPlans() {
     t("plusPerMonth", { price: formatCurrency(amount, locale) });
 
   return (
-    <section className="max-w-narrow mx-auto w-full px-8 py-20">
+    <section className="max-w-narrow mx-auto w-full px-4 sm:px-8 py-12 sm:py-20">
       <SectionHeading
         eyebrow={t("plusEyebrow")}
         title={t("plusTitle")}
@@ -57,8 +57,8 @@ export async function PlusPlans() {
       />
 
       <div className="mt-12 grid gap-8 lg:grid-cols-2">
-        <Card className="h-full">
-          <CardBody className="flex h-full flex-col gap-6 p-8">
+        <Card className="h-full min-w-0">
+          <CardBody className="flex h-full flex-col gap-6 p-6 sm:p-8">
             <div className="flex flex-col gap-2">
               <p className="text-14 text-ink font-semibold">{t("plusFreeName")}</p>
               <p className="text-20 text-ink font-semibold">{price(PRICES.free)}</p>
@@ -77,9 +77,9 @@ export async function PlusPlans() {
           </CardBody>
         </Card>
 
-        <Card className="border-brand h-full border-2">
-          <CardBody className="flex h-full flex-col gap-6 p-8">
-            <div className="flex items-start justify-between gap-4">
+        <Card className="border-brand h-full min-w-0 border-2">
+          <CardBody className="flex h-full flex-col gap-6 p-6 sm:p-8">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex flex-col gap-2">
                 <p className="text-14 text-brand font-semibold">{t("plusPaidName")}</p>
                 <p className="text-20 text-ink font-semibold">{price(PRICES.plus)}</p>

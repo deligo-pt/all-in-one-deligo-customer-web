@@ -3,8 +3,13 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { loadGoogleIdentity } from "./googleIdentity";
 
-/** GIS caps its button at 400px. */
+/** GIS draws its button between 200 and 400px wide, and not outside that. */
 const MAX_WIDTH = 400;
+const MIN_WIDTH = 200;
+
+/** The width to ask Google for: the slot's, inside GIS's own limits. */
+const buttonWidth = (slot: HTMLElement) =>
+  Math.max(MIN_WIDTH, Math.min(Math.round(slot.getBoundingClientRect().width), MAX_WIDTH));
 
 /**
  * The design's "Continue with Google" row, filled by Google's own button once
@@ -14,6 +19,13 @@ const MAX_WIDTH = 400;
  *
  * The callbacks are held in refs so re-rendering the form on every keystroke
  * does not tear Google's button down and rebuild it.
+ *
+ * **The button is redrawn when its slot changes width.** Google draws it at a
+ * fixed pixel width, once; measured in the responsive pass (22 Sep 2026), a
+ * page drawn wide and then narrowed — a phone rotated to portrait, a window
+ * made smaller — kept a 400px button in a 294px slot, 26px off a 320px
+ * screen. A `ResizeObserver` asks for a new one whenever the slot's width
+ * really changes.
  */
 export function GoogleSlot({
   clientId,
@@ -42,6 +54,8 @@ export function GoogleSlot({
     const target = targetRef.current;
     if (!clientId || !slot || !target) return;
     let cancelled = false;
+    let observer: ResizeObserver | undefined;
+    let redraw: number | undefined;
     loadGoogleIdentity(locale)
       .then((api) => {
         if (cancelled) return;
@@ -54,24 +68,44 @@ export function GoogleSlot({
           auto_select: false,
           cancel_on_tap_outside: true,
         });
-        target.innerHTML = "";
-        api.renderButton(target, {
-          type: "standard",
-          theme: "outline",
-          size: "large",
-          text: "continue_with",
-          shape: "rectangular",
-          logo_alignment: "center",
-          width: Math.min(Math.round(slot.getBoundingClientRect().width), MAX_WIDTH),
-          locale,
-        });
+        const draw = (width: number) => {
+          target.innerHTML = "";
+          api.renderButton(target, {
+            type: "standard",
+            theme: "outline",
+            size: "large",
+            text: "continue_with",
+            shape: "rectangular",
+            logo_alignment: "center",
+            width,
+            locale,
+          });
+        };
+        let drawnAt = buttonWidth(slot);
+        draw(drawnAt);
         setRenderedFor(locale);
+
+        // Redraw only on a real change, settled: a resize fires many times a
+        // second, and each redraw is Google tearing its iframe down.
+        observer = new ResizeObserver(() => {
+          window.clearTimeout(redraw);
+          redraw = window.setTimeout(() => {
+            if (cancelled) return;
+            const next = buttonWidth(slot);
+            if (Math.abs(next - drawnAt) < 4) return;
+            drawnAt = next;
+            draw(next);
+          }, 150);
+        });
+        observer.observe(slot);
       })
       .catch(() => {
         if (!cancelled) setRenderedFor(null);
       });
     return () => {
       cancelled = true;
+      observer?.disconnect();
+      window.clearTimeout(redraw);
     };
   }, [clientId, locale]);
 

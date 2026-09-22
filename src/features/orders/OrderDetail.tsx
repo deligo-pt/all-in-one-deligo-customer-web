@@ -130,7 +130,7 @@ export function OrderDetail({
       : null;
 
   return (
-    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
+    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-4 sm:px-8 py-8">
       <Link
         href={ordersHref}
         className="text-14 text-brand hover:text-brand-strong inline-flex items-center gap-2 self-start font-medium"

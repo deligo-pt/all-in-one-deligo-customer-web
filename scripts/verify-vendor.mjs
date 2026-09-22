@@ -227,8 +227,12 @@ check(
 );
 
 check(
-  "the observer allows for the sticky bar",
-  /rootMargin: "-176px/.test(menu),
+  "the observer allows for the sticky bar — at its measured height",
+  // It was a fixed "-176px": right for the 110px desktop header and a
+  // one-line bar, wrong on a phone (64px header, two-row bar), where it
+  // marked the wrong category. Phone-first pass, 22 Sep 2026.
+  /rootMargin: `-\$\{stickyBottom\}px/.test(menu) &&
+    /setStickyBottom\(header\.offsetHeight \+ bar\.offsetHeight\)/.test(menu),
   "Without it the section hidden behind the search-and-rail bar counts as the one being read.",
 );
 

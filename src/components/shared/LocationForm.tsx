@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import type { LocationChoice } from "@/services/location/server";
@@ -185,28 +186,47 @@ export function LocationForm({
   }
 
   return (
+    // `@container`: the form answers to the width of *its card*, not the
+    // screen. It lives in three cards — the landing hero, the listing's
+    // delivery card and the location dialog — and one row of saved addresses,
+    // field, "use current location" and Explore needs about 670px (42rem — an
+    // arbitrary size, because this theme resets the named container sizes).
+    // Measured on phones it overflowed the hero card by 7–101px (owner's
+    // screenshot, 22 Sep 2026).
+    //
+    // Narrower than that it is laid out for a thumb, in this order:
+    //   1. the field, with "use current location" as an icon inside its row;
+    //   2. saved addresses, on a line of its own (only when there are any);
+    //   3. Explore, the full width of the card.
+    // `order-*` rearranges the same four controls, so there is one of each and
+    // the wide layout is untouched.
     <div
-      className={
-        fill ? "flex w-full flex-col gap-2" : "flex w-full max-w-xl flex-col gap-2"
-      }
+      className={cn(
+        "@container flex w-full flex-col gap-2",
+        !fill && "max-w-xl",
+      )}
     >
       <form
-        className="border-line bg-surface rounded-16 flex w-full items-center gap-3 border p-3"
+        className="border-line bg-surface rounded-16 flex w-full flex-wrap items-center gap-x-2 gap-y-3 border p-3 @min-[42rem]:flex-nowrap @min-[42rem]:gap-3"
         onSubmit={(event) => {
           event.preventDefault();
           void submitAddress();
         }}
       >
         {saved.length > 0 && copy.savedLabel ? (
-          <SavedAddressPicker
-            saved={saved}
-            label={copy.savedLabel}
-            disabled={pending !== null}
-            onChoose={(id) => void choose(id)}
-          />
+          <div className="order-3 basis-full @min-[42rem]:order-none @min-[42rem]:basis-auto">
+            <SavedAddressPicker
+              saved={saved}
+              label={copy.savedLabel}
+              disabled={pending !== null}
+              onChoose={(id) => void choose(id)}
+            />
+          </div>
         ) : null}
 
-        <div className="min-w-0 flex-1">
+        {/* First on a narrow card, sharing its row only with the locate icon;
+            back between the picker and the actions once the card is wide. */}
+        <div className="order-1 min-w-0 flex-1 @min-[42rem]:order-none">
           <Input
             name="address"
             autoComplete="street-address"
@@ -225,18 +245,22 @@ export function LocationForm({
             disabled={pending !== null}
           />
         </div>
+        {/* An icon beside the field on a narrow card — a 40px target, named by
+            its label, which is kept for screen readers — and the full text
+            button once there is room for it. */}
         <button
           type="button"
           onClick={locate}
           disabled={pending !== null}
-          className="text-14 text-brand inline-flex shrink-0 items-center gap-2 pe-3 font-medium disabled:opacity-60"
+          title={copy.locateMe}
+          className="text-14 text-brand hover:bg-brand-tint rounded-8 order-2 inline-flex size-10 shrink-0 items-center justify-center font-medium disabled:opacity-60 @min-[42rem]:order-none @min-[42rem]:size-auto @min-[42rem]:gap-2 @min-[42rem]:pe-3 @min-[42rem]:hover:bg-transparent"
         >
           {pending === "locate" ? (
-            <Spinner className="size-4" />
+            <Spinner className="size-5 @min-[42rem]:size-4" />
           ) : (
-            <Icon name="my-location" className="size-4" />
+            <Icon name="my-location" className="size-5 @min-[42rem]:size-4" />
           )}
-          {copy.locateMe}
+          <span className="sr-only @min-[42rem]:not-sr-only">{copy.locateMe}</span>
         </button>
         {submitLabel ? (
           <Button
@@ -244,7 +268,7 @@ export function LocationForm({
             shape="pill"
             size="sm"
             disabled={pending !== null}
-            className="shrink-0"
+            className="order-4 shrink-0 basis-full @min-[42rem]:order-none @min-[42rem]:ms-auto @min-[42rem]:basis-auto"
           >
             {submitLabel}
           </Button>

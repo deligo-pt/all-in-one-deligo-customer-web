@@ -27,10 +27,20 @@
  * carries its own rather than everything being forced to 24.
  */
 export const ICONS = {
+  chat: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<path d="M20 12a8 8 0 0 1-8 8H4.8a.8.8 0 0 1-.57-1.37l1.4-1.4A8 8 0 1 1 20 12Z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/><path d="M9 11h6M9 14.5h3.5" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`,
+  },
   check: {
     viewBox: "0 0 24 24",
     source: "drawn",
     body: `<path d="m5 13 4 4L19 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>`,
+  },
+  menu: {
+    viewBox: "0 0 24 24",
+    source: "drawn",
+    body: `<path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>`,
   },
   "chevron-down": {
     viewBox: "0 0 24 24",

@@ -45,7 +45,7 @@ export default async function OrderPage({
 
   if (!order) {
     return (
-      <div className="max-w-shell mx-auto w-full px-8 py-16">
+      <div className="max-w-shell mx-auto w-full px-4 sm:px-8 py-16">
         <EmptyState
           icon={<Icon name="clock" className="size-8" />}
           title={unavailable ? t("unavailableTitle") : t("notFoundTitle")}

@@ -21,7 +21,7 @@ export type ComingSoonCopy = {
  */
 export function ComingSoon({ image, copy }: { image?: string; copy: ComingSoonCopy }) {
   return (
-    <section className="relative isolate flex min-h-[calc(100vh-6.875rem)] items-center justify-center overflow-hidden px-8 py-16">
+    <section className="relative isolate flex min-h-[calc(100svh-4rem)] sm:min-h-[calc(100svh-5rem)] lg:min-h-[calc(100vh-6.875rem)] items-center justify-center overflow-hidden px-4 sm:px-8 py-16">
       <ImageSlot
         src={image}
         alt={copy.imageAlt}

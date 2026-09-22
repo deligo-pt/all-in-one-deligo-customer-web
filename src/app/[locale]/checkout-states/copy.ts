@@ -111,6 +111,10 @@ export function checkoutCopy(
 
 export function outcomeCopy(t: (key: string) => string): OutcomeCopy {
   return {
+    // The states page draws the screens, not the panel behind them, so the
+    // support sentence is the literal one rather than a second dictionary.
+    contactSupport: t("contactSupport"),
+    supportPrefill: "Payment Question",
     finishing: t("returnFinishing"),
     failedTitle: t("returnFailedTitle"),
     failedBody: t("returnFailedBody"),

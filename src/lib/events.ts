@@ -19,3 +19,22 @@ export const CART_EVENT = "deligo:cart";
 
 /** A push message arrived — in this tab, or in the service worker. */
 export const PUSH_EVENT = "deligo:push";
+
+/**
+ * Open the support chat, optionally with a sentence already typed.
+ *
+ * The panel is mounted once in the locale layout so that opening support never
+ * navigates: a customer stuck on checkout asks their question from checkout,
+ * and the page they were on is still there behind the dialog. The openers are
+ * scattered — a payment failure, a topic row, a help page — and none of them
+ * owns the panel, which is what this event is for.
+ *
+ * `detail` carries `{ prefill?: string }`. It is a browser event rather than a
+ * store for the reason stated at the top of this file: a store would live in a
+ * module the layout imports on every page, and the panel it belongs to must
+ * not.
+ */
+export const SUPPORT_EVENT = "deligo:support";
+
+/** What {@link SUPPORT_EVENT} carries. */
+export type SupportIntent = { prefill?: string };

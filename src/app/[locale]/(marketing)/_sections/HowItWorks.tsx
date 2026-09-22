@@ -20,7 +20,7 @@ export async function HowItWorks() {
 
   return (
     <section className="bg-brand-tint">
-      <div className="max-w-narrow mx-auto w-full px-8 py-20">
+      <div className="max-w-narrow mx-auto w-full px-4 sm:px-8 py-12 sm:py-20">
         <SectionHeading
           eyebrow={t("howEyebrow")}
           title={t("howTitle")}

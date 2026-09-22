@@ -47,7 +47,7 @@ export function ContentPage({
   const external = (href: string) => /^(https?:|mailto:|tel:)/.test(href);
 
   return (
-    <article className="max-w-narrow mx-auto flex w-full flex-col gap-10 px-8 py-16">
+    <article className="max-w-narrow mx-auto flex w-full flex-col gap-10 px-4 sm:px-8 py-16">
       <header className="flex flex-col gap-3">
         <h1 className="text-40 text-ink font-semibold">{document?.title ?? title}</h1>
         {(document?.lede ?? lede) ? (

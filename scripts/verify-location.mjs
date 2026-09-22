@@ -283,7 +283,11 @@ check(
 
 check(
   "the field takes the width the card leaves it",
-  /min-w-0 flex-1/.test(form) && /fill$/m.test(picker),
+  // Since the phone-first pass (22 Sep 2026) the field grows at every width:
+  // on a narrow card it shares its row only with the locate icon, and on a
+  // wide one it takes what the one-line row leaves.
+  /order-1 min-w-0 flex-1 @min-\[42rem\]:order-none/.test(form) &&
+    /fill$/m.test(picker),
   'The icon variant of `Input` wraps itself in a `relative` div, which in a flex row sizes to its content: a long address was cut off at "Dhaka, Bang…" while half the card sat empty.',
 );
 
