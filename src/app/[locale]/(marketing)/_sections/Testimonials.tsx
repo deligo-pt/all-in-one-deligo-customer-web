@@ -31,7 +31,7 @@ export async function Testimonials() {
   }));
 
   return (
-    <section className="max-w-narrow mx-auto w-full px-8 py-20">
+    <section className="max-w-narrow mx-auto w-full px-4 sm:px-8 py-12 sm:py-20">
       <SectionHeading
         eyebrow={t("reviewsEyebrow")}
         title={t("reviewsTitle")}

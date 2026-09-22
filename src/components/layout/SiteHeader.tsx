@@ -27,6 +27,26 @@ import { SearchBox } from "./SearchBox";
  * A Server Component. The two things that genuinely need the browser — the
  * active-link underline and the search field — are client leaves inside it, so
  * the header itself costs the bundle nothing.
+ *
+ * ## It sheds items as it narrows, and never overflows (Phase 20 responsive)
+ *
+ * Measured: the full bar needs ~1,380px and its containers are 1,120 and
+ * 1,312px, so it ran past its own container at every width and past the screen
+ * from 768 to 1,366px — the horizontal scrollbar on ordinary laptops. There is
+ * no tablet or phone design (every Figma frame is 1440px), so the order things
+ * leave in is a decision, and each one goes into the menu drawer as it leaves:
+ *
+ * | from     | shown in the bar                                        |
+ * |----------|---------------------------------------------------------|
+ * | always   | logo · bell · cart (+ menu button below `xl`)           |
+ * | `sm`     | + sign-in / account                                     |
+ * | `md`     | + language, as a compact "PT" / "EN"                    |
+ * | `lg`     | + search field                                          |
+ * | `xl`     | + the link row (the menu button goes)                   |
+ * | `2xl`    | + Download App                                          |
+ *
+ * `verify:responsive` loads both variants at every width from 320 to 1920px and
+ * fails if the bar is wider than its container or the page than the screen.
  */
 /**
  * A link is a route AND a label, and the type says so: a name that is not both
@@ -93,7 +113,7 @@ export async function SiteHeader({
         >
           {t("skipToContent")}
         </a>
-        <div className="max-w-narrow mx-auto flex h-20 items-center gap-8 px-8">
+        <div className="max-w-narrow mx-auto flex h-20 items-center gap-4 px-4 sm:gap-8 sm:px-8">
           <Logo locale={locale} label={common("appName")} />
           <div className="ms-auto">
             <LocaleSwitcher />
@@ -115,27 +135,29 @@ export async function SiteHeader({
         {t("skipToContent")}
       </a>
 
-      {/* 110px, and the container width differs by variant: the design lays the
-          marketing bar out on 1120px and the app bar on 1312px. */}
+      {/* 110px from `lg`, and the container width differs by variant: the
+          design lays the marketing bar out on 1120px and the app bar on 1312px.
+          Shorter and tighter below that, where there is no design and a 110px
+          bar would take a sixth of a phone's height. */}
       <div
         className={cn(
-          "mx-auto flex h-[6.875rem] items-center gap-8 px-8",
+          "mx-auto flex h-16 items-center gap-3 px-4 sm:h-20 sm:gap-4 sm:px-6 lg:h-[6.875rem] lg:gap-6 lg:px-8",
           variant === "marketing" ? "max-w-narrow" : "max-w-shell",
         )}
       >
         <Logo locale={locale} label={common("appName")} />
 
-        <nav aria-label={t("mainNavigation")} className="hidden lg:block">
-          <NavLinks links={links} />
+        <nav aria-label={t("mainNavigation")} className="hidden xl:block">
+          <NavLinks links={links} className="gap-4" />
         </nav>
 
-        <div className="ms-auto flex items-center gap-8">
-          <div className="flex items-center gap-2">
+        <div className="ms-auto flex min-w-0 items-center gap-2 lg:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2">
             <SearchBox
               locale={locale}
               label={t("search")}
               placeholder={t("searchPlaceholder")}
-              className="hidden w-52 md:block"
+              className="hidden lg:block lg:w-40"
             />
             <HeaderCounts
               notificationsHref={withLocale(ROUTES.notifications.path, locale)}
@@ -145,10 +167,11 @@ export async function SiteHeader({
             />
           </div>
 
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="hidden items-center gap-2 sm:flex">
             {/* The language, where the old navbar had it — not only in the
-                footer. Switching is a navigation to the same page. */}
-            <LocaleSwitcher />
+                footer. Switching is a navigation to the same page. Compact
+                ("PT") here; the drawer has the full name. */}
+            <LocaleSwitcher compact className="hidden md:inline-flex" />
             {/* The design labels this "Login" on the marketing pages and
                 "Account" everywhere else — the same control, named for what the
                 visitor is there to do. Both open the sign-in drawer, because
@@ -164,19 +187,44 @@ export async function SiteHeader({
               closeLabel={common("close")}
               appName={common("appName")}
             />
-            <Button asChild>
+            <Button asChild className="hidden 2xl:inline-flex">
               <Link href={withLocale(ROUTES.plus.path, locale)}>
                 {t("downloadApp")}
               </Link>
             </Button>
           </div>
 
+          {/* Everything the bar sheds on the way down, so a narrow screen loses
+              the room these took and nothing else. */}
           <MobileNav
             links={links}
             openLabel={t("openMenu")}
             title={t("menu")}
             closeLabel={common("close")}
-          />
+          >
+            <SearchBox
+              locale={locale}
+              label={t("search")}
+              placeholder={t("searchPlaceholder")}
+              className="w-full"
+            />
+            <SignInButton
+              href={withLocale(ROUTES.login.path, locale)}
+              accountHref={withLocale(ROUTES.account.path, locale)}
+              accountLabel={t("account")}
+              label={variant === "marketing" ? t("login") : t("account")}
+              title={t("login")}
+              description={common("tagline")}
+              closeLabel={common("close")}
+              appName={common("appName")}
+            />
+            <LocaleSwitcher />
+            <Button asChild>
+              <Link href={withLocale(ROUTES.plus.path, locale)}>
+                {t("downloadApp")}
+              </Link>
+            </Button>
+          </MobileNav>
         </div>
       </div>
     </header>

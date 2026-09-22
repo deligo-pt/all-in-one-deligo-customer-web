@@ -38,7 +38,7 @@ export function VerticalHero({
   known?: string;
 }) {
   return (
-    <section className="relative isolate flex min-h-[calc(100vh-6.875rem)] items-center overflow-hidden">
+    <section className="relative isolate flex min-h-[calc(100svh-4rem)] sm:min-h-[calc(100svh-5rem)] lg:min-h-[calc(100vh-6.875rem)] items-center overflow-hidden">
       <ImageSlot
         src={image}
         alt={copy.body}
@@ -47,7 +47,7 @@ export function VerticalHero({
         className="absolute inset-0 -z-10 size-full"
       />
 
-      <div className="max-w-narrow mx-auto w-full px-8 py-16">
+      <div className="max-w-narrow mx-auto w-full px-4 sm:px-8 py-16">
         <div className="flex max-w-xl flex-col items-start gap-6">
           <span className="bg-brand-tint text-brand text-14 rounded-full px-4 py-2 font-medium">
             {copy.badge}

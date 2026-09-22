@@ -141,6 +141,7 @@ const checkout = {
     "The order could not be read just now. Nothing was charged; please try again.",
   actionFailed: "That did not go through, and nothing was charged. Please try again.",
   previewOnly: "This is a design preview. Nothing is sent from this page.",
+  contactSupport: "Contact support",
 } satisfies Record<string, string>;
 
 export default checkout;

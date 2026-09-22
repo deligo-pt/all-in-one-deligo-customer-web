@@ -106,7 +106,7 @@ export function VendorListing({
   };
 
   return (
-    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
+    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-4 sm:px-8 py-8">
       <DeliveryBar
         address={address}
         countLabel={address ? countLabel : undefined}

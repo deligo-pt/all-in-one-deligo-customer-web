@@ -2,6 +2,7 @@
 
 import { ImageSlot } from "@/components/shared/ImageSlot";
 import { cn } from "@/lib/cn";
+import { PHONE_STRIP } from "@/lib/phoneSlider";
 import type { Cuisine } from "./types";
 
 /**
@@ -28,11 +29,13 @@ export function CuisineRow({
   className?: string;
 }) {
   return (
-    <ul className={cn("flex flex-wrap gap-8", className)}>
+    // One swipeable line on a phone — wrapped, seven cuisines were four rows
+    // of large round photos before the first restaurant.
+    <ul className={cn("flex flex-wrap gap-8 max-sm:gap-4", PHONE_STRIP, className)}>
       {cuisines.map((cuisine) => {
         const active = selected.includes(cuisine.id);
         return (
-          <li key={cuisine.id}>
+          <li key={cuisine.id} className="shrink-0 snap-start">
             <button
               type="button"
               aria-pressed={active}

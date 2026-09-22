@@ -46,7 +46,7 @@ export function CheckoutStart({
   }, [checkoutPath, router]);
 
   return (
-    <div className="max-w-shell mx-auto w-full px-8 py-16">
+    <div className="max-w-shell mx-auto w-full px-4 sm:px-8 py-16">
       {failure === null ? (
         <p role="status" className="text-16 text-ink-muted text-center">
           {copy.preparing}

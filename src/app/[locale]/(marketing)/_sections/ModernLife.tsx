@@ -20,7 +20,7 @@ export async function ModernLife() {
   const t = await getTranslations("home");
 
   return (
-    <section className="max-w-narrow mx-auto w-full px-8 py-20">
+    <section className="max-w-narrow mx-auto w-full px-4 sm:px-8 py-12 sm:py-20">
       <SectionHeading eyebrow={t("aboutEyebrow")} title={t("aboutTitle")} />
 
       <div className="mt-12 grid items-start gap-12 lg:grid-cols-2">

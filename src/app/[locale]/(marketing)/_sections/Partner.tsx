@@ -6,6 +6,8 @@ import { getLocale, getTranslations } from "@/i18n/server";
 import { withLocale } from "@/lib/i18n/path";
 import { ROUTES } from "@/lib/routes";
 import type { MessageKey } from "@/i18n/namespaces";
+import { PHONE_SLIDE, PHONE_SLIDER } from "@/lib/phoneSlider";
+import { cn } from "@/lib/cn";
 
 /**
  * Four audiences — shops, hotels, couriers, drivers — each with a card and a
@@ -33,16 +35,17 @@ export async function Partner() {
   const [t, locale] = await Promise.all([getTranslations("home"), getLocale()]);
 
   return (
-    <section className="max-w-narrow mx-auto w-full px-8 py-20">
+    <section className="max-w-narrow mx-auto w-full px-4 sm:px-8 py-12 sm:py-20">
       <SectionHeading
         title={t("partnerTitle")}
         body={t("partnerBody")}
         align="center"
       />
 
-      <ul className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+      {/* A swipe row on a phone, the design's grid from `sm`. */}
+      <ul className={cn("mt-8 grid gap-8 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4", PHONE_SLIDER)}>
         {AUDIENCES.map((audience) => (
-          <li key={audience.title}>
+          <li key={audience.title} className={PHONE_SLIDE}>
             <Card className="h-full">
               <CardBody className="flex h-full flex-col items-start gap-3 p-6">
                 <Icon name={audience.icon} className="text-brand size-8" />

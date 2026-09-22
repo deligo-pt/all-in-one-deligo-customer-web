@@ -72,7 +72,7 @@ export function PushListener({ closeLabel }: { closeLabel: string }) {
   return (
     <div
       role="status"
-      className="border-line bg-surface rounded-16 fixed end-4 bottom-4 z-50 flex max-w-sm gap-3 border p-4 shadow-lg"
+      className="border-line bg-surface rounded-16 fixed end-4 bottom-20 z-50 flex max-w-sm gap-3 border p-4 shadow-lg"
     >
       <div className="flex min-w-0 flex-col gap-1">
         {message.title ? (

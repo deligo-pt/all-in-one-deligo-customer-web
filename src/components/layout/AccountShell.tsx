@@ -28,7 +28,7 @@ export function AccountShell({
   children: ReactNode;
 }) {
   return (
-    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
+    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-4 sm:px-8 py-8">
       <header className="flex flex-col gap-2">
         <h1 className="text-32 text-ink font-semibold">{title}</h1>
         {subtitle ? <p className="text-16 text-ink-warm">{subtitle}</p> : null}

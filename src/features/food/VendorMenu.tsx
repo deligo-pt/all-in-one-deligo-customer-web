@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Icon } from "@/components/ui/Icon";
 import {
@@ -166,12 +167,31 @@ export function VendorMenu({
    *
    * The rail used to mark the first category for ever, so it said "Starters"
    * at the bottom of the desserts. An observer against the sticky bar's own
-   * offset — the rail is 176px down the viewport — marks the section that owns
-   * the top of what is visible, and clicking a link still scrolls with the
-   * anchor rather than being hijacked by script.
+   * offset marks the section that owns the top of what is visible, and
+   * clicking a link still scrolls with the anchor rather than being hijacked
+   * by script.
+   *
+   * **The offset is measured, not assumed.** It was 176px — right for the
+   * 110px desktop header and a one-line bar. On a phone (phone-first pass,
+   * 22 Sep 2026) the header is 64px and the bar is two rows, so a fixed 176
+   * marked the wrong category and dropped a tapped category's heading under
+   * the bar. `stickyBottom` is where the header and the bar end, kept current
+   * as either changes height.
    */
   const [active, setActive] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const [stickyBottom, setStickyBottom] = useState(176);
+
+  useEffect(() => {
+    const header = document.querySelector("header");
+    const bar = document.querySelector<HTMLElement>("[data-menu-bar]");
+    if (!header || !bar) return;
+    const measure = () => setStickyBottom(header.offsetHeight + bar.offsetHeight);
+    const observer = new ResizeObserver(measure);
+    observer.observe(header);
+    observer.observe(bar);
+    return () => observer.disconnect();
+  }, []);
 
   const categories = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -204,16 +224,16 @@ export function VendorMenu({
         const id = visible?.target.getAttribute("data-category");
         if (id) setActive(id);
       },
-      // The sticky search-and-rail bar covers the top 176px; without this the
-      // section behind it would count as visible.
-      { rootMargin: "-176px 0px -60% 0px", threshold: 0 },
+      // The header and the sticky search-and-rail bar cover the top of the
+      // screen; without this the section behind them would count as visible.
+      { rootMargin: `-${stickyBottom}px 0px -60% 0px`, threshold: 0 },
     );
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, [categories]);
+  }, [categories, stickyBottom]);
 
   return (
-    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
+    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-4 sm:px-8 py-8">
       <VendorIntro
         vendor={vendor}
         dealsTitle={copy.dealsTitle}
@@ -241,7 +261,14 @@ export function VendorMenu({
       />
 
       <div className="flex flex-col gap-8 lg:flex-row">
-        <div ref={menuRef} className="flex min-w-0 flex-1 flex-col gap-8">
+        <div
+          ref={menuRef}
+          // A tapped category lands just under the bar, whatever its height.
+          // `--dg-` because the design guard admits a bracketed value only
+          // when it names one of the app's own variables.
+          style={{ "--dg-menu-offset": `${stickyBottom + 8}px` } as React.CSSProperties}
+          className="flex min-w-0 flex-1 flex-col gap-8"
+        >
           {notice ? (
             <div
               role="status"
@@ -275,7 +302,7 @@ export function VendorMenu({
                 key={category.id}
                 id={`menu-${category.id}`}
                 data-category={category.id}
-                className="flex scroll-mt-44 flex-col gap-6"
+                className="flex scroll-mt-[var(--dg-menu-offset)] flex-col gap-6"
               >
                 <h2 className="text-20 text-ink font-semibold">{category.name}</h2>
                 <ul className="grid gap-4 xl:grid-cols-2">
@@ -303,7 +330,16 @@ export function VendorMenu({
           )}
         </div>
 
-        <div className="lg:w-104 lg:shrink-0">
+        {/* Below `lg` the panel sits under the whole menu, where an *empty*
+            cart is a large card saying nothing at the end of the scroll
+            (phone-first pass, 22 Sep 2026). It shows there once it holds
+            something; beside the menu, from `lg`, it always shows. */}
+        <div
+          className={cn(
+            "lg:w-104 lg:shrink-0",
+            (!cart || cart.lines.length === 0) && "max-lg:hidden",
+          )}
+        >
           <div className="sticky top-[8rem]">
             <StoreCartPanel
               store={cart}

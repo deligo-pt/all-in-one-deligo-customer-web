@@ -29,7 +29,9 @@
     "verify:location": "node --no-warnings scripts/verify-location.mjs",
     "verify:groceries": "node --no-warnings scripts/verify-groceries.mjs",
     "verify:session": "node --no-warnings scripts/verify-session.mjs",
-    "verify": "pnpm verify:structure && pnpm verify:design && pnpm verify:i18n && pnpm verify:shell && pnpm verify:auth && pnpm verify:food && pnpm verify:cart && pnpm verify:checkout && pnpm verify:orders && pnpm verify:account && pnpm verify:groceries && pnpm verify:location && pnpm verify:search && pnpm verify:vendor && pnpm verify:loading && pnpm verify:session && pnpm verify:bundle",
+    "verify:support": "node --no-warnings scripts/verify-support.mjs",
+    "verify:responsive": "node --no-warnings scripts/verify-responsive.mjs",
+    "verify": "pnpm verify:structure && pnpm verify:design && pnpm verify:i18n && pnpm verify:shell && pnpm verify:auth && pnpm verify:food && pnpm verify:cart && pnpm verify:checkout && pnpm verify:orders && pnpm verify:account && pnpm verify:groceries && pnpm verify:location && pnpm verify:search && pnpm verify:vendor && pnpm verify:loading && pnpm verify:session && pnpm verify:support && pnpm verify:responsive && pnpm verify:bundle",
     "gate": "pnpm typecheck && pnpm lint && pnpm build:check && pnpm verify"
   },
   "dependencies": {

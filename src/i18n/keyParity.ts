@@ -45,6 +45,8 @@ import type groceriesEn from "./dictionaries/en/groceries";
 import type groceriesPt from "./dictionaries/pt/groceries";
 import type contentEn from "./dictionaries/en/content";
 import type contentPt from "./dictionaries/pt/content";
+import type supportEn from "./dictionaries/en/support";
+import type supportPt from "./dictionaries/pt/support";
 
 /** Resolves only when `T` is `never`. When two dictionaries diverge, `T` is the
  *  union of the offending key names and the compiler prints them. */
@@ -141,4 +143,11 @@ export type ContentEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
 >;
 export type ContentPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
   OnlyInFirst<typeof contentPt, typeof contentEn>
+>;
+
+export type SupportEnHasNoKeysMissingFromPt = AssertNoStrayKeys<
+  OnlyInFirst<typeof supportEn, typeof supportPt>
+>;
+export type SupportPtHasNoKeysMissingFromEn = AssertNoStrayKeys<
+  OnlyInFirst<typeof supportPt, typeof supportEn>
 >;

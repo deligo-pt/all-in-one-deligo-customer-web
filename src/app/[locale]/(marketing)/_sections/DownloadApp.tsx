@@ -31,7 +31,7 @@ export async function DownloadApp() {
 
   return (
     <section className="bg-brand-tint">
-      <div className="max-w-narrow mx-auto grid w-full items-center gap-12 px-8 py-20 lg:grid-cols-2">
+      <div className="max-w-narrow mx-auto grid w-full items-center gap-12 px-4 sm:px-8 py-12 sm:py-20 lg:grid-cols-2">
         <div className="flex flex-col gap-6">
           <h2 className="text-32 text-ink tracking-tight lg:text-48 font-semibold">
             {t("downloadTitle")}
@@ -53,7 +53,9 @@ export async function DownloadApp() {
         </div>
 
         {/* Two phone mockups, overlapping, as the design lays them out. */}
-        <div className="relative mx-auto flex h-[30rem] w-full max-w-md items-end justify-center">
+        {/* The mock phones are illustration: on a phone they were ~450px of
+            blank shapes under the store badges. Shown from `sm`. */}
+        <div className="relative mx-auto hidden h-[30rem] w-full max-w-md items-end justify-center sm:flex">
           <Image
             src="/images/app-home.webp"
             alt=""

@@ -32,12 +32,15 @@ export function MenuItemCard({
   onAdd?: (itemId: string) => void;
 }) {
   return (
-    <article className="border-line rounded-16 bg-surface flex gap-4 border p-4">
+    // `min-w-0`: a grid item will not shrink below its content unless told to.
+    // The photo is 80px below `sm` — at 112px a 320px phone left 126px for the
+    // name, the badge, the price and the add button, and the card spilled.
+    <article className="border-line rounded-16 bg-surface flex min-w-0 gap-3 border p-4 sm:gap-4">
       <ImageSlot
         src={item.image}
         alt={item.name}
-        sizes="123px"
-        className="rounded-8 size-28 shrink-0"
+        sizes="(min-width: 640px) 112px, 80px"
+        className="rounded-8 size-20 shrink-0 sm:size-28"
       />
 
       <div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -49,7 +52,7 @@ export function MenuItemCard({
             ) : null}
           </div>
           {item.badge ? (
-            <span className="bg-brand-tint text-brand text-8 rounded-full px-2 py-1 font-semibold tracking-wide">
+            <span className="bg-brand-tint text-brand text-8 shrink-0 rounded-full px-2 py-1 font-semibold tracking-wide">
               {item.badge}
             </span>
           ) : null}
@@ -58,7 +61,7 @@ export function MenuItemCard({
         <div className="mt-auto flex items-center justify-between gap-3">
           {/* Verbatim. The API sends "9.90€" and that is what is read out —
               no re-formatting, no symbol chosen here. */}
-          <p className="text-16 text-brand flex items-baseline gap-2 font-semibold">
+          <p className="text-16 text-brand flex min-w-0 flex-wrap items-baseline gap-x-2 font-semibold">
             {item.price}
             {item.originalPrice ? (
               <s className="text-12 text-ink-muted font-normal">{item.originalPrice}</s>

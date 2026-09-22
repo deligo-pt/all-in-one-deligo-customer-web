@@ -44,7 +44,7 @@ export async function Hero() {
   }));
 
   return (
-    <section className="relative isolate flex min-h-[52rem] items-center overflow-hidden">
+    <section className="relative isolate flex items-center overflow-hidden sm:min-h-[52rem]">
       <ImageSlot
         src="/images/hero.webp"
         alt={t("heroImageAlt")}
@@ -60,8 +60,10 @@ export async function Hero() {
         className="from-ink-strong/70 absolute inset-0 -z-10 bg-linear-to-r to-transparent"
       />
 
-      <div className="max-w-shell mx-auto flex w-full flex-col gap-6 px-8 py-16">
-        <h1 className="text-40 text-ink-inverse tracking-tight lg:text-56 max-w-xl font-semibold">
+      {/* 832px tall is the 1440px design; on a phone it left a screen of empty
+          photograph under the card. There the hero is as tall as its content. */}
+      <div className="max-w-shell mx-auto flex w-full flex-col gap-5 px-4 py-8 sm:gap-6 sm:px-8 sm:py-16">
+        <h1 className="text-32 text-ink-inverse sm:text-40 lg:text-56 max-w-xl font-semibold tracking-tight">
           {t("heroTitle")}
         </h1>
         <div className="max-w-3xl">

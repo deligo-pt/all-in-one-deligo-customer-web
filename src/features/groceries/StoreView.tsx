@@ -6,6 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 import {
   StoreCartPanel,
   cartApi,
@@ -102,7 +103,7 @@ export function StoreView({
   }, [query, store.aisles]);
 
   return (
-    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
+    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-4 sm:px-8 py-8">
       <VendorIntro
         vendor={store}
         dealsTitle={copy.dealsTitle}
@@ -172,7 +173,16 @@ export function StoreView({
           )}
         </div>
 
-        <div className="lg:w-104 lg:shrink-0">
+        {/* Below `lg` the panel sits under the whole menu, where an *empty*
+            cart is a large card saying nothing at the end of the scroll
+            (phone-first pass, 22 Sep 2026). It shows there once it holds
+            something; beside the menu, from `lg`, it always shows. */}
+        <div
+          className={cn(
+            "lg:w-104 lg:shrink-0",
+            (!cart || cart.lines.length === 0) && "max-lg:hidden",
+          )}
+        >
           <div className="sticky top-[8rem]">
             <StoreCartPanel
               store={cart}

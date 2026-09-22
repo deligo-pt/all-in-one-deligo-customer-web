@@ -7,6 +7,10 @@ import { loadNamespace } from "@/i18n/namespaces";
 import { getTranslations } from "@/i18n/server";
 import { TranslationProvider } from "@/i18n/TranslationProvider";
 import { PushListener } from "@/components/shared/PushListener";
+import { SupportWidget } from "@/components/shared/SupportWidget";
+import { withLocale } from "@/lib/i18n/path";
+import { ROUTES } from "@/lib/routes";
+import { supportPanelCopy } from "@/services/support/copy";
 
 // Inter is the design's only typeface: 7,721 of the 7,733 text runs in the
 // Figma page use it. `latin` alone covers both Portuguese and English —
@@ -81,10 +85,14 @@ export default async function LocaleLayout({
   //
   // Every other namespace is mounted by the layout or page that needs it, so a
   // route never serialises strings it never renders.
-  const [common, errors, t] = await Promise.all([
+  const [common, errors, t, support] = await Promise.all([
     loadNamespace(locale, "common"),
     loadNamespace(locale, "errors"),
     getTranslations("common"),
+    // Resolved here rather than mounted as a provider namespace: the panel is
+    // the only thing that reads these, and they reach the browser as the
+    // strings it was handed instead of a dictionary every route re-serialises.
+    supportPanelCopy(),
   ]);
 
   return (
@@ -96,6 +104,16 @@ export default async function LocaleLayout({
               nothing until a message arrives, and loads Firebase only for a
               signed-in browser that already granted permission. */}
           <PushListener closeLabel={t("close")} />
+          {/* Support, from every page (Phase 20h). Nothing renders for a
+              guest, nothing is requested until it is opened, and opening it
+              never leaves the page underneath. */}
+          <SupportWidget
+            locale={locale}
+            fullHref={withLocale(ROUTES.support.path, locale)}
+            loginHref={withLocale(ROUTES.login.path, locale)}
+            copy={support}
+            closeLabel={t("close")}
+          />
         </TranslationProvider>
       </body>
     </html>

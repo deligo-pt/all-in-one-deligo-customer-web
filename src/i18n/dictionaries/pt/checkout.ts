@@ -121,6 +121,7 @@ const checkout = {
   actionFailed: "Não foi possível concluir, e nada foi cobrado. Tente de novo.",
   previewOnly:
     "Esta é uma pré-visualização do design. Nada é enviado a partir desta página.",
+  contactSupport: "Falar com o apoio",
 } satisfies Record<string, string>;
 
 export default checkout;

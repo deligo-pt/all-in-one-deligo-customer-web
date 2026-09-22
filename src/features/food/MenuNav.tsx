@@ -1,8 +1,10 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
+import { PHONE_STRIP } from "@/lib/phoneSlider";
 
 /**
  * The bar that sits above a vendor's menu: an item search on one side, the
@@ -42,8 +44,35 @@ export function MenuNav({
   searchPlaceholder: string;
   navLabel: string;
 }) {
+  // On a phone the strip scrolls sideways, so the category the reader has
+  // scrolled into can be off its edge. Bring it into view — by moving the
+  // strip only; `scrollIntoView` could move the page as well.
+  const strip = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    const list = strip.current;
+    const item = list?.querySelector<HTMLElement>("[data-active]");
+    if (!list || !item || list.scrollWidth <= list.clientWidth) return;
+    const start = item.offsetLeft - list.offsetLeft;
+    const end = start + item.offsetWidth;
+    if (start < list.scrollLeft || end > list.scrollLeft + list.clientWidth) {
+      list.scrollTo({ left: Math.max(0, start - 16), behavior: "smooth" });
+    }
+  }, [activeId]);
+
   return (
-    <div className="border-line bg-surface sticky top-[6.875rem] z-20 flex flex-wrap items-center gap-12 border-b py-4">
+    // Sticks under the header at the header's height for each width (64 / 80 /
+    // 110px — see SiteHeader); a fixed 110px left a 46px gap on a phone that
+    // the menu scrolled through. `data-menu-bar` is how VendorMenu measures it.
+    <div
+      data-menu-bar
+      // Edge to edge on a phone (`-mx-4 px-4` cancels the page gutter): the
+      // category strip inside it runs to the screen's edges, and a bar that
+      // stopped 16px short let the menu show through beside it while stuck.
+      className="border-line bg-surface sticky top-16 z-20 flex flex-wrap items-center gap-x-12 gap-y-3 border-b py-3 max-sm:-mx-4 max-sm:px-4 sm:top-20 sm:py-4 lg:top-[6.875rem]"
+    >
+      {/* The wrapper takes the width: the icon variant of Input wraps itself in
+          a `relative` div that, in a flex row, sizes to its content. */}
+      <div className="w-full sm:w-80">
       <Input
         type="search"
         value={query}
@@ -51,20 +80,23 @@ export function MenuNav({
         aria-label={searchLabel}
         placeholder={searchPlaceholder}
         startIcon={<Icon name="search" className="size-4" />}
-        className="rounded-8 text-14 h-13 w-full sm:w-80"
+        className="rounded-8 text-14 h-11 w-full sm:h-13"
       />
+      </div>
 
-      <nav aria-label={navLabel}>
-        <ul className="flex flex-wrap items-center gap-6">
+      {/* One swipeable line on a phone — the categories used to wrap into
+          three or four rows of a sticky bar, covering a third of the screen. */}
+      <nav aria-label={navLabel} className="min-w-0 max-sm:w-full">
+        <ul ref={strip} className={cn("flex flex-wrap items-center gap-6", PHONE_STRIP)}>
           {categories.map((category) => {
             const active = category.id === activeId;
             return (
-              <li key={category.id}>
+              <li key={category.id} className="shrink-0 snap-start" data-active={active || undefined}>
                 <a
                   href={`#menu-${category.id}`}
                   aria-current={active ? "location" : undefined}
                   className={cn(
-                    "text-16 flex flex-col items-center gap-1 font-semibold transition-colors",
+                    "text-14 sm:text-16 flex flex-col items-center gap-1 font-semibold whitespace-nowrap transition-colors",
                     active ? "text-brand" : "text-ink hover:text-brand",
                   )}
                 >

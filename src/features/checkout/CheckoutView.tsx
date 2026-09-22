@@ -187,7 +187,7 @@ export function CheckoutView({
   }
 
   return (
-    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-8 py-8">
+    <div className="max-w-shell mx-auto flex w-full flex-col gap-8 px-4 sm:px-8 py-8">
       <h1 className="text-32 text-ink font-semibold">{copy.title}</h1>
 
       <div className="flex flex-col gap-8 lg:flex-row">

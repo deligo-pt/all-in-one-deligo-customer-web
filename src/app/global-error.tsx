@@ -32,7 +32,7 @@ export default function GlobalError({ reset }: { reset: () => void }) {
   return (
     <html lang={BCP47[DEFAULT_LOCALE]}>
       <body className="bg-surface text-ink-strong flex min-h-screen items-center justify-center">
-        <main className="px-8 text-center">
+        <main className="px-4 sm:px-8 text-center">
           <h1 className="text-20 font-semibold">{common.appName}</h1>
           <p className="text-14 text-ink-muted mt-3">{errors.criticalError}</p>
           <button

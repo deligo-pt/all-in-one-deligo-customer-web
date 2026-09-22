@@ -82,7 +82,7 @@ export function SignInDrawer({
       // not draw (D-8).
       className="w-[min(44rem,100vw)] rounded-s-16"
       header={
-        <div className="border-line flex h-[6.875rem] shrink-0 items-center justify-between border-b px-12">
+        <div className="border-line flex h-16 shrink-0 items-center justify-between border-b px-6 sm:h-[6.875rem] sm:px-12">
           <Logo locale={outer.locale} label={appName} />
           <DrawerClose
             aria-label={closeLabel}
@@ -93,7 +93,7 @@ export function SignInDrawer({
         </div>
       }
     >
-      <div className="px-8 py-16 sm:px-12">
+      <div className="px-6 py-16 sm:px-12">
         {messages ? (
           <TranslationProvider
             locale={outer.locale}
