@@ -34,8 +34,13 @@ export async function Hero() {
   ]);
   const showUnbuilt = unbuiltVerticalsVisible();
 
+  // A `comingSoon` route is listed even where `flagged` would hide it: its
+  // page is a launch notice, so Explore lands somewhere that answers.
   const services: PickerService[] = SERVICES.filter(
-    (service) => showUnbuilt || !("flagged" in ROUTES[service.route]),
+    (service) =>
+      showUnbuilt ||
+      !("flagged" in ROUTES[service.route]) ||
+      "comingSoon" in ROUTES[service.route],
   ).map((service) => ({
     route: service.route,
     icon: service.icon,
