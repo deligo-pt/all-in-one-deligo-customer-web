@@ -199,7 +199,7 @@ function toOrder(
 const PAGE = 100;
 const MAX_PAGES = 10;
 
-/** Every order, newest first (the API's order), page by page. */
+/** Every order, newest first, with the pages fetched in parallel. */
 /**
  * The map's three points (Phase 20f).
  *
@@ -248,12 +248,27 @@ export async function readOrders(): Promise<Order[]> {
     getTranslations("orders"),
     getTranslations("checkout"),
   ]);
-  const raw: RawOrder[] = [];
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
-    const { data } = await api.get("/orders", { params: { limit: PAGE, page } });
-    raw.push(...((data?.data ?? []) as RawOrder[]));
-    if (page >= (data?.meta?.totalPage ?? 1)) break;
-  }
+  // Page 1 tells us how many there are; the rest go out together, because ten
+  // sequential round trips is what pushed this past the client's timeout.
+  const first = await api.get("/orders", { params: { limit: PAGE, page: 1 } });
+  const pages = Math.min(
+    Math.max(Number(first.data?.meta?.totalPage) || 1, 1),
+    MAX_PAGES,
+  );
+  const rest = await Promise.all(
+    Array.from({ length: pages - 1 }, (_, index) =>
+      api.get("/orders", { params: { limit: PAGE, page: index + 2 } }),
+    ),
+  );
+  const raw = [first, ...rest].flatMap(
+    (response) => (response.data?.data ?? []) as RawOrder[],
+  );
+  // Page order already puts the newest first, but the pages now land out of
+  // order, so the sort is what actually holds the promise.
+  raw.sort(
+    (a, b) =>
+      new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
+  );
   return raw.map((order) => toOrder(order, locale, t, checkout, false));
 }
 

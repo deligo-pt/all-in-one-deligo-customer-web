@@ -29,6 +29,13 @@ export type Route = {
   phase: number;
   /** A vertical with no backend evidence yet (D-6). */
   flagged?: true;
+  /**
+   * Listed in the home page's service picker even in production, where
+   * `flagged` would hide it (1 Oct 2026). The tab looks like any other; its
+   * page is a `ComingSoon` launch notice, so a customer learns it is not
+   * open yet by pressing Explore. Ride and Hotel stay hidden.
+   */
+  comingSoon?: true;
   /** A dynamic segment needs a sample value to be reachable in the route map. */
   dynamic?: true;
 };
@@ -68,14 +75,20 @@ export const ROUTES = {
     phase: 13,
     dynamic: true,
   },
-  electronics: { path: "/electronics", group: "shop", phase: 13 },
+  electronics: { path: "/electronics", group: "shop", phase: 13, comingSoon: true },
   search: { path: "/search", group: "shop", phase: 16 },
   vendor: { path: "/vendors/[vendorId]", group: "shop", phase: 7, dynamic: true },
   product: { path: "/products/[productId]", group: "shop", phase: 8, dynamic: true },
 
   ride: { path: "/ride", group: "services", phase: 14, flagged: true },
   hotel: { path: "/hotel", group: "services", phase: 14, flagged: true },
-  parcel: { path: "/parcel", group: "services", phase: 14, flagged: true },
+  parcel: {
+    path: "/parcel",
+    group: "services",
+    phase: 14,
+    flagged: true,
+    comingSoon: true,
+  },
 
   // Sign-in is a route as well as a drawer. The drawer is the design's normal
   // path and keeps the customer where they were; this is what a bookmark, a

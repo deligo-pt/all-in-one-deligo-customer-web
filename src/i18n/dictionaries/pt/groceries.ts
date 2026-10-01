@@ -35,6 +35,12 @@ const groceries = {
   electronicsBody: "Estamos a trabalhar em algo entusiasmante.",
   electronicsImageAlt:
     "Um portátil, auscultadores e um telemóvel numa secretária à noite",
+
+  parcelBadge: "Brevemente",
+  parcelTitle: "Estamos quase a chegar.",
+  parcelBody: "O envio de encomendas está a chegar à DeliGo.",
+  parcelImageAlt:
+    "Caixas de cartão com um avião, uma carrinha e um empilhador de brinquedo",
 } satisfies Record<string, string>;
 
 export default groceries;

@@ -1,5 +1,6 @@
 /**
- * The grocery vertical and the electronics launch notice (Phase 13).
+ * The grocery vertical and the launch notices — electronics (Phase 13) and
+ * parcel (1 Oct 2026), the pages the home picker's Explore opens for them.
  *
  * Only what groceries say differently. The rail, the delivery bar, the deals
  * heading and the cart panel's words are `food`'s and `cart`'s, loaded beside
@@ -38,6 +39,11 @@ const groceries = {
   electronicsTitle: "We’re Coming Soon.",
   electronicsBody: "We’re working on something exciting.",
   electronicsImageAlt: "A laptop, headphones and a phone on a desk at night",
+
+  parcelBadge: "Launching soon",
+  parcelTitle: "We’re Coming Soon.",
+  parcelBody: "Parcel delivery is on its way to DeliGo.",
+  parcelImageAlt: "Cardboard parcels with a toy plane, van and forklift",
 } satisfies Record<string, string>;
 
 export default groceries;
